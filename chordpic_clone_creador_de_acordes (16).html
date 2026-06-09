@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChordPic Studio - Creador de Diagramas de Acordes y Escalas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styled scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Animación para el halo de pulsación de nota activa */
+        @keyframes audioPulse {
+            0% {
+                r: 10px;
+                opacity: 0.9;
+                stroke-width: 1px;
+            }
+            100% {
+                r: 28px;
+                opacity: 0;
+                stroke-width: 3px;
+            }
+        }
+        .audio-pulse-ring {
+            animation: audioPulse 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased">
+
+    <!-- Root target for React App -->
+    <div id="root" class="min-h-screen flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const INTERVAL_DEGREES = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
+        
+        const NOTE_TO_SEMITONE = {
+            'c': 0, 'c#': 1, 'db': 1, 'd': 2, 'd#': 3, 'eb': 3, 'e': 4, 'f': 5, 'f#': 6, 'gb': 6, 'g': 7, 'g#': 8, 'ab': 8, 'a': 9, 'a#': 10, 'bb': 10, 'b': 11
+        };
+
+        const COMMON_FRETS = [1, 3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
+
+        // Tipografías admitidas
+        const FONTS_LIST = [
+            { id: "Inter, sans-serif", name: "Inter (Limpia)" },
+            { id: "Georgia, serif", name: "Georgia (Elegante)" },
+            { id: "Courier New, monospace", name: "Courier (Código)" },
+            { id: "Times New Roman, serif", name: "Times (Solemne)" },
+            { id: "Trebuchet MS, sans-serif", name: "Trebuchet (Equilibrada)" }
+        ];
+
+        // Valores de diseño iniciales por defecto optimizados para el mástil delgado
+        const DEFAULT_STYLE = {
+            backgroundColor: "#ffffff",
+            gridColor: "#1e293b",
+            textColor: "#0f172a",
+            dotTextColor: "#ffffff",
+            fontFamily: "Inter, sans-serif",
+            lineWidth: 1.5,
+            dotRadius: 10,
+            titleFontSize: 22,
+            fretboardRadius: 16,
+            baseFingerColor: "#2563eb"
+        };
+
+        const DEFAULT_INTERVAL_COLORS = {
+            "1": "#dc2626", // Tónica
+            "2": "#f97316", // Segundas
+            "3": "#eab308", // Terceras
+            "4": "#a855f7", // Cuartas
+            "5": "#2563eb", // Quintas
+            "6": "#06b6d4", // Sextas
+            "7": "#db2777"  // Séptimas
+        };
+
+        function parseNoteToSemi(noteStr) {
+            if (!noteStr) return 0;
+            const normalized = noteStr.trim().toLowerCase();
+            return NOTE_TO_SEMITONE[normalized] ?? 0;
+        }
+
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        // --- SISTEMA DE RESOLUCIÓN DE MIDI A FRECUENCIAS Y OCTAVAS REALES ---
+        const getStringBaseMIDI = (noteStr, idx, numStrings) => {
+            const standard6 = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 E4
+            const standard4Bass = [28, 33, 38, 43];     // E1 A1 D2 G2
+            const standard4Uke = [67, 60, 64, 69];      // G4 C4 E4 A4
+            const standard5Bass = [23, 28, 33, 38, 43];  // B0 E1 A1 D2 G2
+            const standard7 = [35, 40, 45, 50, 55, 59, 64]; // B1 E2 A2 D3 G3 B3 E4
+            const standard8 = [30, 35, 40, 45, 50, 55, 59, 64]; // F#1 B1 E2 A2 D3 G3 B3 E4
+            
+            if (numStrings === 6) return standard6[idx] !== undefined ? standard6[idx] : 40 + idx * 5;
+            if (numStrings === 4) {
+                if (noteStr === 'g' || noteStr === 'G' || noteStr === 'A' || noteStr === 'a') {
+                    return standard4Uke[idx]; // Ukelele
+                }
+                return standard4Bass[idx]; // Bajo de 4 cuerdas
+            }
+            if (numStrings === 5) return standard5Bass[idx] !== undefined ? standard5Bass[idx] : 23 + idx * 5;
+            if (numStrings === 7) return standard7[idx] !== undefined ? standard7[idx] : 35 + idx * 5;
+            if (numStrings === 8) return standard8[idx] !== undefined ? standard8[idx] : 30 + idx * 5;
+            
+            const baseNote = parseNoteToSemi(noteStr);
+            return 40 + baseNote + idx * 5;
+        };
+
+        // --- SINTETIZADOR DE CUERDA PULSADA CON WEB AUDIO API ---
+        class InstrumentSynth {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playNote(midiNote, duration = 1.0, delay = 0) {
+                this.init();
+                const now = this.ctx.currentTime + delay;
+                const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+
+                if (freq <= 0 || freq > 20000) return;
+
+                const oscWood = this.ctx.createOscillator();
+                oscWood.type = 'triangle';
+                oscWood.frequency.setValueAtTime(freq, now);
+
+                const oscCore = this.ctx.createOscillator();
+                oscCore.type = 'sine';
+                oscCore.frequency.setValueAtTime(freq, now);
+
+                const oscClick = this.ctx.createOscillator();
+                oscClick.type = 'sawtooth';
+                oscClick.frequency.setValueAtTime(freq * 2, now);
+
+                const gainWood = this.ctx.createGain();
+                const gainCore = this.ctx.createGain();
+                const gainClick = this.ctx.createGain();
+
+                const lowpass = this.ctx.createBiquadFilter();
+                lowpass.type = 'lowpass';
+                lowpass.frequency.setValueAtTime(freq * 4, now);
+                lowpass.frequency.exponentialRampToValueAtTime(freq * 1.2, now + 0.4);
+
+                gainWood.gain.setValueAtTime(0, now);
+                gainWood.gain.linearRampToValueAtTime(0.24, now + 0.01);
+                gainWood.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                gainCore.gain.setValueAtTime(0, now);
+                gainCore.gain.linearRampToValueAtTime(0.18, now + 0.015);
+                gainCore.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.85);
+
+                gainClick.gain.setValueAtTime(0, now);
+                gainClick.gain.linearRampToValueAtTime(0.06, now + 0.002);
+                gainClick.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+                oscWood.connect(gainWood);
+                oscCore.connect(gainCore);
+                oscClick.connect(gainClick);
+
+                gainWood.connect(lowpass);
+                gainCore.connect(lowpass);
+                gainClick.connect(lowpass);
+
+                lowpass.connect(this.ctx.destination);
+
+                oscWood.start(now);
+                oscCore.start(now);
+                oscClick.start(now);
+
+                oscWood.stop(now + duration + 0.1);
+                oscCore.stop(now + duration + 0.1);
+                oscClick.stop(now + duration + 0.1);
+            }
+        }
+
+        const synthInstance = new InstrumentSynth();
+
+        const SCALE_PRESETS = [
+            { id: "major", name: "Mayor (Jónica)", intervals: [0, 2, 4, 5, 7, 9, 11] },
+            { id: "minor", name: "Menor Natural (Eólica)", intervals: [0, 2, 3, 5, 7, 8, 10] },
+            { id: "harmonic_minor", name: "Menor Armónica", intervals: [0, 2, 3, 5, 7, 8, 11] },
+            { id: "melodic_minor", name: "Menor Melódica", intervals: [0, 2, 3, 5, 7, 9, 11] },
+            { id: "pentatonic_major", name: "Pentatónica Mayor", intervals: [0, 2, 4, 7, 9] },
+            { id: "pentatonic_minor", name: "Pentatónica Menor", intervals: [0, 3, 5, 7, 10] },
+            { id: "blues", name: "Escala de Blues", intervals: [0, 3, 5, 6, 7, 10] },
+            { id: "dorian", name: "Modo Dórico", intervals: [0, 2, 3, 5, 7, 9, 10] },
+            { id: "phrygian", name: "Modo Frigio", intervals: [0, 1, 3, 5, 7, 8, 10] },
+            { id: "lydian", name: "Modo Lidio", intervals: [0, 2, 4, 6, 7, 9, 11] },
+            { id: "mixolydian", name: "Modo Mixolidio", intervals: [0, 2, 4, 5, 7, 9, 10] },
+            { id: "locrian", name: "Modo Locrio", intervals: [0, 1, 3, 5, 6, 8, 10] }
+        ];
+
+        const ARPEGGIO_PRESETS = [
+            { id: "major", name: "Tríada Mayor", intervals: [0, 4, 7] },
+            { id: "minor", name: "Tríada Menor", intervals: [0, 3, 7] },
+            { id: "dim", name: "Tríada Disminuida", intervals: [0, 3, 6] },
+            { id: "aug", name: "Tríada Aumentada", intervals: [0, 4, 8] },
+            { id: "maj7", name: "Séptima Mayor (Maj7)", intervals: [0, 4, 7, 11] },
+            { id: "dom7", name: "Dominante (7)", intervals: [0, 4, 7, 10] },
+            { id: "min7", name: "Séptima Menor (m7)", intervals: [0, 3, 7, 10] },
+            { id: "m7b5", name: "Semidisminuido (m7b5)", intervals: [0, 3, 6, 10] },
+            { id: "dim7", name: "Disminuido 7 (dim7)", intervals: [0, 3, 6, 9] }
+        ];
+
+        const PRESETS = [
+            {
+                name: "C",
+                numStrings: 6,
+                numFrets: 5,
+                startingFret: 1,
+                tuning: ["E", "A", "D", "G", "B", "e"],
+                dots: [
+                    { s: 1, f: 3, finger: "3" }, 
+                    { s: 2, f: 2, finger: "2" }, 
+                    { s: 4, f: 1, finger: "1" }  
+                ],
+                stringStates: ["muted", "none", "none", "open", "none", "open"],
+                barres: []
+            },
+            {
+                name: "A",
+                numStrings: 6,
+                numFrets: 5,
+                startingFret: 1,
+                tuning: ["E", "A", "D", "G", "B", "e"],
+                dots: [
+                    { s: 2, f: 2, finger: "1" },
+                    { s: 3, f: 2, finger: "2" },
+                    { s: 4, f: 2, finger: "3" }
+                ],
+                stringStates: ["muted", "open", "none", "none", "none", "open"],
+                barres: []
+            },
+            {
+                name: "G",
+                numStrings: 6,
+                numFrets: 5,
+                startingFret: 1,
+                tuning: ["E", "A", "D", "G", "B", "e"],
+                dots: [
+                    { s: 0, f: 3, finger: "2" },
+                    { s: 1, f: 2, finger: "1" },
+                    { s: 4, f: 3, finger: "3" },
+                    { s: 5, f: 3, finger: "4" }
+                ],
+                stringStates: ["none", "none", "open", "open", "none", "none"],
+                barres: []
+            },
+            {
+                name: "E",
+                numStrings: 6,
+                numFrets: 5,
+                startingFret: 1,
+                tuning: ["E", "A", "D", "G", "B", "e"],
+                dots: [
+                    { s: 1, f: 2, finger: "2" },
+                    { s: 2, f: 2, finger: "3" },
+                    { s: 3, f: 1, finger: "1" }
+                ],
+                stringStates: ["open", "none", "none", "none", "open", "open"],
+                barres: []
+            },
+            {
+                name: "D",
+                numStrings: 6,
+                numFrets: 5,
+                startingFret: 1,
+                tuning: ["E", "A", "D", "G", "B", "e"],
+                dots: [
+                    { s: 3, f: 2, finger: "1" },
+                    { s: 4, f: 3, finger: "3" },
+                    { s: 5, f: 2, finger: "2" }
+                ],
+                stringStates: ["muted", "muted", "open", "none", "none", "none"],
+                barres: []
+            }
+        ];
+
+        const TUNING_PRESETS = {
+            4: [
+                { name: "Estándar (Bajo)", notes: ["E", "A", "D", "G"] },
+                { name: "Estándar (Ukelele)", notes: ["G", "C", "E", "A"] }
+            ],
+            5: [
+                { name: "Estándar (Bajo 5c)", notes: ["B", "E", "A", "D", "G"] }
+            ],
+            6: [
+                { name: "Estándar (E A D G B e)", notes: ["E", "A", "D", "G", "B", "e"] },
+                { name: "Drop D (D A D G B e)", notes: ["D", "A", "D", "G", "B", "e"] },
+                { name: "DADGAD", notes: ["D", "A", "D", "G", "A", "d"] }
+            ],
+            7: [
+                { name: "Estándar 7c (B E A D G B e)", notes: ["B", "E", "A", "D", "G", "B", "e"] }
+            ],
+            8: [
+                { name: "Estándar 8c (F# B E A D G B e)", notes: ["F#", "B", "E", "A", "D", "G", "B", "e"] }
+            ]
+        };
+
+        function App() {
+            const [appMode, setAppMode] = useState("chord"); // 'chord', 'scale', 'arpeggio'
+            const [chordName, setChordName] = useState("C");
+            const [autoUpdateTitle, setAutoUpdateTitle] = useState(true);
+            const [numStrings, setNumStrings] = useState(6);
+            const [numFrets, setNumFrets] = useState(5);
+            const [startingFret, setStartingFret] = useState(1);
+            
+            const [dots, setDots] = useState(PRESETS[0].dots);
+            const [stringStates, setStringStates] = useState(PRESETS[0].stringStates);
+            const [barres, setBarres] = useState([]);
+            const [tuning, setTuning] = useState(PRESETS[0].tuning);
+            const [selectedTuningName, setSelectedTuningName] = useState("Estándar (E A D G B e)");
+
+            // States for Scale Mode
+            const [scaleRoot, setScaleRoot] = useState(0); 
+            const [scaleType, setScaleType] = useState("major"); 
+            const [customScaleIntervals, setCustomScaleIntervals] = useState([true, false, true, false, true, true, false, true, false, true, false, true]); 
+
+            // States for Arpeggio Mode
+            const [arpeggioRoot, setArpeggioRoot] = useState(0);
+            const [arpeggioType, setArpeggioType] = useState("maj7");
+            
+            const [scaleDisplayMode, setScaleDisplayMode] = useState("note"); 
+            const [chordDisplayMode, setChordDisplayMode] = useState("diagram"); // 'diagram', 'note', 'degree'
+            const [fretNumPosition, setFretNumPosition] = useState("left");
+
+            const [toast, setToast] = useState({ show: false, message: "" });
+
+            // Menús laterales activos (izquierda y derecha)
+            const [activeLeftTab, setActiveLeftTab] = useState("theory"); // 'theory', 'instrument'
+            const [activeRightTab, setActiveRightTab] = useState("style"); // 'style', 'intervals', 'export'
+
+            // MÓVIL: Control de paneles laterales (desplegables)
+            const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
+            const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
+
+            const [detectedChord, setDetectedChord] = useState("C");
+            const [detectedRootSemi, setDetectedRootSemi] = useState(0);
+
+            // --- ESTADO DE ARRASTRE DE CEJILLA ---
+            const [dragStart, setDragStart] = useState(null); // { s: stringIndex, f: fretNum }
+            const [dragCurrent, setDragCurrent] = useState(null); // { s: stringIndex, f: fretNum }
+
+            // --- AUDIO INTERACTIVO Y ANIMACIÓN ---
+            const [isPlayingSequence, setIsPlayingSequence] = useState(false);
+            const [strumSpeed, setStrumSpeed] = useState(150); // Delay en milisegundos
+            const [notePulse, setNotePulse] = useState(null); // { s: stringIndex, f: fretNum } para destello
+
+            // --- ESTADO DE LEYENDA DE INTERVALOS ---
+            const [showLegend, setShowLegend] = useState(true);
+
+            // --- ESTADOS DINÁMICOS DEL EDITOR DE ESTILO ---
+            const [bgStyleColor, setBgStyleColor] = useState(DEFAULT_STYLE.backgroundColor);
+            const [gridStyleColor, setGridStyleColor] = useState(DEFAULT_STYLE.gridColor);
+            const [textStyleColor, setTextStyleColor] = useState(DEFAULT_STYLE.textColor);
+            const [fontFamilyStyle, setFontFamilyStyle] = useState(DEFAULT_STYLE.fontFamily);
+            const [dotRadiusStyle, setDotRadiusStyle] = useState(DEFAULT_STYLE.dotRadius);
+            const [lineWidthStyle, setLineWidthStyle] = useState(DEFAULT_STYLE.lineWidth);
+            const [baseFingerStyleColor, setBaseFingerStyleColor] = useState(DEFAULT_STYLE.baseFingerColor);
+
+            const [intervalColors, setIntervalColors] = useState(DEFAULT_INTERVAL_COLORS);
+
+            const getIntervalColor = (degreeStr) => {
+                if (!degreeStr) return baseFingerStyleColor;
+                if (degreeStr.includes("1")) return intervalColors["1"];
+                if (degreeStr.includes("2")) return intervalColors["2"];
+                if (degreeStr.includes("3")) return intervalColors["3"];
+                if (degreeStr.includes("4")) return intervalColors["4"];
+                if (degreeStr.includes("5")) return intervalColors["5"];
+                if (degreeStr.includes("6")) return intervalColors["6"];
+                if (degreeStr.includes("7")) return intervalColors["7"];
+                return baseFingerStyleColor;
+            };
+
+            const resetToDefaultStyle = () => {
+                setBgStyleColor(DEFAULT_STYLE.backgroundColor);
+                setGridStyleColor(DEFAULT_STYLE.gridColor);
+                setTextStyleColor(DEFAULT_STYLE.textColor);
+                setFontFamilyStyle(DEFAULT_STYLE.fontFamily);
+                setDotRadiusStyle(DEFAULT_STYLE.dotRadius);
+                setLineWidthStyle(DEFAULT_STYLE.lineWidth);
+                setBaseFingerStyleColor(DEFAULT_STYLE.baseFingerColor);
+                setIntervalColors(DEFAULT_INTERVAL_COLORS);
+                showToast("Estilos restablecidos al diseño por defecto");
+            };
+
+            useEffect(() => {
+                const defaultTunings = ["E", "A", "D", "G", "B", "e", "b", "d"];
+                
+                const availablePresets = TUNING_PRESETS[numStrings];
+                if (availablePresets && availablePresets.length > 0) {
+                    setTuning(availablePresets[0].notes);
+                    setSelectedTuningName(availablePresets[0].name);
+                } else {
+                    const newTuning = [];
+                    for (let i = 0; i < numStrings; i++) {
+                        newTuning.push(defaultTunings[i % defaultTunings.length]);
+                    }
+                    setTuning(newTuning);
+                    setSelectedTuningName("Personalizada");
+                }
+
+                if (stringStates.length !== numStrings) {
+                    const newStates = [];
+                    for (let i = 0; i < numStrings; i++) {
+                        newStates.push("none");
+                    }
+                    setStringStates(newStates);
+                }
+            }, [numStrings]);
+
+            useEffect(() => {
+                if (appMode === "chord") {
+                    const result = analyzeCurrentChord();
+                    setDetectedChord(result.name);
+                    setDetectedRootSemi(result.rootSemi);
+
+                    if (autoUpdateTitle) {
+                        if (result.name && !result.name.includes("Ninguno") && !result.name.includes("Desconocido")) {
+                            setChordName(result.name);
+                        } else if (result.name && result.name.includes("Ninguno")) {
+                            setChordName("Mástil Vacío");
+                        } else if (result.name && result.name.includes("Desconocido")) {
+                            setChordName("Acorde");
+                        }
+                    }
+                } else if (appMode === "scale") {
+                    if (autoUpdateTitle) {
+                        const rootName = NOTE_NAMES[scaleRoot];
+                        const typeName = scaleType === "custom" ? "Escala Personalizada" : SCALE_PRESETS.find(p => p.id === scaleType)?.name;
+                        setChordName(`${rootName} ${typeName}`);
+                    }
+                } else if (appMode === "arpeggio") {
+                    if (autoUpdateTitle) {
+                        const rootName = NOTE_NAMES[arpeggioRoot];
+                        const typeName = ARPEGGIO_PRESETS.find(p => p.id === arpeggioType)?.name;
+                        setChordName(`Arpegio: ${rootName} ${typeName}`);
+                    }
+                }
+            }, [dots, stringStates, barres, tuning, numStrings, startingFret, autoUpdateTitle, appMode, scaleRoot, scaleType, customScaleIntervals, arpeggioRoot, arpeggioType]);
+
+            const analyzeCurrentChord = () => {
+                const sounding = [];
+                for (let s = 0; s < numStrings; s++) {
+                    const state = stringStates[s];
+                    if (state === "muted") continue;
+
+                    const tuningNote = tuning[s];
+                    const baseSemi = parseNoteToSemi(tuningNote);
+
+                    const dot = dots.find(d => d.s === s);
+                    if (dot) {
+                        const absFret = startingFret + dot.f - 1;
+                        sounding.push({
+                            semitone: (baseSemi + absFret) % 12,
+                            stringIndex: s,
+                            isFretted: true,
+                            absoluteFret: absFret
+                        });
+                        continue;
+                    }
+
+                    const barre = barres.find(b => s >= b.fromString && s <= b.toString);
+                    if (barre) {
+                        const absFret = startingFret + barre.fret - 1;
+                        sounding.push({
+                            semitone: (baseSemi + absFret) % 12,
+                            stringIndex: s,
+                            isFretted: true,
+                            absoluteFret: absFret
+                        });
+                        continue;
+                    }
+
+                    if (state === "open" || state === "none") {
+                        if (state === "open") {
+                            sounding.push({
+                                semitone: baseSemi % 12,
+                                stringIndex: s,
+                                isFretted: false,
+                                absoluteFret: 0
+                            });
+                        }
+                    }
+                }
+
+                if (sounding.length === 0) return { name: "Ninguno (Mástil Vacío)", rootSemi: 0 };
+
+                sounding.sort((a, b) => a.stringIndex - b.stringIndex);
+                const bassSemi = sounding[0].semitone;
+                const bassNoteName = NOTE_NAMES[bassSemi];
+
+                const uniquePitches = [...new Set(sounding.map(s => s.semitone))];
+
+                // --- LIBRERÍA MATEMÁTICA EXPANDIDA DE FÓRMULAS DE ACORDES ---
+                const formulas = [
+                    // --- TRÍADAS Y BÁSICOS ---
+                    { name: "", intervals: [0, 4, 7] },                     // Mayor
+                    { name: "m", intervals: [0, 3, 7] },                    // Menor
+                    { name: "sus4", intervals: [0, 5, 7] },                 // Suspendido 4
+                    { name: "sus2", intervals: [0, 2, 7] },                 // Suspendido 2
+                    { name: "5", intervals: [0, 7] },                       // Quinta (Power Chord)
+                    { name: "dim", intervals: [0, 3, 6] },                  // Disminuido
+                    { name: "aug", intervals: [0, 4, 8] },                  // Aumentado
+
+                    // --- SÉPTIMAS ---
+                    { name: "7", intervals: [0, 4, 7, 10] },                // Dominante 7 (Completo)
+                    { name: "7", intervals: [0, 4, 10] },                   // Dominante 7 (Sin 5a)
+                    { name: "maj7", intervals: [0, 4, 7, 11] },              // Mayor 7 (Completo)
+                    { name: "maj7", intervals: [0, 4, 11] },                // Mayor 7 (Sin 5a)
+                    { name: "m7", intervals: [0, 3, 7, 10] },                // Menor 7 (Completo)
+                    { name: "m7", intervals: [0, 3, 10] },                  // Menor 7 (Sin 5a)
+                    { name: "m(maj7)", intervals: [0, 3, 7, 11] },           // Menor/Sexta Séptima
+                    { name: "m(maj7)", intervals: [0, 3, 11] },             // Menor/Sexta Séptima (Sin 5a)
+                    { name: "m7b5", intervals: [0, 3, 6, 10] },             // Semidisminuido (Menor 7 bemol 5)
+                    { name: "dim7", intervals: [0, 3, 6, 9] },              // Disminuido completo (Disminuido 7)
+                    { name: "7#5", intervals: [0, 4, 8, 10] },              // Aumentado Dominante 7
+                    { name: "maj7#5", intervals: [0, 4, 8, 11] },            // Aumentado Mayor 7
+
+                    // --- ACORDES DE SEXTA ---
+                    { name: "6", intervals: [0, 4, 7, 9] },                  // Sexta Mayor
+                    { name: "6", intervals: [0, 4, 9] },                    // Sexta Mayor (Sin 5a)
+                    { name: "m6", intervals: [0, 3, 7, 9] },                 // Sexta Menor
+                    { name: "m6", intervals: [0, 3, 9] },                   // Sexta Menor (Sin 5a)
+                    { name: "6/9", intervals: [0, 2, 4, 7, 9] },             // Sexta/Nona Mayor
+                    { name: "6/9", intervals: [0, 2, 4, 9] },               // Sexta/Nona Mayor (Sin 5a)
+                    { name: "m6/9", intervals: [0, 2, 3, 7, 9] },            // Sexta/Nona Menor
+                    { name: "m6/9", intervals: [0, 2, 3, 9] },              // Sexta/Nona Menor (Sin 5a)
+
+                    // --- NOVENAS ---
+                    { name: "9", intervals: [0, 2, 4, 7, 10] },             // Dominante 9 (Completo)
+                    { name: "9", intervals: [0, 2, 4, 10] },                // Dominante 9 (Sin 5a)
+                    { name: "maj9", intervals: [0, 2, 4, 7, 11] },           // Mayor 9 (Completo)
+                    { name: "maj9", intervals: [0, 2, 4, 11] },             // Mayor 9 (Sin 5a)
+                    { name: "m9", intervals: [0, 2, 3, 7, 10] },             // Menor 9 (Completo)
+                    { name: "m9", intervals: [0, 2, 3, 10] },               // Menor 9 (Sin 5a)
+                    { name: "m(maj9)", intervals: [0, 2, 3, 7, 11] },        // Menor Mayor 9
+                    { name: "m(maj9)", intervals: [0, 2, 3, 11] },          // Menor Mayor 9 (Sin 5a)
+                    { name: "9b5", intervals: [0, 2, 4, 6, 10] },            // Dominante 9 bemol 5
+                    { name: "9#5", intervals: [0, 2, 4, 8, 10] },            // Dominante 9 sostenido 5
+                    { name: "7b9", intervals: [0, 1, 4, 7, 10] },            // Dominante 7 bemol 9
+                    { name: "7b9", intervals: [0, 1, 4, 10] },              // Dominante 7 bemol 9 (Sin 5a)
+                    { name: "7#9", intervals: [0, 3, 4, 7, 10] },            // Dominante 7 sostenido 9 ("Hendrix Chord")
+                    { name: "7#9", intervals: [0, 3, 4, 10] },              // Dominante 7 sostenido 9 (Sin 5a)
+
+                    // --- ONCEVAS ---
+                    { name: "11", intervals: [0, 2, 4, 5, 7, 10] },          // Onceva Dominante
+                    { name: "11", intervals: [0, 2, 5, 10] },               // Onceva Dominante (Sin 3/5a)
+                    { name: "maj11", intervals: [0, 2, 4, 5, 7, 11] },       // Onceva Mayor
+                    { name: "maj11", intervals: [0, 2, 5, 11] },            // Onceva Mayor (Sin 3/5a)
+                    { name: "m11", intervals: [0, 2, 3, 5, 7, 10] },         // Onceva Menor
+                    { name: "m11", intervals: [0, 2, 3, 5, 10] },           // Onceva Menor (Sin 5a)
+                    { name: "maj7#11", intervals: [0, 2, 4, 6, 7, 11] },     // Lidio (maj7#11)
+                    { name: "maj7#11", intervals: [0, 4, 6, 11] },           // Lidio (maj7#11 sin 5a)
+                    { name: "maj7#11", intervals: [0, 2, 4, 6, 11] },        // Lidio (maj9#11 sin 5a)
+
+                    // --- TRECEVAS ---
+                    { name: "13", intervals: [0, 2, 4, 7, 9, 10] },          // Treceva Dominante
+                    { name: "13", intervals: [0, 2, 4, 9, 10] },            // Treceva Dominante (Sin 5a)
+                    { name: "13", intervals: [0, 4, 9, 10] },               // Treceva Dominante (Voicing de Jazz común)
+                    { name: "maj13", intervals: [0, 2, 4, 7, 9, 11] },       // Treceva Mayor
+                    { name: "maj13", intervals: [0, 2, 4, 9, 11] },         // Treceva Mayor (Sin 5a)
+                    { name: "m13", intervals: [0, 2, 3, 7, 9, 10] },         // Treceva Menor
+                    { name: "m13", intervals: [0, 2, 3, 9, 10] },           // Treceva Menor (Sin 5a)
+
+                    // --- NOTAS AÑADIDAS (ADD) ---
+                    { name: "add9", intervals: [0, 2, 4, 7] },               // Nona Añadida Mayor
+                    { name: "add9", intervals: [0, 2, 4] },                 // Nona Añadida Mayor (Sin 5a)
+                    { name: "madd9", intervals: [0, 2, 3, 7] },              // Nona Añadida Menor
+                    { name: "madd9", intervals: [0, 2, 3] },                // Nona Añadida Menor (Sin 5a)
+                    { name: "add11", intervals: [0, 4, 5, 7] },              // Onceva Añadida Mayor
+                    { name: "add11", intervals: [0, 4, 5] },                // Onceva Añadida Mayor (Sin 5a)
+                    { name: "madd11", intervals: [0, 3, 5, 7] },             // Onceva Añadida Menor
+                    { name: "madd11", intervals: [0, 3, 5] },               // Onceva Añadida Menor (Sin 5a)
+
+                    // --- SUSPENDIDOS EXTENDIDOS ---
+                    { name: "7sus4", intervals: [0, 5, 7, 10] },             // Dominante 7 Suspendido 4
+                    { name: "7sus4", intervals: [0, 5, 10] },               // Dominante 7 Suspendido 4 (Sin 5a)
+                    { name: "9sus4", intervals: [0, 2, 5, 7, 10] },          // Dominante 9 Suspendido 4
+                    { name: "9sus4", intervals: [0, 2, 5, 10] },            // Dominante 9 Suspendido 4 (Sin 5a)
+                    { name: "13sus4", intervals: [0, 2, 5, 7, 9, 10] }       // Dominante 13 Suspendido 4
+                ];
+
+                let bestChord = null;
+
+                for (const root of uniquePitches) {
+                    const relIntervals = uniquePitches.map(p => (p - root + 12) % 12);
+                    relIntervals.sort((a, b) => a - b);
+
+                    for (const formula of formulas) {
+                        if (arraysEqual(relIntervals, formula.intervals)) {
+                            bestChord = {
+                                root: NOTE_NAMES[root],
+                                type: formula.name,
+                                bass: NOTE_NAMES[root] === bassNoteName ? "" : bassNoteName,
+                                rootSemi: root
+                            };
+                            break;
+                        }
+                    }
+                    if (bestChord) break;
+                }
+
+                if (!bestChord) {
+                    const notesString = uniquePitches.map(p => NOTE_NAMES[p]).join(", ");
+                    return { name: `Desconocido (${notesString})`, rootSemi: uniquePitches[0] };
+                }
+
+                let chordString = bestChord.root + bestChord.type;
+                if (bestChord.bass) {
+                    chordString += "/" + bestChord.bass;
+                }
+                return { name: chordString, rootSemi: bestChord.rootSemi };
+            };
+
+            const handleTuningPresetChange = (notesArray, name) => {
+                setTuning(notesArray);
+                setSelectedTuningName(name);
+                showToast(`Afinación cambiada a: ${name}`);
+            };
+
+            const showToast = (msg) => {
+                setToast({ show: true, message: msg });
+                setTimeout(() => {
+                    setToast({ show: false, message: "" });
+                }, 3000);
+            };
+
+            // --- EVENTOS DE INTERACCIÓN AUDIBLE ---
+            const playSingleNoteAudio = (stringIndex, fretNum) => {
+                synthInstance.init();
+                const baseMidi = getStringBaseMIDI(tuning[stringIndex], stringIndex, numStrings);
+                const absMidi = baseMidi + fretNum;
+                synthInstance.playNote(absMidi);
+
+                // Disparar destello visual
+                setNotePulse({ s: stringIndex, f: fretNum });
+                setTimeout(() => setNotePulse(null), 400);
+            };
+
+            // --- NUEVA LÓGICA DE RATÓN / GESTO ARRASTRAR PARA CEJILLAS ---
+            const handleMouseDown = (sIdx, fretNum) => {
+                if (appMode !== "chord") return;
+                setDragStart({ s: sIdx, f: fretNum });
+                setDragCurrent({ s: sIdx, f: fretNum });
+            };
+
+            const handleMouseEnter = (sIdx, fretNum) => {
+                if (appMode !== "chord" || !dragStart) return;
+                if (dragStart.f === fretNum) {
+                    setDragCurrent({ s: sIdx, f: fretNum });
+                }
+            };
+
+            const handleMouseUp = () => {
+                if (appMode !== "chord" || !dragStart || !dragCurrent) return;
+
+                const sIdx = dragStart.s;
+                const fretNum = dragStart.f;
+
+                if (dragStart.s === dragCurrent.s) {
+                    // MEJORA: Detectar si se hizo click sobre una cejilla existente en este traste y rango de cuerdas para eliminarla
+                    const barreIdx = barres.findIndex(b => b.fret === fretNum && sIdx >= b.fromString && sIdx <= b.toString);
+                    if (barreIdx > -1) {
+                        removeBarre(barreIdx);
+                        setDragStart(null);
+                        setDragCurrent(null);
+                        return;
+                    }
+
+                    const existingIndex = dots.findIndex(d => d.s === sIdx && d.f === fretNum);
+                    if (existingIndex > -1) {
+                        setDots(dots.filter(d => !(d.s === sIdx && d.f === fretNum)));
+                    } else {
+                        // MEJORA: Eliminar cualquier otra nota física (dot) en esta cuerda
+                        const cleanDots = dots.filter(d => d.s !== sIdx);
+                        setDots([...cleanDots, { s: sIdx, f: fretNum, finger: "" }]);
+
+                        // Conmutamos el estado al aire
+                        const updatedStates = [...stringStates];
+                        updatedStates[sIdx] = "none";
+                        setStringStates(updatedStates);
+
+                        playSingleNoteAudio(sIdx, fretNum);
+                    }
+                } else {
+                    const fromString = Math.min(dragStart.s, dragCurrent.s);
+                    const toString = Math.max(dragStart.s, dragCurrent.s);
+                    const fret = dragStart.f;
+
+                    // MEJORA: Cejilla es INMUNE, así que NO eliminamos notas (dots) ni alteramos estados al aire/muted de las cuerdas al crearla!
+                    
+                    // Eliminar cualquier cejilla previa idéntica en el mismo traste y rango
+                    let filteredBarres = barres.filter(b => !(b.fret === fret && b.fromString === fromString && b.toString === toString));
+                    
+                    const newBarre = { fromString, toString, fret, finger: "" };
+                    setBarres([...filteredBarres, newBarre]);
+                    playSingleNoteAudio(fromString, fret);
+                    showToast("Cejilla creada por arrastre");
+                }
+
+                setDragStart(null);
+                setDragCurrent(null);
+            };
+
+            // --- SOPORTE MULTI-TOQUE COMPATIBLE CON MÓVILES ---
+            const handleTouchStart = (e, sIdx, fretNum) => {
+                if (appMode !== "chord") return;
+                setDragStart({ s: sIdx, f: fretNum });
+                setDragCurrent({ s: sIdx, f: fretNum });
+            };
+
+            const handleTouchMove = (e) => {
+                if (appMode !== "chord" || !dragStart) return;
+                const svg = document.getElementById("chord-diagram-svg");
+                if (!svg) return;
+                
+                const rect = svg.getBoundingClientRect();
+                const touchX = e.touches[0].clientX - rect.left;
+                
+                const scaleX = width / rect.width;
+                const svgX = touchX * scaleX;
+                
+                let closestS = Math.round((svgX - paddingLeft) / stringSpacing);
+                closestS = Math.max(0, Math.min(numStrings - 1, closestS));
+                
+                setDragCurrent({ s: closestS, f: dragStart.f });
+            };
+
+            const removeBarre = (idx) => {
+                setBarres(barres.filter((_, i) => i !== idx));
+                showToast("Cejilla eliminada");
+            };
+
+            const toggleStringState = (stringIndex) => {
+                if (appMode !== "chord") return; 
+                
+                const states = ["none", "open", "muted"];
+                const currentIdx = states.indexOf(stringStates[stringIndex]);
+                const nextIdx = (currentIdx + 1) % states.length;
+                const nextState = states[nextIdx];
+                
+                const updated = [...stringStates];
+                updated[stringIndex] = nextState;
+                setStringStates(updated);
+
+                // MEJORA: Si la cuerda pasa a estar "open" o "muted", eliminamos puntos físicos (dots), pero la cejilla es INMUNE
+                if (nextState === "open" || nextState === "muted") {
+                    setDots(prev => prev.filter(d => d.s !== stringIndex));
+                }
+
+                if (nextState === "open") {
+                    playSingleNoteAudio(stringIndex, 0);
+                }
+            };
+
+            const changeTuningNote = (index, value) => {
+                const updated = [...tuning];
+                updated[index] = value;
+                setTuning(updated);
+                setSelectedTuningName("Personalizada");
+            };
+
+            const toggleCustomInterval = (idx) => {
+                const updated = [...customScaleIntervals];
+                updated[idx] = !updated[idx];
+                setCustomScaleIntervals(updated);
+            };
+
+            const loadPreset = (preset) => {
+                setChordName(preset.name.split(" ")[0]);
+                setNumStrings(preset.numStrings);
+                setNumFrets(preset.numFrets);
+                setStartingFret(preset.startingFret);
+                setDots(preset.dots);
+                setStringStates(preset.stringStates);
+                setBarres(preset.barres ?? []);
+                setTuning(preset.tuning);
+                setSelectedTuningName("Estándar (E A D G B e)");
+                setAutoUpdateTitle(true);
+                setAppMode("chord");
+                showToast(`Acorde ${preset.name} cargado correctamente`);
+            };
+
+            const clearAll = () => {
+                setDots([]);
+                setStringStates(Array(numStrings).fill("none"));
+                setBarres([]);
+                showToast("Mástil limpiado completamente");
+            };
+
+            // --- TEORÍA DE ESCALAS E INTERVALOS ---
+            const getActiveScaleIntervals = () => {
+                if (scaleType === "custom") {
+                    return customScaleIntervals;
+                }
+                const preset = SCALE_PRESETS.find(p => p.id === scaleType);
+                if (!preset) return Array(12).fill(false);
+                
+                const intervals = Array(12).fill(false);
+                preset.intervals.forEach(semitone => {
+                    intervals[semitone] = true;
+                });
+                return intervals;
+            };
+
+            const isNoteInScale = (pitch) => {
+                const relativeSemi = (pitch - scaleRoot + 12) % 12;
+                const activeIntervals = getActiveScaleIntervals();
+                return activeIntervals[relativeSemi];
+            };
+
+            const generateScaleRenderDots = () => {
+                if (appMode !== "scale") return [];
+                const scaleDots = [];
+
+                for (let s = 0; s < numStrings; s++) {
+                    const baseSemi = parseNoteToSemi(tuning[s]);
+                    
+                    for (let f = 1; f <= numFrets; f++) {
+                        const absFret = startingFret + f - 1;
+                        const notePitch = (baseSemi + absFret) % 12;
+                        
+                        if (isNoteInScale(notePitch)) {
+                            const relativeSemi = (notePitch - scaleRoot + 12) % 12;
+                            const isRoot = relativeSemi === 0;
+                            const label = scaleDisplayMode === "note" 
+                                ? NOTE_NAMES[notePitch] 
+                                : INTERVAL_DEGREES[relativeSemi];
+
+                            scaleDots.push({
+                                s: s,
+                                f: f,
+                                isRoot: isRoot,
+                                label: label,
+                                degreeStr: INTERVAL_DEGREES[relativeSemi]
+                            });
+                        }
+                    }
+                }
+                return scaleDots;
+            };
+
+            const generateScaleOpenNotes = () => {
+                if (appMode !== "scale") return [];
+                const openNotes = [];
+                for (let s = 0; s < numStrings; s++) {
+                    const baseSemi = parseNoteToSemi(tuning[s]) % 12;
+                    if (isNoteInScale(baseSemi)) {
+                        const relativeSemi = (baseSemi - scaleRoot + 12) % 12;
+                        const isRoot = relativeSemi === 0;
+                        const label = scaleDisplayMode === "note" 
+                            ? NOTE_NAMES[baseSemi] 
+                            : INTERVAL_DEGREES[relativeSemi];
+
+                        openNotes.push({
+                            s: s,
+                            isRoot: isRoot,
+                            label: label,
+                            degreeStr: INTERVAL_DEGREES[relativeSemi]
+                        });
+                    }
+                }
+                return openNotes;
+            };
+
+            // --- ARPEGIOS ---
+            const getActiveArpeggioIntervals = () => {
+                const preset = ARPEGGIO_PRESETS.find(p => p.id === arpeggioType);
+                if (!preset) return Array(12).fill(false);
+                
+                const intervals = Array(12).fill(false);
+                preset.intervals.forEach(semitone => {
+                    intervals[semitone] = true;
+                });
+                return intervals;
+            };
+
+            const isNoteInArpeggio = (pitch) => {
+                const relativeSemi = (pitch - arpeggioRoot + 12) % 12;
+                const activeIntervals = getActiveArpeggioIntervals();
+                return activeIntervals[relativeSemi];
+            };
+
+            const generateArpeggioRenderDots = () => {
+                if (appMode !== "arpeggio") return [];
+                const arpeggioDots = [];
+
+                for (let s = 0; s < numStrings; s++) {
+                    const baseSemi = parseNoteToSemi(tuning[s]);
+                    
+                    for (let f = 1; f <= numFrets; f++) {
+                        const absFret = startingFret + f - 1;
+                        const notePitch = (baseSemi + absFret) % 12;
+                        
+                        if (isNoteInArpeggio(notePitch)) {
+                            const relativeSemi = (notePitch - arpeggioRoot + 12) % 12;
+                            const isRoot = relativeSemi === 0;
+                            const label = scaleDisplayMode === "note" 
+                                ? NOTE_NAMES[notePitch] 
+                                : INTERVAL_DEGREES[relativeSemi];
+
+                            arpeggioDots.push({
+                                s: s,
+                                f: f,
+                                isRoot: isRoot,
+                                label: label,
+                                degreeStr: INTERVAL_DEGREES[relativeSemi]
+                            });
+                        }
+                    }
+                }
+                return arpeggioDots;
+            };
+
+            const generateArpeggioOpenNotes = () => {
+                if (appMode !== "arpeggio") return [];
+                const openNotes = [];
+                for (let s = 0; s < numStrings; s++) {
+                    const baseSemi = parseNoteToSemi(tuning[s]) % 12;
+                    if (isNoteInArpeggio(baseSemi)) {
+                        const relativeSemi = (baseSemi - arpeggioRoot + 12) % 12;
+                        const isRoot = relativeSemi === 0;
+                        const label = scaleDisplayMode === "note" 
+                            ? NOTE_NAMES[baseSemi] 
+                            : INTERVAL_DEGREES[relativeSemi];
+
+                        openNotes.push({
+                            s: s,
+                            isRoot: isRoot,
+                            label: label,
+                            degreeStr: INTERVAL_DEGREES[relativeSemi]
+                        });
+                    }
+                }
+                return openNotes;
+            };
+
+            // --- REPRODUCCIÓN SECUENCIAL DE AUDIO EN CADENA (PLAYBACK ENGINE) ---
+            const triggerStrumOrSequence = () => {
+                if (isPlayingSequence) return;
+                synthInstance.init();
+
+                let notesToPlay = [];
+
+                if (appMode === "chord") {
+                    for (let s = 0; s < numStrings; s++) {
+                        const state = stringStates[s];
+                        if (state === "muted") continue;
+
+                        const baseMidi = getStringBaseMIDI(tuning[s], s, numStrings);
+                        
+                        const dot = dots.find(d => d.s === s);
+                        if (dot) {
+                            notesToPlay.push({ s, f: dot.f, midi: baseMidi + dot.f });
+                            continue;
+                        }
+
+                        const barre = barres.find(b => s >= b.fromString && s <= b.toString);
+                        if (barre) {
+                            notesToPlay.push({ s, f: barre.fret, midi: baseMidi + barre.fret });
+                            continue;
+                        }
+
+                        if (state === "open" || state === "none") {
+                            notesToPlay.push({ s, f: 0, midi: baseMidi });
+                        }
+                    }
+                } else if (appMode === "scale") {
+                    const opens = generateScaleOpenNotes();
+                    opens.forEach(op => {
+                        const baseMidi = getStringBaseMIDI(tuning[op.s], op.s, numStrings);
+                        notesToPlay.push({ s: op.s, f: 0, midi: baseMidi });
+                    });
+
+                    const frets = generateScaleRenderDots();
+                    frets.forEach(fr => {
+                        const baseMidi = getStringBaseMIDI(tuning[fr.s], fr.s, numStrings);
+                        notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
+                    });
+
+                    notesToPlay.sort((a, b) => a.midi - b.midi);
+
+                    const uniqueNotes = [];
+                    const seenMidi = new Set();
+                    notesToPlay.forEach(item => {
+                        if (!seenMidi.has(item.midi)) {
+                            seenMidi.add(item.midi);
+                            uniqueNotes.push(item);
+                        }
+                    });
+                    notesToPlay = uniqueNotes;
+
+                } else if (appMode === "arpeggio") {
+                    const opens = generateArpeggioOpenNotes();
+                    opens.forEach(op => {
+                        const baseMidi = getStringBaseMIDI(tuning[op.s], op.s, numStrings);
+                        notesToPlay.push({ s: op.s, f: 0, midi: baseMidi });
+                    });
+
+                    const frets = generateArpeggioRenderDots();
+                    frets.forEach(fr => {
+                        const baseMidi = getStringBaseMIDI(tuning[fr.s], fr.s, numStrings);
+                        notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
+                    });
+
+                    notesToPlay.sort((a, b) => a.midi - b.midi);
+
+                    const uniqueNotes = [];
+                    const seenMidi = new Set();
+                    notesToPlay.forEach(item => {
+                        if (!seenMidi.has(item.midi)) {
+                            seenMidi.add(item.midi);
+                            uniqueNotes.push(item);
+                        }
+                    });
+                    notesToPlay = uniqueNotes;
+                }
+
+                if (notesToPlay.length === 0) {
+                    showToast("No hay notas activas para reproducir");
+                    return;
+                }
+
+                setIsPlayingSequence(true);
+
+                notesToPlay.forEach((item, index) => {
+                    const delay = (index * strumSpeed) / 1000;
+                    synthInstance.playNote(item.midi, 1.1, delay);
+
+                    setTimeout(() => {
+                        setNotePulse({ s: item.s, f: item.f });
+                    }, index * strumSpeed);
+                });
+
+                setTimeout(() => {
+                    setIsPlayingSequence(false);
+                    setNotePulse(null);
+                }, notesToPlay.length * strumSpeed + 400);
+            };
+
+            // --- LEYENDA DINÁMICA DE INTERVALOS ---
+            const renderIntervalLegend = () => {
+                if (appMode === "chord" || !showLegend) return null;
+
+                const rootPitch = appMode === "scale" ? scaleRoot : arpeggioRoot;
+                const activeIntervals = appMode === "scale" ? getActiveScaleIntervals() : getActiveArpeggioIntervals();
+
+                const degreeNames = [
+                    "Tónica / Raíz", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor",
+                    "Cuarta justa", "Quinta disminuida", "Quinta justa", "Sexta menor", "Sexta mayor",
+                    "Séptima menor", "Séptima mayor"
+                ];
+
+                const items = [];
+                activeIntervals.forEach((isActive, semitoneOffset) => {
+                    if (isActive) {
+                        const notePitch = (rootPitch + semitoneOffset) % 12;
+                        const noteName = NOTE_NAMES[notePitch];
+                        const degreeStr = INTERVAL_DEGREES[semitoneOffset];
+                        const degreeName = degreeNames[semitoneOffset];
+                        const color = getIntervalColor(degreeStr);
+
+                        items.push({
+                            degreeStr,
+                            degreeName,
+                            noteName,
+                            color
+                        });
+                    }
+                });
+
+                return (
+                    <div class="w-full xl:w-60 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3 shrink-0 shadow-lg self-stretch xl:self-auto transition-all">
+                        <h4 class="text-xs font-bold text-slate-350 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center justify-between w-full">
+                            <span class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                Leyenda de Intervalos
+                            </span>
+                            <button 
+                                onClick={() => setShowLegend(false)}
+                                class="text-slate-400 hover:text-white font-extrabold text-xs p-1 rounded hover:bg-slate-800/80 transition-colors"
+                                title="Ocultar leyenda"
+                            >
+                                ✕
+                            </button>
+                        </h4>
+                        <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                            {items.map((item, idx) => (
+                                <div key={idx} class="flex items-center justify-between text-xs py-1.5 border-b border-slate-800/40 last:border-b-0 hover:bg-slate-800/40 px-1.5 rounded-lg transition-colors">
+                                    <div class="flex items-center gap-2.5">
+                                        <span 
+                                            class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm shrink-0"
+                                            style={{ backgroundColor: item.color }}
+                                        >
+                                            {item.degreeStr}
+                                        </span>
+                                        <div class="flex flex-col">
+                                            <span class="font-semibold text-slate-200 text-[11px]">{item.degreeName}</span>
+                                            <span class="text-[9px] text-slate-400">Grado {item.degreeStr}</span>
+                                        </div>
+                                    </div>
+                                    <span class="font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 text-[10px] shrink-0">
+                                        {item.noteName}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- GEOMETRÍA LOGARÍTMICA REDISEÑADA ---
+            const width = 340; 
+            const paddingTop = 130; 
+            const paddingBottom = 60;
+            const paddingLeft = 70; 
+            const paddingRight = 70;
+
+            const baseFretHeight = 60; 
+            const minFretHeight = Math.max(25, dotRadiusStyle * 2 + 6);
+
+            const fretWeights = [];
+            const fretHeights = [];
+            let sumOfHeights = 0;
+            for (let f = 1; f <= numFrets; f++) {
+                const absFret = startingFret + f - 1;
+                const weight = Math.pow(0.955, absFret - 1);
+                const calculatedFretHeight = Math.max(minFretHeight, baseFretHeight * weight);
+                
+                fretWeights.push(weight);
+                fretHeights.push(calculatedFretHeight);
+                sumOfHeights += calculatedFretHeight;
+            }
+
+            const gridHeight = sumOfHeights;
+            const height = paddingTop + gridHeight + paddingBottom;
+
+            const gridWidth = width - paddingLeft - paddingRight; 
+            const stringSpacing = gridWidth / (numStrings - 1);
+
+            const fretYPositions = [paddingTop];
+            let currentY = paddingTop;
+            for (let f = 0; f < numFrets; f++) {
+                currentY += fretHeights[f];
+                fretYPositions.push(currentY);
+            }
+
+            const dynamicTitleFontSize = Math.min(24, Math.max(12, Math.floor(450 / (chordName.length || 1))));
+
+            return (
+                <div class="flex-1 flex flex-col bg-slate-950 text-slate-100 overflow-hidden h-full" onMouseUp={handleMouseUp} onTouchEnd={handleMouseUp}>
+                    
+                    {/* --- MAIN HEADER --- */}
+                    <header class="bg-slate-900 border-b border-slate-800/80 py-3 px-4 flex justify-between items-center z-10 shrink-0">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow shadow-indigo-500/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-md font-extrabold tracking-tight bg-gradient-to-r from-white to-indigo-300 bg-clip-text text-transparent">
+                                    ChordPic <span class="text-indigo-400 text-xs font-semibold px-1.5 py-0.5 bg-indigo-500/10 rounded ml-0.5">Studio Pro</span>
+                                </h1>
+                            </div>
+                        </div>
+
+                        {/* MODE PICKER TOGGLE */}
+                        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800/80 scale-90">
+                            <button
+                                onClick={() => { setAppMode("chord"); setAutoUpdateTitle(true); }}
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${appMode === "chord" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+                            >
+                                Acordes
+                            </button>
+                            <button
+                                onClick={() => { setAppMode("scale"); setAutoUpdateTitle(true); }}
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${appMode === "scale" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+                            >
+                                Escalas
+                            </button>
+                            <button
+                                onClick={() => { setAppMode("arpeggio"); setAutoUpdateTitle(true); }}
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${appMode === "arpeggio" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
+                            >
+                                Arpegios
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* --- MÓVIL: SUB-HEADER CON BOTONES DE NAVEGACIÓN LATERAL --- */}
+                    <div class="lg:hidden w-full flex justify-between bg-slate-900/60 border-b border-slate-800/60 px-4 py-2 shrink-0 z-10">
+                        <button 
+                            onClick={() => setIsLeftDrawerOpen(true)} 
+                            class="flex items-center gap-1.5 text-xs font-bold text-indigo-400 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800/80 hover:bg-slate-900"
+                        >
+                            🎼 Configurar
+                        </button>
+                        <button 
+                            onClick={() => setIsRightDrawerOpen(true)} 
+                            class="flex items-center gap-1.5 text-xs font-bold text-indigo-400 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800/80 hover:bg-slate-900"
+                        >
+                            🎨 Apariencia / Exportar
+                        </button>
+                    </div>
+
+                    {/* --- STUDIO LAYOUT (LEFT BAR - CANVAS CENTER - RIGHT BAR) --- */}
+                    <div class="flex-1 flex overflow-hidden w-full relative">
+                        
+                        {/* BACKDROPS FOR MOBILE DRAWERS */}
+                        {isLeftDrawerOpen && (
+                            <div onClick={() => setIsLeftDrawerOpen(false)} class="fixed inset-0 bg-black/70 z-20 lg:hidden transition-opacity" />
+                        )}
+                        {isRightDrawerOpen && (
+                            <div onClick={() => setIsRightDrawerOpen(false)} class="fixed inset-0 bg-black/70 z-20 lg:hidden transition-opacity" />
+                        )}
+
+                        {/* ========================================== */}
+                        {/* --- LEFT NAVIGATION DOCK (CONFIGURATOR) --- */}
+                        {/* ========================================== */}
+                        <div 
+                            className={`fixed inset-y-0 left-0 z-30 w-80 bg-slate-900 border-r border-slate-800/80 flex flex-col shrink-0 transition-transform duration-300 lg:translate-x-0 lg:static lg:h-auto ${
+                                isLeftDrawerOpen ? "translate-x-0" : "-translate-x-full"
+                            }`}
+                        >
+                            {/* Mobile Drawer Close Header */}
+                            <div class="flex justify-between items-center border-b border-slate-800/60 p-3 bg-slate-950/80 shrink-0 lg:hidden">
+                                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">🎼 Ajustes de Teoría</span>
+                                <button onClick={() => setIsLeftDrawerOpen(false)} class="p-1.5 text-slate-400 hover:text-white font-extrabold text-sm bg-slate-900 rounded-lg">✕</button>
+                            </div>
+
+                            {/* Tabs Switcher */}
+                            <div class="grid grid-cols-2 border-b border-slate-800/60 p-2 bg-slate-900/60 shrink-0 gap-1">
+                                <button
+                                    onClick={() => setActiveLeftTab("theory")}
+                                    class={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                        activeLeftTab === "theory" 
+                                            ? "bg-slate-800 text-indigo-400 shadow-inner" 
+                                            : "text-slate-400 hover:text-slate-200"
+                                    }`}
+                                >
+                                    🎼 Teoría & Modo
+                                </button>
+                                <button
+                                    onClick={() => setActiveLeftTab("instrument")}
+                                    class={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                        activeLeftTab === "instrument" 
+                                            ? "bg-slate-800 text-indigo-400 shadow-inner" 
+                                            : "text-slate-400 hover:text-slate-200"
+                                    }`}
+                                >
+                                    🎸 Instrumento
+                                </button>
+                            </div>
+
+                            {/* Left Tab Contents */}
+                            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                                
+                                {/* TAB: THEORY & MODES CONTENT */}
+                                {activeLeftTab === "theory" && (
+                                    <div class="space-y-4">
+                                        
+                                        {/* Dynamic Header according to Mode */}
+                                        <div class="border border-slate-800/80 bg-slate-950/50 rounded-xl p-3">
+                                            <div class="flex items-center gap-2 mb-2 text-xs font-bold tracking-wider text-indigo-400 uppercase">
+                                                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                                Configurador Armónico
+                                            </div>
+
+                                            {/* CHORD MODE CONTROLS */}
+                                            {appMode === "chord" && (
+                                                <div class="space-y-3">
+                                                    <div>
+                                                        <div class="flex justify-between items-center mb-1">
+                                                            <label class="block text-[11px] font-semibold text-slate-300">Nombre del Acorde</label>
+                                                            <div class="flex items-center gap-1 scale-90">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id="auto-title-checkbox"
+                                                                    checked={autoUpdateTitle}
+                                                                    onChange={(e) => setAutoUpdateTitle(e.target.checked)}
+                                                                    class="accent-indigo-500 rounded h-3 w-3 cursor-pointer"
+                                                                />
+                                                                <label htmlFor="auto-title-checkbox" class="text-[10px] text-slate-400 font-medium cursor-pointer">Auto</label>
+                                                            </div>
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={chordName}
+                                                            onChange={(e) => {
+                                                                setChordName(e.target.value);
+                                                                setAutoUpdateTitle(false); 
+                                                            }}
+                                                            class="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                                            placeholder="Ej: Cmaj7"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Acordes Rápidos:</span>
+                                                        <div class="grid grid-cols-3 gap-1">
+                                                            {PRESETS.map(p => (
+                                                                <button
+                                                                    key={p.name}
+                                                                    onClick={() => { loadPreset(p); setIsLeftDrawerOpen(false); }}
+                                                                    class="text-[10px] py-1 px-1.5 bg-slate-900/60 hover:bg-slate-800 rounded border border-slate-800/80 text-slate-300 transition"
+                                                                >
+                                                                    {p.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* SCALE MODE CONTROLS */}
+                                            {appMode === "scale" && (
+                                                <div class="space-y-3">
+                                                    <div class="grid grid-cols-3 gap-1.5">
+                                                        <div class="col-span-1">
+                                                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">Tónica</label>
+                                                            <select
+                                                                value={scaleRoot}
+                                                                onChange={(e) => { setScaleRoot(parseInt(e.target.value)); }}
+                                                                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white font-bold"
+                                                            >
+                                                                {NOTE_NAMES.map((name, i) => (
+                                                                    <option key={i} value={i}>{name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-span-2">
+                                                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">Escala</label>
+                                                            <select
+                                                                value={scaleType}
+                                                                onChange={(e) => { setScaleType(e.target.value); }}
+                                                                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white"
+                                                            >
+                                                                {SCALE_PRESETS.map(scale => (
+                                                                    <option key={scale.id} value={scale.id}>{scale.name}</option>
+                                                                ))}
+                                                                <option value="custom">-- Personalizada --</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="pt-1">
+                                                        <label class="block text-[10px] font-semibold text-slate-300 mb-1">Estructura del Mástil</label>
+                                                        <div class="grid grid-cols-2 gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800/80">
+                                                            <button
+                                                                onClick={() => setScaleDisplayMode("note")}
+                                                                class={`py-1 rounded text-[10px] font-bold ${scaleDisplayMode === "note" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400"}`}
+                                                            >
+                                                                Notas
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setScaleDisplayMode("degree")}
+                                                                class={`py-1 rounded text-[10px] font-bold ${scaleDisplayMode === "degree" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400"}`}
+                                                            >
+                                                                Intervalos
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {scaleType === "custom" && (
+                                                        <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800/80 space-y-1.5">
+                                                            <span class="block text-[9px] font-bold text-slate-400 uppercase">Fórmula:</span>
+                                                            <div class="grid grid-cols-4 gap-1">
+                                                                {INTERVAL_DEGREES.map((deg, idx) => (
+                                                                    <button
+                                                                        key={deg}
+                                                                        onClick={() => toggleCustomInterval(idx)}
+                                                                        class={`py-1 rounded text-[9px] font-extrabold transition-all border ${
+                                                                            customScaleIntervals[idx] 
+                                                                                ? "bg-indigo-500/10 border-indigo-500 text-indigo-300 shadow-sm" 
+                                                                                : "bg-slate-950 border-slate-850 text-slate-600"
+                                                                        }`}
+                                                                    >
+                                                                        {deg}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* MEJORA: Interruptor de leyenda de intervalos */}
+                                                    <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                                                        <span class="text-[11px] font-semibold text-slate-400">Mostrar Leyenda</span>
+                                                        <button
+                                                            onClick={() => setShowLegend(!showLegend)}
+                                                            class={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showLegend ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                                        >
+                                                            <span class={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showLegend ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* ARPEGGIOS MODE CONTROLS */}
+                                            {appMode === "arpeggio" && (
+                                                <div class="space-y-3">
+                                                    <div class="grid grid-cols-3 gap-1.5">
+                                                        <div class="col-span-1">
+                                                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">Tónica</label>
+                                                            <select
+                                                                value={arpeggioRoot}
+                                                                onChange={(e) => { setArpeggioRoot(parseInt(e.target.value)); }}
+                                                                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white font-bold"
+                                                            >
+                                                                {NOTE_NAMES.map((name, i) => (
+                                                                    <option key={i} value={i}>{name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-span-2">
+                                                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">Arpegio</label>
+                                                            <select
+                                                                value={arpeggioType}
+                                                                onChange={(e) => { setArpeggioType(e.target.value); }}
+                                                                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white"
+                                                            >
+                                                                {ARPEGGIO_PRESETS.map(arp => (
+                                                                    <option key={arp.id} value={arp.id}>{arp.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="pt-1">
+                                                        <label class="block text-[10px] font-semibold text-slate-350 mb-1">Visualizar</label>
+                                                        <div class="grid grid-cols-2 gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800/80">
+                                                            <button
+                                                                onClick={() => setScaleDisplayMode("note")}
+                                                                class={`py-1 rounded text-[10px] font-bold ${scaleDisplayMode === "note" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400"}`}
+                                                            >
+                                                                Notas
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setScaleDisplayMode("degree")}
+                                                                class={`py-1 rounded text-[10px] font-bold ${scaleDisplayMode === "degree" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400"}`}
+                                                            >
+                                                                Intervalos
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* MEJORA: Interruptor de leyenda de intervalos */}
+                                                    <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                                                        <span class="text-[11px] font-semibold text-slate-400">Mostrar Leyenda</span>
+                                                        <button
+                                                            onClick={() => setShowLegend(!showLegend)}
+                                                            class={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showLegend ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                                                        >
+                                                            <span class={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showLegend ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Helpful Quick Instructions */}
+                                        <div class="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-2">
+                                            <span class="block font-bold text-[10px] text-indigo-400 uppercase tracking-widest">¿Cómo editar?</span>
+                                            {appMode === "chord" ? (
+                                                <div class="space-y-1.5">
+                                                    <p>• <strong>Nota única por cuerda:</strong> Al colocar una nota, se cancela la anterior en esa cuerda (excepto cejillas).</p>
+                                                    <p>• <strong>Crear Cejilla:</strong> Presiona y arrastra horizontalmente a lo largo de un traste.</p>
+                                                    <p>• <strong>Eliminar Cejilla:</strong> Haz un toque sobre la barra de la cejilla.</p>
+                                                </div>
+                                            ) : (
+                                                <p>La escala o arpegio se distribuye y mapea de forma matemáticamente exacta por todo el mástil de 24 trastes.</p>
+                                            )}
+                                        </div>
+
+                                    </div>
+                                )}
+
+                                {/* TAB: INSTRUMENT CONFIG */}
+                                {activeLeftTab === "instrument" && (
+                                    <div class="space-y-4">
+                                        
+                                        {/* Basic Tuning, strings and frets */}
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3 space-y-3">
+                                            <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Geometría Física</span>
+                                            
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Cuerdas</label>
+                                                    <select
+                                                        value={numStrings}
+                                                        onChange={(e) => { setNumStrings(parseInt(e.target.value)); }}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                                                    >
+                                                        <option value={4}>4 (Ukelele/Bajo)</option>
+                                                        <option value={5}>5 (Bajo 5c)</option>
+                                                        <option value={6}>6 (Guitarra Std)</option>
+                                                        <option value={7}>7 (Extendida)</option>
+                                                        <option value={8}>8 (Rango Ext)</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Trastes</label>
+                                                    <select
+                                                        value={numFrets}
+                                                        onChange={(e) => { setNumFrets(parseInt(e.target.value)); }}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                                                    >
+                                                        {[4, 5, 6, 7, 8, 10, 12, 15, 18, 21, 24].map(n => (
+                                                            <option key={n} value={n}>{n} trastes</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Traste de Inicio</label>
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={24}
+                                                        value={startingFret}
+                                                        onChange={(e) => { setStartingFret(Math.max(1, parseInt(e.target.value) || 1)); }}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Posición Números</label>
+                                                    <select
+                                                        value={fretNumPosition}
+                                                        onChange={(e) => setFretNumPosition(e.target.value)}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                                                    >
+                                                        <option value="left">Izquierda</option>
+                                                        <option value="right">Derecha</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Custom Guitar Tuning list */}
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3 space-y-3">
+                                            <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Afinador de Cuerdas</span>
+                                            
+                                            <div>
+                                                <label class="block text-[10px] text-slate-400 mb-1">Preset de Afinación</label>
+                                                <select
+                                                    value={selectedTuningName}
+                                                    onChange={(e) => {
+                                                        const pName = e.target.value;
+                                                        const found = TUNING_PRESETS[numStrings]?.find(p => p.name === pName);
+                                                        if (found) {
+                                                            handleTuningPresetChange(found.notes, found.name);
+                                                        } else {
+                                                            setSelectedTuningName("Personalizada");
+                                                        }
+                                                    }}
+                                                    class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                                                >
+                                                    {TUNING_PRESETS[numStrings] ? (
+                                                        TUNING_PRESETS[numStrings].map(preset => (
+                                                            <option key={preset.name} value={preset.name}>{preset.name}</option>
+                                                        ))
+                                                    ) : (
+                                                        <option value="Personalizada">Personalizada</option>
+                                                    )}
+                                                    <option value="Personalizada">Afinación Libre</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="grid grid-cols-6 gap-1 pt-1">
+                                                {tuning.slice(0, numStrings).map((note, idx) => (
+                                                    <div key={idx} class="text-center">
+                                                        <span class="text-[9px] text-slate-500 block mb-0.5">C.{numStrings - idx}</span>
+                                                        <input
+                                                            type="text"
+                                                            maxLength={3}
+                                                            value={note}
+                                                            onChange={(e) => changeTuningNote(idx, e.target.value)}
+                                                            class="w-full text-center bg-slate-900 border border-slate-800 text-white rounded p-1 text-[11px] font-bold focus:outline-none"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+
+                        {/* ========================================== */}
+                        {/* --- CENTER VIEWPORT (INTERACTIVE CANVAS) --- */}
+                        {/* ========================================== */}
+                        <div class="flex-1 flex flex-col justify-between items-center p-4 md:p-6 bg-slate-950 relative overflow-hidden">
+                            
+                            {/* Interactive helper bar */}
+                            <div class="w-full flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-900/60 border border-slate-800/80 px-4 py-3 rounded-2xl z-10 shadow-lg">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    {appMode === "chord" ? (
+                                        <div class="text-xs">
+                                            <span class="text-slate-400">Acorde: </span>
+                                            <strong class="text-teal-400 font-extrabold">{detectedChord}</strong>
+                                        </div>
+                                    ) : (
+                                        <div class="text-xs">
+                                            <span class="text-slate-400">Modo: </span>
+                                            <strong class="text-indigo-400 font-extrabold">{appMode === "scale" ? "Escala Pro" : "Arpegio Pro"}</strong>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* AUDIO PLAYBACK INTEGRATION CONTROLLERS */}
+                                <div class="flex items-center gap-3 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800/65 scale-90 sm:scale-100">
+                                    <button
+                                        onClick={triggerStrumOrSequence}
+                                        disabled={isPlayingSequence}
+                                        class={`flex items-center gap-1.5 text-xs font-black px-3.5 py-1.5 rounded-lg text-white shadow-md shadow-emerald-600/20 transition-all ${
+                                            isPlayingSequence 
+                                                ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50" 
+                                                : "bg-emerald-600 hover:bg-emerald-500 hover:scale-105 active:scale-95"
+                                        }`}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                        </svg>
+                                        {appMode === "chord" ? "Rasguear Acorde" : "Reproducir Secuencia"}
+                                    </button>
+
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[9px] text-slate-500 font-bold uppercase">Tempo:</span>
+                                        <input
+                                            type="range"
+                                            min="60"
+                                            max="320"
+                                            value={strumSpeed}
+                                            onChange={(e) => setStrumSpeed(parseInt(e.target.value))}
+                                            class="w-12 sm:w-16 accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
+                                            title="Intervalo de milisegundos entre notas"
+                                        />
+                                        <span class="text-[10px] text-emerald-400 font-mono w-9 text-right font-bold">{strumSpeed}ms</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 scale-90">
+                                    {appMode === "chord" && (
+                                        <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+                                            <button
+                                                onClick={() => setChordDisplayMode("diagram")}
+                                                class={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${chordDisplayMode === "diagram" ? "bg-slate-850 text-white" : "text-slate-400"}`}
+                                            >
+                                                Diagrama
+                                            </button>
+                                            <button
+                                                onClick={() => setChordDisplayMode("note")}
+                                                class={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${chordDisplayMode === "note" ? "bg-slate-850 text-white" : "text-slate-400"}`}
+                                            >
+                                                Notas
+                                            </button>
+                                            <button
+                                                onClick={() => setChordDisplayMode("degree")}
+                                                class={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${chordDisplayMode === "degree" ? "bg-slate-850 text-white" : "text-slate-400"}`}
+                                            >
+                                                Grados
+                                            </button>
+                                        </div>
+                                    )}
+                                    {appMode === "chord" && (
+                                        <button
+                                            onClick={() => { clearAll(); }}
+                                            class="text-[10px] text-red-400 hover:text-red-300 font-bold bg-red-950/20 px-2.5 py-1.5 rounded border border-red-900/30 transition"
+                                        >
+                                            Vaciar
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Contenedor con alineación superior para evitar que se desborde el mástil alto por arriba */}
+                            <div class="flex-1 w-full flex items-start justify-center overflow-y-auto max-h-[66vh] md:max-h-[72vh] my-3 scroll-smooth relative">
+                                <div class="p-2 sm:p-4 bg-slate-900/20 rounded-3xl border border-slate-900 shadow-inner flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full">
+                                    <svg
+                                        id="chord-diagram-svg"
+                                        width={width}
+                                        height={height}
+                                        style={{
+                                            backgroundColor: bgStyleColor,
+                                            borderRadius: `${DEFAULT_STYLE.fretboardRadius}px`,
+                                            fontFamily: fontFamilyStyle,
+                                            maxWidth: '100%',
+                                            height: 'auto'
+                                        }}
+                                        viewBox={`0 0 ${width} ${height}`}
+                                        class="shadow-2xl transition-all duration-300 shrink-0 select-none"
+                                        onTouchMove={handleTouchMove}
+                                    >
+                                        <rect width={width} height={height} fill={bgStyleColor} rx={DEFAULT_STYLE.fretboardRadius} />
+
+                                        {/* Diagram Title */}
+                                        <text
+                                            x={width / 2}
+                                            y={50}
+                                            textAnchor="middle"
+                                            fill={textStyleColor}
+                                            fontSize={dynamicTitleFontSize}
+                                            fontWeight="800"
+                                        >
+                                            {chordName}
+                                        </text>
+
+                                        {/* DIBUJO DINÁMICO DE NÚMEROS DE TRASTE AL COSTADO */}
+                                        {Array.from({ length: numFrets }).map((_, idx) => {
+                                            const absFret = startingFret + idx;
+                                            const isCommon = COMMON_FRETS.includes(absFret);
+                                            const isFirst = idx === 0;
+
+                                            if (isCommon || (isFirst && startingFret > 1)) {
+                                                const y = fretYPositions[idx] + (fretYPositions[idx + 1] - fretYPositions[idx]) / 2 + 4;
+                                                const xPos = fretNumPosition === "left" ? paddingLeft - 22 : width - paddingRight + 22;
+                                                const labelText = isCommon ? `${absFret}` : `${startingFret} fr`;
+
+                                                return (
+                                                    <text
+                                                        key={`fret-marker-${absFret}`}
+                                                        x={xPos}
+                                                        y={y}
+                                                        fill={textStyleColor}
+                                                        fontSize="13"
+                                                        fontWeight="bold"
+                                                        textAnchor="middle"
+                                                        opacity={isCommon ? "1" : "0.6"}
+                                                    >
+                                                        {labelText}
+                                                    </text>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+
+                                        {/* Tuning Notes letters along top */}
+                                        {tuning.slice(0, numStrings).map((note, idx) => {
+                                            const x = paddingLeft + idx * stringSpacing;
+                                            return (
+                                                <text
+                                                    key={idx}
+                                                    x={x}
+                                                    y={paddingTop - 45}
+                                                    textAnchor="middle"
+                                                    fill={textStyleColor}
+                                                    fontSize="12"
+                                                    fontWeight="bold"
+                                                >
+                                                    {note}
+                                                </text>
+                                            );
+                                        })}
+
+                                        {/* PULSE HALO ANILLO AUDIO - Destello visual reactivo */}
+                                        {notePulse && (
+                                            <circle
+                                                cx={paddingLeft + notePulse.s * stringSpacing}
+                                                cy={notePulse.f === 0 ? (paddingTop - 20) : (fretYPositions[notePulse.f - 1] + (fretYPositions[notePulse.f] - fretYPositions[notePulse.f - 1]) / 2)}
+                                                fill="none"
+                                                stroke={getIntervalColor("1")} 
+                                                strokeWidth="1.5"
+                                                class="audio-pulse-ring"
+                                            />
+                                        )}
+
+                                        {/* GESTURE PREVIEW: Previsualización de arrastre de cejilla interactiva */}
+                                        {dragStart && dragCurrent && dragStart.f === dragCurrent.f && dragStart.s !== dragCurrent.s && (
+                                            <g>
+                                                <rect
+                                                    x={(paddingLeft + Math.min(dragStart.s, dragCurrent.s) * stringSpacing) - dotRadiusStyle}
+                                                    y={(fretYPositions[dragStart.f - 1] + (fretYPositions[dragStart.f] - fretYPositions[dragStart.f - 1]) / 2) - dotRadiusStyle}
+                                                    width={Math.abs(dragCurrent.s - dragStart.s) * stringSpacing + dotRadiusStyle * 2}
+                                                    height={dotRadiusStyle * 2}
+                                                    rx={dotRadiusStyle}
+                                                    fill={baseFingerStyleColor}
+                                                    opacity="0.5"
+                                                    stroke={textStyleColor}
+                                                    strokeWidth="1"
+                                                />
+                                            </g>
+                                        )}
+
+                                        {/* OPEN STRINGS AT FRET 0 DISPLAY */}
+                                        {appMode === "scale" ? (
+                                            generateScaleOpenNotes().map((openNote, idx) => {
+                                                const x = paddingLeft + openNote.s * stringSpacing;
+                                                const y = paddingTop - 20;
+                                                const dotColor = getIntervalColor(openNote.degreeStr);
+
+                                                return (
+                                                    <g key={idx} style={{ cursor: 'pointer' }} onClick={() => playSingleNoteAudio(openNote.s, 0)}>
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r={dotRadiusStyle - 1}
+                                                            fill={dotColor}
+                                                        />
+                                                        <text
+                                                            x={x}
+                                                            y={y + 3.5}
+                                                            textAnchor="middle"
+                                                            fill={DEFAULT_STYLE.dotTextColor}
+                                                            fontSize="9"
+                                                            fontWeight="black"
+                                                        >
+                                                            {openNote.label}
+                                                        </text>
+                                                    </g>
+                                                );
+                                            })
+                                        ) : appMode === "arpeggio" ? (
+                                            generateArpeggioOpenNotes().map((openNote, idx) => {
+                                                const x = paddingLeft + openNote.s * stringSpacing;
+                                                const y = paddingTop - 20;
+                                                const dotColor = getIntervalColor(openNote.degreeStr);
+
+                                                return (
+                                                    <g key={idx} style={{ cursor: 'pointer' }} onClick={() => playSingleNoteAudio(openNote.s, 0)}>
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r={dotRadiusStyle - 1}
+                                                            fill={dotColor}
+                                                        />
+                                                        <text
+                                                            x={x}
+                                                            y={y + 3.5}
+                                                            textAnchor="middle"
+                                                            fill={DEFAULT_STYLE.dotTextColor}
+                                                            fontSize="9"
+                                                            fontWeight="black"
+                                                        >
+                                                            {openNote.label}
+                                                        </text>
+                                                    </g>
+                                                );
+                                            })
+                                        ) : (
+                                            stringStates.slice(0, numStrings).map((state, idx) => {
+                                                const x = paddingLeft + idx * stringSpacing;
+                                                const y = paddingTop - 20;
+
+                                                if ((chordDisplayMode === "note" || chordDisplayMode === "degree") && state === "open") {
+                                                    const baseSemi = parseNoteToSemi(tuning[idx]) % 12;
+                                                    let label = "";
+                                                    const relativeSemi = (baseSemi - detectedRootSemi + 12) % 12;
+                                                    const degreeStr = INTERVAL_DEGREES[relativeSemi];
+
+                                                    if (chordDisplayMode === "note") {
+                                                        label = NOTE_NAMES[baseSemi];
+                                                    } else {
+                                                        label = degreeStr;
+                                                    }
+                                                    
+                                                    const dotColor = getIntervalColor(degreeStr);
+
+                                                    return (
+                                                        <g key={idx} style={{ cursor: 'pointer' }} onClick={() => { playSingleNoteAudio(idx, 0); toggleStringState(idx); }}>
+                                                            <circle cx={x} cy={y} r={dotRadiusStyle - 1} fill={dotColor} />
+                                                            <text
+                                                                x={x}
+                                                                y={y + 3.5}
+                                                                textAnchor="middle"
+                                                                fill={DEFAULT_STYLE.dotTextColor}
+                                                                fontSize="9"
+                                                                fontWeight="black"
+                                                            >
+                                                                {label}
+                                                            </text>
+                                                        </g>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <g key={idx} style={{ cursor: 'pointer' }} onClick={() => toggleStringState(idx)}>
+                                                        {state === "open" && (
+                                                            <circle
+                                                                cx={x}
+                                                                cy={y}
+                                                                r="6"
+                                                                fill="none"
+                                                                stroke={textStyleColor}
+                                                                strokeWidth={lineWidthStyle}
+                                                            />
+                                                        )}
+                                                        {state === "muted" && (
+                                                            <g>
+                                                                <line x1={x - 5} y1={y - 5} x2={x + 5} y2={y + 5} stroke={textStyleColor} strokeWidth={lineWidthStyle} />
+                                                                <line x1={x + 5} y1={y - 5} x2={x - 5} y2={y + 5} stroke={textStyleColor} strokeWidth={lineWidthStyle} />
+                                                            </g>
+                                                        )}
+                                                        <rect x={x - 12} y={y - 12} width="24" height="24" fill="transparent" />
+                                                    </g>
+                                                );
+                                            })
+                                        )}
+
+                                        {/* Nut line */}
+                                        {startingFret === 1 ? (
+                                            <rect
+                                                x={paddingLeft - lineWidthStyle / 2}
+                                                y={paddingTop - 4}
+                                                width={gridWidth + lineWidthStyle}
+                                                height="6"
+                                                fill={textStyleColor}
+                                            />
+                                        ) : (
+                                            <line
+                                                x1={paddingLeft}
+                                                y1={paddingTop}
+                                                x2={width - paddingRight}
+                                                y2={paddingTop}
+                                                stroke={gridStyleColor}
+                                                strokeWidth={lineWidthStyle}
+                                            />
+                                        )}
+
+                                        {/* DIBUJO DE INLAYS (Puntos guía de la guitarra) */}
+                                        {Array.from({ length: numFrets }).map((_, idx) => {
+                                            const absFret = startingFret + idx;
+                                            const y = fretYPositions[idx] + (fretYPositions[idx + 1] - fretYPositions[idx]) / 2;
+                                            const xCenter = paddingLeft + gridWidth / 2;
+                                            
+                                            if ([3, 5, 7, 9, 15, 17, 19, 21].includes(absFret)) {
+                                                return (
+                                                    <circle
+                                                        key={`inlay-${absFret}`}
+                                                        cx={xCenter}
+                                                        cy={y}
+                                                        r="4"
+                                                        fill={gridStyleColor}
+                                                        opacity="0.18"
+                                                    />
+                                                );
+                                            } else if ([12, 24].includes(absFret)) {
+                                                return (
+                                                    <g key={`inlay-${absFret}`}>
+                                                        <circle
+                                                            cx={xCenter - 14}
+                                                            cy={y}
+                                                            r="3"
+                                                            fill={gridStyleColor}
+                                                            opacity="0.18"
+                                                        />
+                                                        <circle
+                                                            cx={xCenter + 14}
+                                                            cy={y}
+                                                            r="3"
+                                                            fill={gridStyleColor}
+                                                            opacity="0.18"
+                                                        />
+                                                    </g>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+
+                                        {/* Horizontal Frets */}
+                                        {Array.from({ length: numFrets }).map((_, idx) => {
+                                            const y = fretYPositions[idx + 1];
+                                            return (
+                                                <line
+                                                    key={idx}
+                                                    x1={paddingLeft}
+                                                    y1={y}
+                                                    x2={width - paddingRight}
+                                                    y2={y}
+                                                    stroke={gridStyleColor}
+                                                    strokeWidth={lineWidthStyle}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Vertical Strings */}
+                                        {Array.from({ length: numStrings }).map((_, idx) => {
+                                            const x = paddingLeft + idx * stringSpacing;
+                                            return (
+                                                <line
+                                                    key={idx}
+                                                    x1={x}
+                                                    y1={paddingTop}
+                                                    x2={x}
+                                                    y2={fretYPositions[numFrets]}
+                                                    stroke={gridStyleColor}
+                                                    strokeWidth={lineWidthStyle}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* SCALE RENDERED DOTS */}
+                                        {appMode === "scale" && (
+                                            generateScaleRenderDots().map((dot, idx) => {
+                                                const x = paddingLeft + dot.s * stringSpacing;
+                                                const y = fretYPositions[dot.f - 1] + (fretYPositions[dot.f] - fretYPositions[dot.f - 1]) / 2;
+                                                const dotColor = getIntervalColor(dot.degreeStr);
+
+                                                return (
+                                                    <g key={idx} style={{ cursor: 'pointer' }} onClick={() => playSingleNoteAudio(dot.s, dot.f)}>
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r={dotRadiusStyle}
+                                                            fill={dotColor}
+                                                        />
+                                                        <text
+                                                            x={x}
+                                                            y={y + 4.5}
+                                                            textAnchor="middle"
+                                                            fill={DEFAULT_STYLE.dotTextColor}
+                                                            fontSize="10"
+                                                            fontWeight="bold"
+                                                        >
+                                                            {dot.label}
+                                                        </text>
+                                                    </g>
+                                                );
+                                            })
+                                        )}
+
+                                        {/* ARPEGGIOS RENDERED DOTS */}
+                                        {appMode === "arpeggio" && (
+                                            generateArpeggioRenderDots().map((dot, idx) => {
+                                                const x = paddingLeft + dot.s * stringSpacing;
+                                                const y = fretYPositions[dot.f - 1] + (fretYPositions[dot.f] - fretYPositions[dot.f - 1]) / 2;
+                                                const dotColor = getIntervalColor(dot.degreeStr);
+
+                                                return (
+                                                    <g key={idx} style={{ cursor: 'pointer' }} onClick={() => playSingleNoteAudio(dot.s, dot.f)}>
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r={dotRadiusStyle}
+                                                            fill={dotColor}
+                                                        />
+                                                        <text
+                                                            x={x}
+                                                            y={y + 4.5}
+                                                            textAnchor="middle"
+                                                            fill={DEFAULT_STYLE.dotTextColor}
+                                                            fontSize="10"
+                                                            fontWeight="bold"
+                                                        >
+                                                            {dot.label}
+                                                        </text>
+                                                    </g>
+                                                );
+                                            })
+                                        )}
+
+                                        {/* CHORD ONLY: Render active dots and barre chords */}
+                                        {appMode === "chord" && (
+                                            <g>
+                                                {/* Barres (Cejillas) */}
+                                                {barres.map((barre, idx) => {
+                                                    const x1 = paddingLeft + barre.fromString * stringSpacing;
+                                                    const x2 = paddingLeft + barre.toString * stringSpacing;
+                                                    const y = fretYPositions[barre.fret - 1] + (fretYPositions[barre.fret] - fretYPositions[barre.fret - 1]) / 2;
+                                                    return (
+                                                        <g key={idx} style={{ cursor: 'pointer' }} onClick={() => removeBarre(idx)}>
+                                                            {/* Base pill */}
+                                                            <rect
+                                                                x={x1 - dotRadiusStyle}
+                                                                y={y - dotRadiusStyle}
+                                                                width={(barre.toString - barre.fromString) * stringSpacing + dotRadiusStyle * 2}
+                                                                height={dotRadiusStyle * 2}
+                                                                rx={dotRadiusStyle}
+                                                                fill={baseFingerStyleColor}
+                                                                opacity={chordDisplayMode === "diagram" ? 1 : 0.4}
+                                                            />
+                                                            {chordDisplayMode !== "diagram" && (
+                                                                Array.from({ length: barre.toString - barre.fromString + 1 }).map((_, step) => {
+                                                                    const s = barre.fromString + step;
+                                                                    if (dots.some(d => d.s === s)) return null; 
+
+                                                                    const x = paddingLeft + s * stringSpacing;
+                                                                    const baseSemi = parseNoteToSemi(tuning[s]);
+                                                                    const absFret = startingFret + barre.fret - 1;
+                                                                    const pitch = (baseSemi + absFret) % 12;
+
+                                                                    const relativeSemi = (pitch - detectedRootSemi + 12) % 12;
+                                                                    const degreeStr = INTERVAL_DEGREES[relativeSemi];
+
+                                                                    let label = "";
+                                                                    if (chordDisplayMode === "note") {
+                                                                        label = NOTE_NAMES[pitch];
+                                                                    } else {
+                                                                        label = degreeStr;
+                                                                    }
+
+                                                                    const dotColor = getIntervalColor(degreeStr);
+
+                                                                    return (
+                                                                        <g key={step}>
+                                                                            <circle cx={x} cy={y} r={dotRadiusStyle - 1} fill={dotColor} />
+                                                                            <text
+                                                                                x={x}
+                                                                                y={y + 4}
+                                                                                textAnchor="middle"
+                                                                                fill={DEFAULT_STYLE.dotTextColor}
+                                                                                fontSize="10"
+                                                                                fontWeight="bold"
+                                                                            >
+                                                                                {label}
+                                                                            </text>
+                                                                        </g>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </g>
+                                                    );
+                                                })}
+
+                                                {/* Standard dots */}
+                                                {dots.map((dot, idx) => {
+                                                    const x = paddingLeft + dot.s * stringSpacing;
+                                                    const y = fretYPositions[dot.f - 1] + (fretYPositions[dot.f] - fretYPositions[dot.f - 1]) / 2;
+                                                    
+                                                    let label = "";
+                                                    let dotColor = baseFingerStyleColor;
+
+                                                    if (chordDisplayMode === "note" || chordDisplayMode === "degree") {
+                                                        const baseSemi = parseNoteToSemi(tuning[dot.s]);
+                                                        const absFret = startingFret + dot.f - 1;
+                                                        const pitch = (baseSemi + absFret) % 12;
+                                                        
+                                                        const relativeSemi = (pitch - detectedRootSemi + 12) % 12;
+                                                        const degreeStr = INTERVAL_DEGREES[relativeSemi];
+
+                                                        if (chordDisplayMode === "note") {
+                                                            label = NOTE_NAMES[pitch];
+                                                        } else {
+                                                            label = degreeStr;
+                                                        }
+
+                                                        dotColor = getIntervalColor(degreeStr);
+                                                    }
+
+                                                    return (
+                                                        <g key={idx} style={{ cursor: 'pointer' }}>
+                                                            <circle cx={x} cy={y} r={dotRadiusStyle} fill={dotColor} />
+                                                            {label && (
+                                                                <text
+                                                                    x={x}
+                                                                    y={y + 4.5}
+                                                                    textAnchor="middle"
+                                                                    fill={DEFAULT_STYLE.dotTextColor}
+                                                                    fontSize="12"
+                                                                    fontWeight="bold"
+                                                                >
+                                                                    {label}
+                                                                </text>
+                                                            )}
+                                                        </g>
+                                                    );
+                                                })}
+                                            </g>
+                                        )}
+
+                                        {/* Clickable Overlay Grid catcher (Active only in Chord Mode) */}
+                                        {appMode === "chord" && (
+                                            Array.from({ length: numStrings }).map((_, sIdx) => {
+                                                return Array.from({ length: numFrets }).map((_, fIdx) => {
+                                                    const fretNum = fIdx + 1;
+                                                    const x = paddingLeft + sIdx * stringSpacing - stringSpacing / 2;
+                                                    const y = fretYPositions[fIdx];
+                                                    const fretHeight = fretYPositions[fIdx + 1] - fretYPositions[fIdx];
+                                                    
+                                                    const rectWidth = sIdx === 0 || sIdx === numStrings - 1 ? stringSpacing / 2 + 10 : stringSpacing;
+                                                    const rectX = sIdx === 0 ? paddingLeft - 10 : x;
+
+                                                    return (
+                                                        <rect
+                                                            key={`${sIdx}-${fretNum}`}
+                                                            x={rectX}
+                                                            y={y}
+                                                            width={rectWidth}
+                                                            height={fretHeight}
+                                                            fill="transparent"
+                                                            style={{ cursor: 'pointer' }}
+                                                            onMouseDown={() => handleMouseDown(sIdx, fretNum)}
+                                                            onMouseEnter={() => handleMouseEnter(sIdx, fretNum)}
+                                                            onTouchStart={(e) => handleTouchStart(e, sIdx, fretNum)}
+                                                        />
+                                                    );
+                                                });
+                                            })
+                                        )}
+                                    </svg>
+
+                                    {/* Leyenda de colores interactivos (sólo visible en Escalas / Arpegios) */}
+                                    {renderIntervalLegend()}
+                                </div>
+
+                                {/* Botón flotante de recuperación de Leyenda (aparece si la leyenda está oculta y no es modo acorde) */}
+                                {!showLegend && appMode !== "chord" && (
+                                    <button
+                                        onClick={() => setShowLegend(true)}
+                                        class="absolute bottom-4 right-4 bg-slate-900/90 hover:bg-slate-800 text-indigo-450 hover:text-indigo-300 text-xs font-bold py-2.5 px-4 rounded-xl border border-slate-800 shadow-xl flex items-center gap-1.5 transition-all z-20"
+                                    >
+                                        <span>👁️ Mostrar Leyenda</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Center bottom indicator */}
+                            <div class="text-[10px] text-indigo-400 font-extrabold select-none text-center bg-indigo-950/20 px-3 py-1 rounded-full border border-indigo-900/30">
+                                🔊 Haz clic en cualquier nota del mástil para reproducir su sonido real • Simulación de cuerda pulsada de alta fidelidad.
+                            </div>
+                        </div>
+
+                        {/* ========================================== */}
+                        {/* --- RIGHT NAVIGATION DOCK (DESIGN/EXPORT) --- */}
+                        {/* ========================================== */}
+                        <div 
+                            className={`fixed inset-y-0 right-0 z-30 w-80 bg-slate-900 border-l border-slate-800/80 flex flex-col shrink-0 transition-transform duration-300 lg:translate-x-0 lg:static lg:h-auto ${
+                                isRightDrawerOpen ? "translate-x-0" : "translate-x-full"
+                            }`}
+                        >
+                            {/* Mobile Drawer Close Header */}
+                            <div class="flex justify-between items-center border-b border-slate-800/60 p-3 bg-slate-950/80 shrink-0 lg:hidden">
+                                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">🎨 Apariencia & Exportar</span>
+                                <button onClick={() => setIsRightDrawerOpen(false)} class="p-1.5 text-slate-400 hover:text-white font-extrabold text-sm bg-slate-900 rounded-lg">✕</button>
+                            </div>
+
+                            {/* Tabs Switcher */}
+                            <div class="grid grid-cols-3 border-b border-slate-800/60 p-2 bg-slate-900/60 shrink-0 gap-1 scale-95 origin-top">
+                                <button
+                                    onClick={() => setActiveRightTab("style")}
+                                    class={`py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                                        activeRightTab === "style" ? "bg-slate-800 text-indigo-400 shadow-inner" : "text-slate-400"
+                                    }`}
+                                >
+                                    🎨 Estilo
+                                </button>
+                                <button
+                                    onClick={() => setActiveRightTab("intervals")}
+                                    class={`py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                                        activeRightTab === "intervals" ? "bg-slate-800 text-indigo-400 shadow-inner" : "text-slate-400"
+                                    }`}
+                                >
+                                    🌈 Intervalos
+                                </button>
+                                <button
+                                    onClick={() => setActiveRightTab("export")}
+                                    class={`py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                                        activeRightTab === "export" ? "bg-slate-800 text-indigo-400 shadow-inner" : "text-slate-400"
+                                    }`}
+                                >
+                                    💾 Exportar
+                                </button>
+                            </div>
+
+                            {/* Right Tab Contents */}
+                            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                                
+                                {/* TAB: VISUAL STYLES CONFIG */}
+                                {activeRightTab === "style" && (
+                                    <div class="space-y-4 text-xs">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Entorno Vectorial</span>
+                                            <button 
+                                                onClick={resetToDefaultStyle}
+                                                class="text-[9px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded transition"
+                                            >
+                                                Reiniciar
+                                            </button>
+                                        </div>
+
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3 space-y-3">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 mb-1">Fondo Diagrama</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={bgStyleColor}
+                                                            onChange={(e) => setBgStyleColor(e.target.value)}
+                                                            class="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-400">{bgStyleColor.toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 mb-1">Cuerdas y Trastes</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={gridStyleColor}
+                                                            onChange={(e) => setGridStyleColor(e.target.value)}
+                                                            class="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-400">{gridStyleColor.toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 mb-1">Texto & Título</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={textStyleColor}
+                                                            onChange={(e) => setTextStyleColor(e.target.value)}
+                                                            class="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-400">{textStyleColor.toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 mb-1">Tipografía</label>
+                                                    <select
+                                                        value={fontFamilyStyle}
+                                                        onChange={(e) => setFontFamilyStyle(e.target.value)}
+                                                        class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-[11px] text-white focus:outline-none animate-none"
+                                                    >
+                                                        {FONTS_LIST.map(font => (
+                                                            <option key={font.id} value={font.id}>{font.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Fretboard Sizing sliders */}
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3 space-y-3">
+                                            <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Espesores & Tamaños</span>
+                                            
+                                            <div class="space-y-1.5">
+                                                <div class="flex justify-between items-center text-[10px]">
+                                                    <span class="text-slate-400">Radio de Notas:</span>
+                                                    <span class="text-indigo-400 font-bold">{dotRadiusStyle}px</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="8" 
+                                                    max="13" 
+                                                    value={dotRadiusStyle}
+                                                    onChange={(e) => setDotRadiusStyle(parseInt(e.target.value))}
+                                                    class="w-full accent-indigo-500 bg-slate-900 h-1 rounded-lg cursor-pointer"
+                                                />
+                                            </div>
+
+                                            <div class="space-y-1.5">
+                                                <div class="flex justify-between items-center text-[10px]">
+                                                    <span class="text-slate-400">Grosor de Cuerda:</span>
+                                                    <span class="text-indigo-400 font-bold">{lineWidthStyle}px</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="1" 
+                                                    max="4" 
+                                                    step="0.5"
+                                                    value={lineWidthStyle}
+                                                    onChange={(e) => setLineWidthStyle(parseFloat(e.target.value))}
+                                                    class="w-full accent-indigo-500 bg-slate-900 h-1 rounded-lg cursor-pointer"
+                                                />
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}
+
+                                {/* TAB: INTERVAL COLOR MATRICES */}
+                                {activeRightTab === "intervals" && (
+                                    <div class="space-y-4">
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3 space-y-3 text-xs">
+                                            <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Cromaticidad de Intervalos</span>
+                                            <p class="text-[10px] text-slate-400">Pinta y destaca grados armónicos sobre el mástil al visualizár en formato de notas o grados.</p>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">Color Base (Dedos)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={baseFingerStyleColor}
+                                                            onChange={(e) => setBaseFingerStyleColor(e.target.value)}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="text-[9px] text-slate-500">Dedos</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">1ª Tónica (1)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["1"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "1": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["1"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">2ª Segundas (b2, 2)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["2"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "2": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["2"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">3ª Terceras (b3, 3)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["3"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "3": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["3"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">4ª Cuartas (4)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["4"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "4": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["4"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">5ª Quintas (b5, 5)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["5"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "5": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["5"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">6ª Sextas (b6, 6)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["6"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "6": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["6"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400">7ª Séptimas (b7, 7)</label>
+                                                    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded border border-slate-800">
+                                                        <input 
+                                                            type="color" 
+                                                            value={intervalColors["7"]}
+                                                            onChange={(e) => setIntervalColors({...intervalColors, "7": e.target.value})}
+                                                            class="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                                                        />
+                                                        <span class="font-mono text-[9px] text-slate-500">{intervalColors["7"].toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB: EXPORTS & ACTIONS */}
+                                {activeRightTab === "export" && (
+                                    <div class="space-y-4">
+                                        
+                                        <div class="border border-slate-800 bg-slate-950/50 rounded-xl p-3.5 space-y-3">
+                                            <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">Guardado & Exportación</span>
+                                            
+                                            <button
+                                                onClick={() => { exportPNG(); setIsRightDrawerOpen(false); }}
+                                                class="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg transition flex items-center justify-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                                Descargar PNG (High-Res)
+                                            </button>
+
+                                            <button
+                                                onClick={() => { exportSVG(); setIsRightDrawerOpen(false); }}
+                                                class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg transition flex items-center justify-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                Descargar SVG para Web
+                                            </button>
+
+                                            <button
+                                                onClick={() => { exportSVGForIllustrator(); setIsRightDrawerOpen(false); }}
+                                                class="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-lg transition flex items-center justify-center gap-2"
+                                            >
+                                                <svg xmlns="http://wwwbugs.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Descargar para Illustrator
+                                            </button>
+                                        </div>
+
+                                        <div class="border border-slate-800 bg-slate-950/40 rounded-xl p-3 text-[11px] text-slate-400 space-y-2">
+                                            <span class="block font-bold text-[10px] text-emerald-400 uppercase tracking-widest">Atributos del SVG</span>
+                                            <div class="grid grid-cols-2 gap-1 font-mono text-[10px]">
+                                                <div>Lienzo Width:</div>
+                                                <div class="text-right text-slate-300">{width}px</div>
+                                                <div>Lienzo Height:</div>
+                                                <div class="text-right text-slate-300">{height}px</div>
+                                                <div>Física Trastes:</div>
+                                                <div class="text-right text-slate-300">Logarítmica</div>
+                                                <div>Cuerdas:</div>
+                                                <div class="text-right text-slate-300">{numStrings}</div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* --- NOTIFICATION TOAST BAR --- */}
+                    {toast.show && (
+                        <div class="fixed bottom-5 right-5 z-50 bg-slate-900 border border-indigo-500/30 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-bounce">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-semibold">{toast.message}</span>
+                        </div>
+                    )}
+
+                    {/* --- STUDIO FOOTER --- */}
+                    <footer class="bg-slate-900 border-t border-slate-800 py-2 px-4 text-center text-slate-500 text-[10px] shrink-0 z-10">
+                        <p>© 2026 ChordPic Studio Pro. Diseñado para creadores de contenido de música y educadores.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Render the application
+        const rootElement = document.getElementById("root");
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
