@@ -14,6 +14,8 @@
          pasa por Babel. Debe cargar antes que la app, que lo consume como
          window.KharoTheory. -->
     <script src="theory-core.js"></script>
+    <!-- Núcleo de geometría del diagrama. Mismo patrón: sin JSX, sin Babel. -->
+    <script src="render-core.js"></script>
     <style>
         /* Fjalla One (copia local, no requiere internet) */
         @font-face {
@@ -126,6 +128,16 @@
             midiToNoteName,
             midiToFrequency
         } = window.KharoTheory;
+
+        // --- NÚCLEO DE GEOMETRÍA (render-core.js) ---
+        const {
+            computeDiagramGeometry,
+            computeTitleFontSize,
+            clampStartingFret,
+            clampNumFrets,
+            MIN_FRET, MAX_FRET,
+            MIN_NUM_FRETS, MAX_NUM_FRETS
+        } = window.KharoRender;
 
         // Tipografías admitidas
         const FONTS_LIST = [
@@ -308,6 +320,57 @@
                 barres: []
             }
         ];
+
+        /* --- CONTROL ± VERTICAL JUNTO AL MÁSTIL ---------------------------
+         * Atajo para las dos medidas que más se retocan al dibujar un acorde:
+         * dónde empieza la ventana del mástil y cuántos trastes muestra.
+         * Antes había que abrir el panel Instrumento para cambiarlas.
+         * Los botones son de 44px: es el mínimo para usarlos con el dedo.
+         *
+         * `onStep` recibe el INCREMENTO (+1/-1), no el valor final, para que
+         * quien lo use aplique la actualización funcional de React. Si el
+         * botón calculase `value + 1` desde su closure, varias pulsaciones
+         * rápidas dentro del mismo ciclo partirían todas del mismo valor y se
+         * perderían clics.
+         * ----------------------------------------------------------------- */
+        function FretStepper({ label, value, min, max, onStep, titleUp, titleDown }) {
+            const puedeSubir = value < max;
+            const puedeBajar = value > min;
+            const claseBoton = "w-11 h-11 flex items-center justify-center rounded-xl text-lg font-black transition-all active:scale-90 select-none";
+
+            return (
+                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                    <button
+                        onClick={() => onStep(+1)}
+                        disabled={!puedeSubir}
+                        title={titleUp}
+                        aria-label={titleUp}
+                        class={claseBoton}
+                        style={puedeSubir
+                            ? { backgroundColor: '#013FF6', color: '#ACEC00' }
+                            : { backgroundColor: 'rgba(0,24,46,0.5)', color: '#3f5773', cursor: 'not-allowed' }}
+                    >
+                        +
+                    </button>
+                    <div class="flex flex-col items-center leading-none py-0.5">
+                        <span class="text-base font-black tabular-nums" style={{ color: '#ACEC00' }}>{value}</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">{label}</span>
+                    </div>
+                    <button
+                        onClick={() => onStep(-1)}
+                        disabled={!puedeBajar}
+                        title={titleDown}
+                        aria-label={titleDown}
+                        class={claseBoton}
+                        style={puedeBajar
+                            ? { backgroundColor: '#013FF6', color: '#ACEC00' }
+                            : { backgroundColor: 'rgba(0,24,46,0.5)', color: '#3f5773', cursor: 'not-allowed' }}
+                    >
+                        −
+                    </button>
+                </div>
+            );
+        }
 
         function App() {
             const [appMode, setAppMode] = useState("chord"); // 'chord', 'scale', 'arpeggio'
@@ -1013,43 +1076,21 @@
                 );
             };
 
-            // --- GEOMETRÍA LOGARÍTMICA REDISEÑADA ---
-            const width = 340; 
-            const paddingTop = 130; 
-            const paddingBottom = 60;
-            const paddingLeft = 70; 
-            const paddingRight = 70;
+            // --- GEOMETRÍA DEL DIAGRAMA (calculada en render-core.js) ---
+            const {
+                width, height,
+                paddingTop, paddingBottom, paddingLeft, paddingRight,
+                gridWidth, gridHeight,
+                stringSpacing,
+                fretWeights, fretHeights, fretYPositions
+            } = computeDiagramGeometry({
+                numStrings,
+                numFrets,
+                startingFret,
+                dotRadius: dotRadiusStyle
+            });
 
-            const baseFretHeight = 60; 
-            const minFretHeight = Math.max(25, dotRadiusStyle * 2 + 6);
-
-            const fretWeights = [];
-            const fretHeights = [];
-            let sumOfHeights = 0;
-            for (let f = 1; f <= numFrets; f++) {
-                const absFret = startingFret + f - 1;
-                const weight = Math.pow(0.955, absFret - 1);
-                const calculatedFretHeight = Math.max(minFretHeight, baseFretHeight * weight);
-                
-                fretWeights.push(weight);
-                fretHeights.push(calculatedFretHeight);
-                sumOfHeights += calculatedFretHeight;
-            }
-
-            const gridHeight = sumOfHeights;
-            const height = paddingTop + gridHeight + paddingBottom;
-
-            const gridWidth = width - paddingLeft - paddingRight; 
-            const stringSpacing = gridWidth / (numStrings - 1);
-
-            const fretYPositions = [paddingTop];
-            let currentY = paddingTop;
-            for (let f = 0; f < numFrets; f++) {
-                currentY += fretHeights[f];
-                fretYPositions.push(currentY);
-            }
-
-            const dynamicTitleFontSize = Math.min(24, Math.max(12, Math.floor(450 / (chordName.length || 1))));
+            const dynamicTitleFontSize = computeTitleFontSize(chordName);
 
             // --- EXPORT FUNCTIONS ---
             const exportPNG = () => {
@@ -1438,7 +1479,9 @@
                                                         onChange={(e) => { setNumFrets(parseInt(e.target.value)); }}
                                                         class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
                                                     >
-                                                        {[4, 5, 6, 7, 8, 10, 12, 15, 18, 21, 24].map(n => (
+                                                        {/* Lista continua: los botones ± suben de uno en uno,
+                                                            así que valores como 9 u 11 tienen que existir aquí. */}
+                                                        {Array.from({ length: MAX_NUM_FRETS - MIN_NUM_FRETS + 1 }, (_, i) => MIN_NUM_FRETS + i).map(n => (
                                                             <option key={n} value={n}>{n} trastes</option>
                                                         ))}
                                                     </select>
@@ -1450,10 +1493,10 @@
                                                     <label class="block text-[10px] font-medium text-slate-400 mb-1">Traste de Inicio</label>
                                                     <input
                                                         type="number"
-                                                        min={1}
-                                                        max={24}
+                                                        min={MIN_FRET}
+                                                        max={MAX_FRET}
                                                         value={startingFret}
-                                                        onChange={(e) => { setStartingFret(Math.max(1, parseInt(e.target.value) || 1)); }}
+                                                        onChange={(e) => { setStartingFret(clampStartingFret(parseInt(e.target.value))); }}
                                                         class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs text-white"
                                                     />
                                                 </div>
@@ -1622,6 +1665,20 @@
                             {/* Contenedor con alineación superior para evitar que se desborde el mástil alto por arriba */}
                             <div class="flex-1 w-full flex items-start justify-center overflow-y-auto max-h-[66vh] md:max-h-[72vh] my-3 scroll-smooth relative">
                                 <div class="p-2 sm:p-4 rounded-3xl border shadow-inner flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full" style={{backgroundColor:'rgba(0,29,56,0.3)', borderColor:'rgba(1,63,246,0.2)'}}>
+
+                                  {/* El mástil, flanqueado por sus dos controles rápidos */}
+                                  <div class="flex items-center justify-center gap-2 sm:gap-3 w-full xl:w-auto">
+
+                                    <FretStepper
+                                        label="Traste"
+                                        value={startingFret}
+                                        min={MIN_FRET}
+                                        max={MAX_FRET}
+                                        onStep={(d) => setStartingFret(prev => clampStartingFret(prev + d))}
+                                        titleUp="Subir por el mástil (traste de inicio)"
+                                        titleDown="Bajar por el mástil (traste de inicio)"
+                                    />
+
                                     <svg
                                         id="chord-diagram-svg"
                                         width={width}
@@ -2133,6 +2190,18 @@
                                             })
                                         )}
                                     </svg>
+
+                                    <FretStepper
+                                        label="Trastes"
+                                        value={numFrets}
+                                        min={MIN_NUM_FRETS}
+                                        max={MAX_NUM_FRETS}
+                                        onStep={(d) => setNumFrets(prev => clampNumFrets(prev + d))}
+                                        titleUp="Mostrar un traste más"
+                                        titleDown="Mostrar un traste menos"
+                                    />
+
+                                  </div>
 
                                     {/* Leyenda de colores interactivos (sólo visible en Escalas / Arpegios) */}
                                     {renderIntervalLegend()}

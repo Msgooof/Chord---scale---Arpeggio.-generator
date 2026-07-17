@@ -15,6 +15,7 @@ musical y educadores: el diagrama es el producto final, y el sonido es la verifi
 Kharo Chords/
 ├── index.html                     ← la interfaz (HTML + CSS + React). Única fuente de verdad.
 ├── theory-core.js                 ← núcleo de teoría musical: funciones puras, sin JSX
+├── render-core.js                 ← geometría del diagrama: funciones puras, sin JSX
 ├── DOCUMENTACION.md               ← este archivo
 └── vendor/                        ← dependencias locales, la app funciona sin internet
     ├── tailwind.js                   Tailwind (build de navegador)
@@ -64,6 +65,23 @@ sintaxis aparecen en consola como errores de Babel, no como errores de línea de
 | `nearestMidiWithPitchClass`, `getStringBaseMIDI`, `resolveTuningMIDI` | Resolución de afinación a MIDI real ← el corazón del arreglo |
 | `SCALE_PRESETS`, `ARPEGGIO_PRESETS`, `CHORD_FORMULAS` | Datos de teoría |
 | `identifyChord` | Reconocimiento de acordes, agnóstico del instrumento |
+
+### `render-core.js`
+
+| Bloque | Qué hace |
+|---|---|
+| `computeDiagramGeometry` | Todas las medidas del mástil desde `{numStrings, numFrets, startingFret, dotRadius}` |
+| `computeTitleFontSize` | El título encoge para que un nombre largo no se salga |
+| `clampStartingFret`, `clampNumFrets` | Límites del instrumento (1–24 y 4–24) |
+
+**Por qué está fuera de `theory-core.js`:** la geometría de un mástil dibujado no es teoría
+musical. El módulo de piano compartirá la teoría, pero no esta geometría.
+
+**Por qué no vive dentro del componente que dibuja:** dos consumidores necesitan las medidas
+*sin renderizar nada* — la exportación a PNG (dimensiona el lienzo antes de pintar) y el montaje
+de la hoja de progresión (necesita el alto de cada diagrama para colocarlos, y cada uno puede
+tener distinto número de trastes). Medir renderizando y leyendo el DOM sería un doble pase
+frágil.
 
 ### `index.html`
 
