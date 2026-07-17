@@ -1,7 +1,7 @@
 # Kharo Studio — Documentación técnica
 
-> Mapa del proyecto para poder trabajar sobre él sin releer las 2.674 líneas del HTML.
-> Última revisión: 2026-07-16, sobre `kharo_studio_claude_2.1.html`.
+> Mapa del proyecto para poder trabajar sobre él sin releer el HTML entero.
+> Última revisión: 2026-07-16, tras corregir los bugs de afinación y extraer `theory-core.js`.
 
 ## 1. Qué es
 
@@ -13,7 +13,8 @@ musical y educadores: el diagrama es el producto final, y el sonido es la verifi
 
 ```
 Kharo Chords/
-├── kharo_studio_claude_2.1.html   ← toda la aplicación (HTML + CSS + React en un archivo)
+├── index.html                     ← la interfaz (HTML + CSS + React). Única fuente de verdad.
+├── theory-core.js                 ← núcleo de teoría musical: funciones puras, sin JSX
 ├── DOCUMENTACION.md               ← este archivo
 └── vendor/                        ← dependencias locales, la app funciona sin internet
     ├── tailwind.js                   Tailwind (build de navegador)
@@ -23,7 +24,15 @@ Kharo Chords/
     └── fonts/FjallaOne-Regular.ttf   tipografía de títulos de la marca Kharo
 ```
 
-No hay build step, ni `package.json`, ni repositorio git. Se abre el HTML y corre.
+No hay build step ni `package.json`. Se abre el HTML y corre.
+
+**El reparto es deliberado:** `theory-core.js` sabe de música y no sabe de interfaz;
+`index.html` sabe de interfaz y no calcula música. El núcleo se carga con un `<script>`
+normal porque no contiene JSX, así que no pasa por Babel. Cuando llegue el módulo de piano,
+consumirá ese mismo núcleo — la teoría no sabe si el instrumento tiene cuerdas o teclas.
+
+El repo se despliega en vivo a https://kharomusicchordsgenerator.vercel.app, y `vendor/`
+debe acompañar siempre a `index.html` (lo referencia por ruta relativa).
 
 ## 3. Cómo arranca la app (importante y poco obvio)
 
@@ -45,27 +54,39 @@ sintaxis aparecen en consola como errores de Babel, no como errores de línea de
 
 ## 4. Mapa del archivo por líneas
 
+### `theory-core.js`
+
+| Bloque | Qué hace |
+|---|---|
+| Constantes | `NOTE_NAMES`, `INTERVAL_DEGREES`, `NOTE_TO_SEMITONE`, `COMMON_FRETS` |
+| `INSTRUMENTS` | Los 6 instrumentos, cada uno con su nº de cuerdas y su afinación de fábrica en MIDI real |
+| `TUNING_PRESETS` | Afinaciones, **indexadas por instrumento** (no por nº de cuerdas) |
+| `nearestMidiWithPitchClass`, `getStringBaseMIDI`, `resolveTuningMIDI` | Resolución de afinación a MIDI real ← el corazón del arreglo |
+| `SCALE_PRESETS`, `ARPEGGIO_PRESETS`, `CHORD_FORMULAS` | Datos de teoría |
+| `identifyChord` | Reconocimiento de acordes, agnóstico del instrumento |
+
+### `index.html`
+
 | Líneas | Bloque | Qué hace |
 |---|---|---|
-| 1–97 | `<head>` y CSS | Variables de marca Kharo, `@font-face`, scrollbar, animación `audioPulse`, y un bloque de *overrides* que repinta las clases de Tailwind (slate/indigo) a los colores Kharo con `!important` |
-| 106–146 | Constantes musicales | `NOTE_NAMES`, `INTERVAL_DEGREES`, `NOTE_TO_SEMITONE`, `DEFAULT_STYLE`, `DEFAULT_INTERVAL_COLORS` |
-| 148–184 | Utilidades y afinación | `parseNoteToSemi`, `arraysEqual`, `getStringBaseMIDI` ← **aquí viven los bugs de afinación** |
-| 186–259 | `InstrumentSynth` | Sintetizador de cuerda pulsada con Web Audio API |
-| 261–381 | Presets | Escalas, arpegios, acordes rápidos y afinaciones (`TUNING_PRESETS`) |
-| 383–464 | `App()` — estado | Todos los `useState` de la aplicación |
-| 466–519 | Efectos | Reajuste al cambiar nº de cuerdas; título automático |
-| 521–693 | `analyzeCurrentChord` | Motor de reconocimiento de acordes (≈60 fórmulas) |
-| 708–834 | Interacción | Audio al tocar, gesto de arrastre para cejillas, toque móvil, estados de cuerda |
-| 871–1016 | Escalas y arpegios | Generación de las notas mapeadas por todo el mástil |
-| 1018–1119 | Motor de reproducción | `triggerStrumOrSequence` — rasgueo/secuencia + destellos |
-| 1122–1190 | Leyenda de intervalos | Panel lateral de grados |
-| 1192–1228 | Geometría | Cálculo logarítmico del mástil y del lienzo SVG |
-| 1230–1285 | Exportación | `exportPNG`, `exportSVG`, `exportSVGForIllustrator` |
-| 1290–1320 | Header | Logo (PNG en base64, línea 1293 — 76.849 caracteres) y selector de modo |
-| 1322–1704 | Toolbar + panel izquierdo | Barra flotante de 5 herramientas; paneles Teoría e Instrumento |
-| 1705–2335 | Lienzo central | Todo el dibujo SVG del mástil |
-| 2336–2642 | Panel derecho | Estilo, Intervalos, Exportar |
-| 2643–2674 | Toast, footer, arranque | Notificaciones y el bootstrap de Babel |
+| 1–101 | `<head>` y CSS | Variables de marca Kharo, `@font-face`, scrollbar, animación `audioPulse`, y un bloque de *overrides* que repinta Tailwind (slate/indigo) a los colores Kharo con `!important` |
+| 110–128 | Enlace con el núcleo | Desestructura `window.KharoTheory` |
+| 162–235 | `InstrumentSynth` | Sintetizador de cuerda pulsada con Web Audio API |
+| 237–309 | `PRESETS` | Los 5 acordes rápidos |
+| 311–360 | `App()` — estado | Todos los `useState`, más `stringBaseMIDI()`: el punto único de afinación |
+| 400–462 | Efectos | Cambio de instrumento; título automático |
+| 464–513 | `analyzeCurrentChord` | Recoge lo que suena en el mástil y delega en `identifyChord` |
+| 529–655 | Interacción | Audio al tocar, arrastre para cejillas, toque móvil, estados de cuerda |
+| 695–840 | Escalas y arpegios | Notas mapeadas por todo el mástil |
+| 842–943 | Motor de reproducción | `triggerStrumOrSequence` — rasgueo/secuencia + destellos |
+| 945–1014 | Leyenda de intervalos | Panel lateral de grados |
+| 1016–1052 | Geometría | Cálculo logarítmico del mástil y del lienzo SVG |
+| 1054–1110 | Exportación | `exportPNG`, `exportSVG`, `exportSVGForIllustrator` |
+| 1114–1148 | Header | Logo (PNG en base64, línea 1117 — 76.849 caracteres) y selector de modo |
+| 1150–1526 | Toolbar + panel izquierdo | Barra flotante de 5 herramientas; paneles Teoría e Instrumento |
+| 1528–2157 | Lienzo central | Todo el dibujo SVG del mástil |
+| 2159–2463 | Panel derecho | Estilo, Intervalos, Exportar |
+| 2465–2496 | Toast, footer, arranque | Notificaciones y el bootstrap de Babel |
 
 ## 5. Los tres modos
 
@@ -92,7 +113,10 @@ Regla de negocio implementada a propósito: al poner una nota se borran las dem�
 **pero las cejillas son inmunes** — no se borran ni al poner notas ni al cambiar el estado de la
 cuerda.
 
-## 7. Detección de acordes (`analyzeCurrentChord`, línea 521)
+## 7. Detección de acordes (`identifyChord`, en `theory-core.js`)
+
+`analyzeCurrentChord` (en `index.html`) recoge lo que suena y delega el reconocimiento en el
+núcleo:
 
 1. Recorre las cuerdas y arma la lista de notas que suenan (dot > cejilla > cuerda al aire).
    Las `muted` se saltan.
@@ -105,7 +129,7 @@ cuerda.
 Limitación conocida: gana el primer match del bucle, sin criterio de preferencia. Con acordes
 ambiguos puede elegir una tónica que no es la que un músico nombraría.
 
-## 8. Audio (`InstrumentSynth`, línea 186)
+## 8. Audio (`InstrumentSynth`, `index.html` línea 162)
 
 Modelo de cuerda pulsada hecho a mano con tres osciladores sumados a un filtro paso-bajo:
 
@@ -121,7 +145,7 @@ de cuerda que se apaga. La frecuencia sale de MIDI con `440 * 2^((midi-69)/12)`.
 No hay samples: **todo es síntesis**. Esto importa para la funcionalidad de piano que quieres
 (ver §11).
 
-## 9. Geometría y dibujo (línea 1192)
+## 9. Geometría y dibujo (`index.html` línea 1016)
 
 El mástil es **logarítmico**, como uno real: cada traste pesa `0.955^(trasteAbsoluto - 1)`, con un
 alto mínimo para que las notas quepan. El lienzo (`width` fijo en 340, `height` calculado) se
@@ -130,7 +154,7 @@ recalcula en cada render, y de ahí salen las dimensiones que muestra el panel d
 El SVG lleva `id="chord-diagram-svg"` y es la **única fuente de verdad de la exportación**: lo que
 ves es literalmente lo que se descarga.
 
-## 10. Exportación (línea 1230)
+## 10. Exportación (`index.html` línea 1054)
 
 - **PNG** — serializa el SVG, lo pinta en un canvas a **escala 3×** y descarga el dataURL.
 - **SVG web** — serializa y descarga tal cual.
@@ -144,105 +168,99 @@ abre el archivo no tiene, el texto se sustituye. En el PNG el riesgo es menor pe
 
 # 11. Estado de las funcionalidades pedidas
 
-## Bug A — Ukelele y bajo comparten opción, y ambos suenan mal
+## Bugs de afinación — CORREGIDOS (2026-07-16)
 
-Está en `getStringBaseMIDI`, líneas 163–184:
+Los dos eran el mismo problema de fondo: **había dos sistemas de afinación en paralelo que no
+se hablaban.** El análisis de acordes leía el array `tuning[]` (las letras), y el audio usaba
+unas tablas fijas dentro de `getStringBaseMIDI` que ignoraban ese array. Por eso el diagrama
+siempre se veía bien y el sonido no le correspondía.
 
-```js
-if (numStrings === 4) {
-    if (noteStr === 'g' || noteStr === 'G' || noteStr === 'A' || noteStr === 'a') {
-        return standard4Uke[idx];   // Ukelele
-    }
-    return standard4Bass[idx];      // Bajo de 4 cuerdas
-}
-```
+**Bug A — Ukelele y bajo compartían opción y ambos sonaban mal.** La decisión "¿ukelele o
+bajo?" se tomaba cuerda por cuerda, mirando la letra de esa cuerda (`if (noteStr === 'g' ...)`),
+cuando es una pregunta del instrumento entero. Cada instrumento acababa mezclando las dos
+tablas: en el bajo, las cuerdas A y G sonaban C4 y A4; en el ukelele, C y E sonaban A1 y D2.
 
-La decisión "¿ukelele o bajo?" se toma **cuerda por cuerda, mirando la letra de esa cuerda**. Pero
-esa pregunta es del instrumento entero, no de una cuerda. Resultado: cada instrumento se afina
-mezclando las dos tablas.
+**Bug B — La afinación no afectaba al sonido.** Para 5, 6, 7 y 8 cuerdas el argumento con la
+nota se ignoraba por completo. Drop D y DADGAD se dibujaban y se nombraban bien, pero sonaban
+en afinación estándar.
 
-**Bajo en E A D G:**
+### Cómo quedó
 
-| Cuerda | Debería sonar | Suena | |
-|---|---|---|---|
-| 0 · E | E1 (28) | E1 (28) | ✅ |
-| 1 · A | A1 (33) | **C4 (60)** | ❌ letra "A" → rama ukelele |
-| 2 · D | D2 (38) | D2 (38) | ✅ |
-| 3 · G | G2 (43) | **A4 (69)** | ❌ letra "G" → rama ukelele |
+1. **El instrumento es un estado explícito** (`instrument`), no algo que se deduce del número
+   de cuerdas. `numStrings` ahora se deriva del instrumento, no al revés. En la interfaz,
+   `4 (Ukelele)` y `4 (Bajo)` son opciones separadas, y cada instrumento ofrece sólo sus
+   propias afinaciones.
+2. **Un único punto de afinación.** Todo el audio pasa por `stringBaseMIDI(stringIndex)`, que
+   resuelve el MIDI real desde `tuning[] + instrument`. Los dos sistemas paralelos ya no
+   existen.
+3. **La regla de octava:** al reafinar, el músico mueve la cuerda lo mínimo posible. Así que
+   cada cuerda suena en la octava más cercana a su afinación de fábrica
+   (`nearestMidiWithPitchClass`). Drop D sobre E2 baja a D2, no sube a D3. Esto hace que
+   funcione cualquier afinación libre que escriba el usuario, no sólo los presets.
+4. El ukelele de **sol grave** necesita octava explícita (por cercanía se resolvería al sol
+   agudo), así que un preset puede fijar `midi` y saltarse la deducción. Es la única excepción.
 
-**Ukelele en G C E A:**
+### Verificado
 
-| Cuerda | Debería sonar | Suena | |
-|---|---|---|---|
-| 0 · G | G4 (67) | G4 (67) | ✅ |
-| 1 · C | C4 (60) | **A1 (33)** | ❌ letra "C" → rama bajo |
-| 2 · E | E4 (64) | **D2 (38)** | ❌ letra "E" → rama bajo |
-| 3 · A | A4 (69) | A4 (69) | ✅ |
+Interceptando el sintetizador en el navegador y leyendo las frecuencias que toca de verdad:
 
-O sea: en ambos casos suenan dos cuerdas correctas y dos disparatadas, con saltos de más de dos
-octavas. Eso es exactamente el "no suena como ninguno de los dos" que describes.
+| Caso | Suena | Antes |
+|---|---|---|
+| Guitarra estándar, acorde C | `C3 E3 G3 C4 E4` | igual (correcto ya) |
+| Drop D, cuerdas al aire | `D2 A2 D3 G3 B3 E4` | `E2 A2 D3 G3 B3 E4` ❌ |
+| DADGAD | `D2 A2 D3 G3 A3 D4` | `E2 A2 D3 G3 B3 E4` ❌ |
+| Bajo 4c, al aire | `E1 A1 D2 G2` | `E1 C4 D2 A4` ❌ |
+| Ukelele, al aire | `G4 C4 E4 A4` | `G4 A1 D2 A4` ❌ |
 
-La corrección tiene dos partes:
-1. Separar en la UI (línea 1605) `4 (Ukelele)` de `4 (Bajo)` — hoy es una sola opción,
-   `4 (Ukelele/Bajo)`.
-2. Que la app lleve un estado de **instrumento** explícito y que `getStringBaseMIDI` lo consulte,
-   en vez de adivinar por la letra de la cuerda.
+Los modos de escalas y arpegios siguen funcionando, la exportación sigue intacta, y no hay
+errores en consola.
 
-Nota musical: `standard4Uke = [67, 60, 64, 69]` es afinación reentrante de sol agudo (la
-estándar), y está bien. Solo hay que decidir si quieres ofrecer también sol grave (G3 = 55).
+**Nota sobre cómo probarlo a oído:** la digitación de C tiene la 6ª cuerda muteada, que es
+justo la que Drop D reafina — con ese acorde no se nota diferencia, y es correcto. Para oírlo,
+vacía el mástil (las cuerdas al aire suenan todas) o usa una digitación que pise la 6ª.
 
-## Bug B — La afinación no afecta al sonido (no lo habías mencionado, pero es grave)
+## Funcionalidad nueva — Módulo de piano (pendiente)
 
-Mira el resto de `getStringBaseMIDI`: para 5, 6, 7 y 8 cuerdas **el argumento `noteStr` se ignora
-por completo**; devuelve siempre la tabla estándar.
+Lo que se busca: la misma idea (crear acordes, exportar PNG y vector) pero con **diagrama de
+teclado y sonido de piano**. Arpegios en piano, poco o nada.
 
-Efecto: eliges **Drop D** o **DADGAD**, el diagrama se redibuja, el nombre del acorde se
-recalcula bien… y el audio sigue tocando afinación estándar. Lo mismo con cualquier afinación
-libre que escriba el usuario en el "Afinador de Cuerdas".
+**El terreno ya está preparado.** Al extraer `theory-core.js` para arreglar los bugs de
+afinación, el piano heredó gratis:
 
-La causa de fondo es la misma que el Bug A: hay **dos sistemas de afinación paralelos que no se
-hablan**. El análisis de acordes usa `tuning[]` (clases de altura, línea 528) y el audio usa las
-tablas fijas de `getStringBaseMIDI`. Arreglar los dos bugs de raíz es unificarlos: una sola
-función que derive el MIDI real desde `tuning[] + instrumento`, y que todo consuma eso.
-
-Recomiendo arreglar A y B juntos. Por separado es tocar el mismo código dos veces.
-
-## Funcionalidad nueva — Módulo de piano
-
-Lo que pides: la misma idea (crear acordes, exportar PNG y vector) pero con **diagrama de teclado
-y sonido de piano**. Arpegios en piano, poco o nada.
-
-Lo que ya sirve tal cual, sin tocarlo:
-- El motor de detección de acordes (§7) trabaja con clases de altura, no sabe qué es una cuerda.
-  Le das las notas del teclado y funciona igual.
-- Las tres exportaciones (§10) serializan `#chord-diagram-svg`. Si el piano se dibuja en un SVG con
-  ese mismo contrato, exporta gratis.
-- Todo el sistema de colores por intervalo, la leyenda, los presets de escalas y el toast.
+- `identifyChord` — sólo mira clases de altura y cuál es la nota más grave. Le das las notas
+  del teclado y funciona igual, sin tocarlo.
+- Los presets de escalas y arpegios, los nombres de notas y los grados.
+- Las tres exportaciones, que serializan `#chord-diagram-svg`. Si el piano se dibuja en un SVG
+  con ese mismo `id`, exporta sin escribir una línea de exportación.
+- El sistema de colores por intervalo, la leyenda y el toast.
 
 Lo que hay que construir:
-- **Dibujo del teclado.** Es geometría nueva y no se parece a la del mástil: teclas blancas
-  uniformes, negras superpuestas en patrón 2-3, y la nota se marca sobre la tecla en vez de en una
-  intersección de rejilla.
-- **Interacción.** Click en tecla = alternar nota. Más simple que el mástil: no hay cejillas, no
-  hay estados `open`/`muted`, y no hay el problema de "una nota por cuerda".
-- **Sonido de piano.** Esto es lo que quiero conversar contigo. El sintetizador actual (§8) está
-  modelado para cuerda pulsada; un piano creíble con síntesis pura es dificultoso, y suele pedir
-  samples. Pero samples significa archivos de audio en `vendor/`, y hoy el proyecto pesa 250 KB y
-  arranca desde un solo HTML. Ese es un intercambio que deberías decidir tú, no yo.
 
-También hay una decisión de arquitectura antes de escribir código: el archivo ya tiene 2.674
-líneas con toda la app dentro de un componente `App()`. Meterle un modo piano encima es viable,
-pero lo va a hacer bastante más difícil de mantener.
+- **Dibujo del teclado.** Geometría nueva; no se parece a la del mástil. Teclas blancas
+  uniformes, negras superpuestas en patrón 2-3, y la nota se marca sobre la tecla en vez de en
+  una intersección de rejilla.
+- **Interacción.** Click en tecla = alternar nota. Más simple que el mástil: no hay cejillas,
+  ni estados `open`/`muted`, ni la regla de "una nota por cuerda".
+- **Voz de piano** en el sintetizador. Decisión tomada: empezar **sin samples**, con una voz
+  dedicada (ataque rápido, sin el sostenido de la cuerda pulsada, parciales inarmónicos, ruido
+  de martillo). No engañará a un pianista, pero conserva lo que hace especial al proyecto: un
+  archivo, 250 KB, cero internet. Samples sólo si al oírlo no convence — y sabiendo que
+  significan megas de audio en `vendor/`.
+
+Nota de diseño: el piano NO debería ser un cuarto `appMode`. `appMode` distingue qué se dibuja
+(acorde / escala / arpegio), y eso es ortogonal a con qué instrumento. Lo natural es que el
+piano sea otra opción del selector de instrumento, con `INSTRUMENTS` declarando si se dibuja
+como mástil o como teclado.
 
 ## 12. Deuda técnica que noté de paso
 
-- `App()` es un único componente gigante (líneas 383–2672). Todo el estado y todo el JSX juntos.
+- `App()` sigue siendo un único componente gigante (líneas 311–2494). Todo el estado y todo el JSX juntos. El núcleo de teoría ya salió; la interfaz no.
 - El JSX usa `class` en vez de `className`. Funciona porque React lo tolera, pero llena la consola
   de advertencias.
-- El logo va como base64 en una sola línea de 76.849 caracteres (línea 1293). Hace el archivo
+- El logo va como base64 en una sola línea de 76.849 caracteres (línea 1117). Hace el archivo
   incómodo de leer con herramientas de texto y no aporta nada frente a un archivo en `vendor/`.
-- El bloque de overrides CSS (líneas 65–95) repinta Tailwind con `!important`. Cualquier clase
+- El bloque de overrides CSS (líneas 65–99) repinta Tailwind con `!important`. Cualquier clase
   nueva de color puede salir con el color equivocado sin motivo aparente.
-- Los presets de acordes (`PRESETS`, línea 288) son solo 5 y traen `tuning` fijo de 6 cuerdas.
-- El proyecto **no está en git**. Antes de meter mano a los bugs y al módulo de piano, vale la pena
-  inicializarlo — es una red de seguridad barata.
+- Los presets de acordes (`PRESETS`, línea 237) son solo 5 y todos son de guitarra.
+- El **reconocimiento de acordes gana con el primer match** del bucle, sin criterio de preferencia
+  (ver §7). Es la deuda más musical que queda.

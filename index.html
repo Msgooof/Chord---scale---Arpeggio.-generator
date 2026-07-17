@@ -10,6 +10,10 @@
     <script src="vendor/react.production.min.js"></script>
     <script src="vendor/react-dom.production.min.js"></script>
     <script src="vendor/babel.min.js"></script>
+    <!-- Núcleo de teoría musical. Script normal: no lleva JSX, así que no
+         pasa por Babel. Debe cargar antes que la app, que lo consume como
+         window.KharoTheory. -->
+    <script src="theory-core.js"></script>
     <style>
         /* Fjalla One (copia local, no requiere internet) */
         @font-face {
@@ -103,14 +107,24 @@
     <script type="text/plain" id="app-source">
         const { useState, useEffect, useRef } = React;
 
-        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const INTERVAL_DEGREES = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
-        
-        const NOTE_TO_SEMITONE = {
-            'c': 0, 'c#': 1, 'db': 1, 'd': 2, 'd#': 3, 'eb': 3, 'e': 4, 'f': 5, 'f#': 6, 'gb': 6, 'g': 7, 'g#': 8, 'ab': 8, 'a': 9, 'a#': 10, 'bb': 10, 'b': 11
-        };
-
-        const COMMON_FRETS = [1, 3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
+        // --- NÚCLEO DE TEORÍA (theory-core.js) ---
+        // Toda la música vive fuera de este archivo. Aquí sólo se le pone cara.
+        const {
+            NOTE_NAMES,
+            INTERVAL_DEGREES,
+            COMMON_FRETS,
+            INSTRUMENTS,
+            INSTRUMENT_ORDER,
+            DEFAULT_INSTRUMENT,
+            TUNING_PRESETS,
+            SCALE_PRESETS,
+            ARPEGGIO_PRESETS,
+            parseNoteToSemi,
+            getInstrument,
+            identifyChord,
+            midiToNoteName,
+            midiToFrequency
+        } = window.KharoTheory;
 
         // Tipografías admitidas
         const FONTS_LIST = [
@@ -143,44 +157,6 @@
             "5": "#2563eb", // Quintas
             "6": "#06b6d4", // Sextas
             "7": "#db2777"  // Séptimas
-        };
-
-        function parseNoteToSemi(noteStr) {
-            if (!noteStr) return 0;
-            const normalized = noteStr.trim().toLowerCase();
-            return NOTE_TO_SEMITONE[normalized] ?? 0;
-        }
-
-        function arraysEqual(a, b) {
-            if (a.length !== b.length) return false;
-            for (let i = 0; i < a.length; i++) {
-                if (a[i] !== b[i]) return false;
-            }
-            return true;
-        }
-
-        // --- SISTEMA DE RESOLUCIÓN DE MIDI A FRECUENCIAS Y OCTAVAS REALES ---
-        const getStringBaseMIDI = (noteStr, idx, numStrings) => {
-            const standard6 = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 E4
-            const standard4Bass = [28, 33, 38, 43];     // E1 A1 D2 G2
-            const standard4Uke = [67, 60, 64, 69];      // G4 C4 E4 A4
-            const standard5Bass = [23, 28, 33, 38, 43];  // B0 E1 A1 D2 G2
-            const standard7 = [35, 40, 45, 50, 55, 59, 64]; // B1 E2 A2 D3 G3 B3 E4
-            const standard8 = [30, 35, 40, 45, 50, 55, 59, 64]; // F#1 B1 E2 A2 D3 G3 B3 E4
-            
-            if (numStrings === 6) return standard6[idx] !== undefined ? standard6[idx] : 40 + idx * 5;
-            if (numStrings === 4) {
-                if (noteStr === 'g' || noteStr === 'G' || noteStr === 'A' || noteStr === 'a') {
-                    return standard4Uke[idx]; // Ukelele
-                }
-                return standard4Bass[idx]; // Bajo de 4 cuerdas
-            }
-            if (numStrings === 5) return standard5Bass[idx] !== undefined ? standard5Bass[idx] : 23 + idx * 5;
-            if (numStrings === 7) return standard7[idx] !== undefined ? standard7[idx] : 35 + idx * 5;
-            if (numStrings === 8) return standard8[idx] !== undefined ? standard8[idx] : 30 + idx * 5;
-            
-            const baseNote = parseNoteToSemi(noteStr);
-            return 40 + baseNote + idx * 5;
         };
 
         // --- SINTETIZADOR DE CUERDA PULSADA CON WEB AUDIO API ---
@@ -258,37 +234,10 @@
 
         const synthInstance = new InstrumentSynth();
 
-        const SCALE_PRESETS = [
-            { id: "major", name: "Mayor (Jónica)", intervals: [0, 2, 4, 5, 7, 9, 11] },
-            { id: "minor", name: "Menor Natural (Eólica)", intervals: [0, 2, 3, 5, 7, 8, 10] },
-            { id: "harmonic_minor", name: "Menor Armónica", intervals: [0, 2, 3, 5, 7, 8, 11] },
-            { id: "melodic_minor", name: "Menor Melódica", intervals: [0, 2, 3, 5, 7, 9, 11] },
-            { id: "pentatonic_major", name: "Pentatónica Mayor", intervals: [0, 2, 4, 7, 9] },
-            { id: "pentatonic_minor", name: "Pentatónica Menor", intervals: [0, 3, 5, 7, 10] },
-            { id: "blues", name: "Escala de Blues", intervals: [0, 3, 5, 6, 7, 10] },
-            { id: "dorian", name: "Modo Dórico", intervals: [0, 2, 3, 5, 7, 9, 10] },
-            { id: "phrygian", name: "Modo Frigio", intervals: [0, 1, 3, 5, 7, 8, 10] },
-            { id: "lydian", name: "Modo Lidio", intervals: [0, 2, 4, 6, 7, 9, 11] },
-            { id: "mixolydian", name: "Modo Mixolidio", intervals: [0, 2, 4, 5, 7, 9, 10] },
-            { id: "locrian", name: "Modo Locrio", intervals: [0, 1, 3, 5, 6, 8, 10] }
-        ];
-
-        const ARPEGGIO_PRESETS = [
-            { id: "major", name: "Tríada Mayor", intervals: [0, 4, 7] },
-            { id: "minor", name: "Tríada Menor", intervals: [0, 3, 7] },
-            { id: "dim", name: "Tríada Disminuida", intervals: [0, 3, 6] },
-            { id: "aug", name: "Tríada Aumentada", intervals: [0, 4, 8] },
-            { id: "maj7", name: "Séptima Mayor (Maj7)", intervals: [0, 4, 7, 11] },
-            { id: "dom7", name: "Dominante (7)", intervals: [0, 4, 7, 10] },
-            { id: "min7", name: "Séptima Menor (m7)", intervals: [0, 3, 7, 10] },
-            { id: "m7b5", name: "Semidisminuido (m7b5)", intervals: [0, 3, 6, 10] },
-            { id: "dim7", name: "Disminuido 7 (dim7)", intervals: [0, 3, 6, 9] }
-        ];
-
         const PRESETS = [
             {
                 name: "C",
-                numStrings: 6,
+                instrument: "guitar6",
                 numFrets: 5,
                 startingFret: 1,
                 tuning: ["E", "A", "D", "G", "B", "e"],
@@ -302,7 +251,7 @@
             },
             {
                 name: "A",
-                numStrings: 6,
+                instrument: "guitar6",
                 numFrets: 5,
                 startingFret: 1,
                 tuning: ["E", "A", "D", "G", "B", "e"],
@@ -316,7 +265,7 @@
             },
             {
                 name: "G",
-                numStrings: 6,
+                instrument: "guitar6",
                 numFrets: 5,
                 startingFret: 1,
                 tuning: ["E", "A", "D", "G", "B", "e"],
@@ -331,7 +280,7 @@
             },
             {
                 name: "E",
-                numStrings: 6,
+                instrument: "guitar6",
                 numFrets: 5,
                 startingFret: 1,
                 tuning: ["E", "A", "D", "G", "B", "e"],
@@ -345,7 +294,7 @@
             },
             {
                 name: "D",
-                numStrings: 6,
+                instrument: "guitar6",
                 numFrets: 5,
                 startingFret: 1,
                 tuning: ["E", "A", "D", "G", "B", "e"],
@@ -359,40 +308,37 @@
             }
         ];
 
-        const TUNING_PRESETS = {
-            4: [
-                { name: "Estándar (Bajo)", notes: ["E", "A", "D", "G"] },
-                { name: "Estándar (Ukelele)", notes: ["G", "C", "E", "A"] }
-            ],
-            5: [
-                { name: "Estándar (Bajo 5c)", notes: ["B", "E", "A", "D", "G"] }
-            ],
-            6: [
-                { name: "Estándar (E A D G B e)", notes: ["E", "A", "D", "G", "B", "e"] },
-                { name: "Drop D (D A D G B e)", notes: ["D", "A", "D", "G", "B", "e"] },
-                { name: "DADGAD", notes: ["D", "A", "D", "G", "A", "d"] }
-            ],
-            7: [
-                { name: "Estándar 7c (B E A D G B e)", notes: ["B", "E", "A", "D", "G", "B", "e"] }
-            ],
-            8: [
-                { name: "Estándar 8c (F# B E A D G B e)", notes: ["F#", "B", "E", "A", "D", "G", "B", "e"] }
-            ]
-        };
-
         function App() {
             const [appMode, setAppMode] = useState("chord"); // 'chord', 'scale', 'arpeggio'
             const [chordName, setChordName] = useState("C");
             const [autoUpdateTitle, setAutoUpdateTitle] = useState(true);
-            const [numStrings, setNumStrings] = useState(6);
+
+            // El instrumento es explícito. El ukelele y el bajo de 4 cuerdas son
+            // instrumentos distintos: no se pueden deducir del número de cuerdas.
+            const [instrument, setInstrument] = useState(DEFAULT_INSTRUMENT);
+            const numStrings = getInstrument(instrument).strings;
+
             const [numFrets, setNumFrets] = useState(5);
             const [startingFret, setStartingFret] = useState(1);
-            
+
             const [dots, setDots] = useState(PRESETS[0].dots);
             const [stringStates, setStringStates] = useState(PRESETS[0].stringStates);
             const [barres, setBarres] = useState([]);
             const [tuning, setTuning] = useState(PRESETS[0].tuning);
             const [selectedTuningName, setSelectedTuningName] = useState("Estándar (E A D G B e)");
+
+            // Octavas fijadas por un preset que no se pueden deducir por cercanía
+            // a la afinación de fábrica (el ukelele de sol grave). null = deducir.
+            const [tuningMidi, setTuningMidi] = useState(null);
+
+            // Punto ÚNICO por el que pasa toda nota al aire. Antes había dos
+            // sistemas de afinación en paralelo —el análisis leía las letras y el
+            // audio unas tablas fijas—, y por eso Drop D se veía pero no se oía.
+            const stringBaseMIDI = (stringIndex) => (
+                tuningMidi
+                    ? tuningMidi[stringIndex]
+                    : window.KharoTheory.getStringBaseMIDI(tuning, stringIndex, instrument)
+            );
 
             // States for Scale Mode
             const [scaleRoot, setScaleRoot] = useState(0); 
@@ -463,30 +409,27 @@
                 showToast("Estilos restablecidos al diseño por defecto");
             };
 
+            // Al cambiar de instrumento se carga su afinación de fábrica y se
+            // limpia el mástil: las posiciones del instrumento anterior no
+            // significan lo mismo aquí.
             useEffect(() => {
-                const defaultTunings = ["E", "A", "D", "G", "B", "e", "b", "d"];
-                
-                const availablePresets = TUNING_PRESETS[numStrings];
+                const availablePresets = TUNING_PRESETS[instrument];
                 if (availablePresets && availablePresets.length > 0) {
                     setTuning(availablePresets[0].notes);
                     setSelectedTuningName(availablePresets[0].name);
+                    setTuningMidi(availablePresets[0].midi ?? null);
                 } else {
-                    const newTuning = [];
-                    for (let i = 0; i < numStrings; i++) {
-                        newTuning.push(defaultTunings[i % defaultTunings.length]);
-                    }
-                    setTuning(newTuning);
+                    setTuning(getInstrument(instrument).standard.map(m => midiToNoteName(m).replace(/-?\d+$/, "")));
                     setSelectedTuningName("Personalizada");
+                    setTuningMidi(null);
                 }
 
                 if (stringStates.length !== numStrings) {
-                    const newStates = [];
-                    for (let i = 0; i < numStrings; i++) {
-                        newStates.push("none");
-                    }
-                    setStringStates(newStates);
+                    setStringStates(Array(numStrings).fill("none"));
+                    setDots([]);
+                    setBarres([]);
                 }
-            }, [numStrings]);
+            }, [instrument]);
 
             useEffect(() => {
                 if (appMode === "chord") {
@@ -563,138 +506,16 @@
                     }
                 }
 
-                if (sounding.length === 0) return { name: "Ninguno (Mástil Vacío)", rootSemi: 0 };
-
-                sounding.sort((a, b) => a.stringIndex - b.stringIndex);
-                const bassSemi = sounding[0].semitone;
-                const bassNoteName = NOTE_NAMES[bassSemi];
-
-                const uniquePitches = [...new Set(sounding.map(s => s.semitone))];
-
-                // --- LIBRERÍA MATEMÁTICA EXPANDIDA DE FÓRMULAS DE ACORDES ---
-                const formulas = [
-                    // --- TRÍADAS Y BÁSICOS ---
-                    { name: "", intervals: [0, 4, 7] },                     // Mayor
-                    { name: "m", intervals: [0, 3, 7] },                    // Menor
-                    { name: "sus4", intervals: [0, 5, 7] },                 // Suspendido 4
-                    { name: "sus2", intervals: [0, 2, 7] },                 // Suspendido 2
-                    { name: "5", intervals: [0, 7] },                       // Quinta (Power Chord)
-                    { name: "dim", intervals: [0, 3, 6] },                  // Disminuido
-                    { name: "aug", intervals: [0, 4, 8] },                  // Aumentado
-
-                    // --- SÉPTIMAS ---
-                    { name: "7", intervals: [0, 4, 7, 10] },                // Dominante 7 (Completo)
-                    { name: "7", intervals: [0, 4, 10] },                   // Dominante 7 (Sin 5a)
-                    { name: "maj7", intervals: [0, 4, 7, 11] },              // Mayor 7 (Completo)
-                    { name: "maj7", intervals: [0, 4, 11] },                // Mayor 7 (Sin 5a)
-                    { name: "m7", intervals: [0, 3, 7, 10] },                // Menor 7 (Completo)
-                    { name: "m7", intervals: [0, 3, 10] },                  // Menor 7 (Sin 5a)
-                    { name: "m(maj7)", intervals: [0, 3, 7, 11] },           // Menor/Sexta Séptima
-                    { name: "m(maj7)", intervals: [0, 3, 11] },             // Menor/Sexta Séptima (Sin 5a)
-                    { name: "m7b5", intervals: [0, 3, 6, 10] },             // Semidisminuido (Menor 7 bemol 5)
-                    { name: "dim7", intervals: [0, 3, 6, 9] },              // Disminuido completo (Disminuido 7)
-                    { name: "7#5", intervals: [0, 4, 8, 10] },              // Aumentado Dominante 7
-                    { name: "maj7#5", intervals: [0, 4, 8, 11] },            // Aumentado Mayor 7
-
-                    // --- ACORDES DE SEXTA ---
-                    { name: "6", intervals: [0, 4, 7, 9] },                  // Sexta Mayor
-                    { name: "6", intervals: [0, 4, 9] },                    // Sexta Mayor (Sin 5a)
-                    { name: "m6", intervals: [0, 3, 7, 9] },                 // Sexta Menor
-                    { name: "m6", intervals: [0, 3, 9] },                   // Sexta Menor (Sin 5a)
-                    { name: "6/9", intervals: [0, 2, 4, 7, 9] },             // Sexta/Nona Mayor
-                    { name: "6/9", intervals: [0, 2, 4, 9] },               // Sexta/Nona Mayor (Sin 5a)
-                    { name: "m6/9", intervals: [0, 2, 3, 7, 9] },            // Sexta/Nona Menor
-                    { name: "m6/9", intervals: [0, 2, 3, 9] },              // Sexta/Nona Menor (Sin 5a)
-
-                    // --- NOVENAS ---
-                    { name: "9", intervals: [0, 2, 4, 7, 10] },             // Dominante 9 (Completo)
-                    { name: "9", intervals: [0, 2, 4, 10] },                // Dominante 9 (Sin 5a)
-                    { name: "maj9", intervals: [0, 2, 4, 7, 11] },           // Mayor 9 (Completo)
-                    { name: "maj9", intervals: [0, 2, 4, 11] },             // Mayor 9 (Sin 5a)
-                    { name: "m9", intervals: [0, 2, 3, 7, 10] },             // Menor 9 (Completo)
-                    { name: "m9", intervals: [0, 2, 3, 10] },               // Menor 9 (Sin 5a)
-                    { name: "m(maj9)", intervals: [0, 2, 3, 7, 11] },        // Menor Mayor 9
-                    { name: "m(maj9)", intervals: [0, 2, 3, 11] },          // Menor Mayor 9 (Sin 5a)
-                    { name: "9b5", intervals: [0, 2, 4, 6, 10] },            // Dominante 9 bemol 5
-                    { name: "9#5", intervals: [0, 2, 4, 8, 10] },            // Dominante 9 sostenido 5
-                    { name: "7b9", intervals: [0, 1, 4, 7, 10] },            // Dominante 7 bemol 9
-                    { name: "7b9", intervals: [0, 1, 4, 10] },              // Dominante 7 bemol 9 (Sin 5a)
-                    { name: "7#9", intervals: [0, 3, 4, 7, 10] },            // Dominante 7 sostenido 9 ("Hendrix Chord")
-                    { name: "7#9", intervals: [0, 3, 4, 10] },              // Dominante 7 sostenido 9 (Sin 5a)
-
-                    // --- ONCEVAS ---
-                    { name: "11", intervals: [0, 2, 4, 5, 7, 10] },          // Onceva Dominante
-                    { name: "11", intervals: [0, 2, 5, 10] },               // Onceva Dominante (Sin 3/5a)
-                    { name: "maj11", intervals: [0, 2, 4, 5, 7, 11] },       // Onceva Mayor
-                    { name: "maj11", intervals: [0, 2, 5, 11] },            // Onceva Mayor (Sin 3/5a)
-                    { name: "m11", intervals: [0, 2, 3, 5, 7, 10] },         // Onceva Menor
-                    { name: "m11", intervals: [0, 2, 3, 5, 10] },           // Onceva Menor (Sin 5a)
-                    { name: "maj7#11", intervals: [0, 2, 4, 6, 7, 11] },     // Lidio (maj7#11)
-                    { name: "maj7#11", intervals: [0, 4, 6, 11] },           // Lidio (maj7#11 sin 5a)
-                    { name: "maj7#11", intervals: [0, 2, 4, 6, 11] },        // Lidio (maj9#11 sin 5a)
-
-                    // --- TRECEVAS ---
-                    { name: "13", intervals: [0, 2, 4, 7, 9, 10] },          // Treceva Dominante
-                    { name: "13", intervals: [0, 2, 4, 9, 10] },            // Treceva Dominante (Sin 5a)
-                    { name: "13", intervals: [0, 4, 9, 10] },               // Treceva Dominante (Voicing de Jazz común)
-                    { name: "maj13", intervals: [0, 2, 4, 7, 9, 11] },       // Treceva Mayor
-                    { name: "maj13", intervals: [0, 2, 4, 9, 11] },         // Treceva Mayor (Sin 5a)
-                    { name: "m13", intervals: [0, 2, 3, 7, 9, 10] },         // Treceva Menor
-                    { name: "m13", intervals: [0, 2, 3, 9, 10] },           // Treceva Menor (Sin 5a)
-
-                    // --- NOTAS AÑADIDAS (ADD) ---
-                    { name: "add9", intervals: [0, 2, 4, 7] },               // Nona Añadida Mayor
-                    { name: "add9", intervals: [0, 2, 4] },                 // Nona Añadida Mayor (Sin 5a)
-                    { name: "madd9", intervals: [0, 2, 3, 7] },              // Nona Añadida Menor
-                    { name: "madd9", intervals: [0, 2, 3] },                // Nona Añadida Menor (Sin 5a)
-                    { name: "add11", intervals: [0, 4, 5, 7] },              // Onceva Añadida Mayor
-                    { name: "add11", intervals: [0, 4, 5] },                // Onceva Añadida Mayor (Sin 5a)
-                    { name: "madd11", intervals: [0, 3, 5, 7] },             // Onceva Añadida Menor
-                    { name: "madd11", intervals: [0, 3, 5] },               // Onceva Añadida Menor (Sin 5a)
-
-                    // --- SUSPENDIDOS EXTENDIDOS ---
-                    { name: "7sus4", intervals: [0, 5, 7, 10] },             // Dominante 7 Suspendido 4
-                    { name: "7sus4", intervals: [0, 5, 10] },               // Dominante 7 Suspendido 4 (Sin 5a)
-                    { name: "9sus4", intervals: [0, 2, 5, 7, 10] },          // Dominante 9 Suspendido 4
-                    { name: "9sus4", intervals: [0, 2, 5, 10] },            // Dominante 9 Suspendido 4 (Sin 5a)
-                    { name: "13sus4", intervals: [0, 2, 5, 7, 9, 10] }       // Dominante 13 Suspendido 4
-                ];
-
-                let bestChord = null;
-
-                for (const root of uniquePitches) {
-                    const relIntervals = uniquePitches.map(p => (p - root + 12) % 12);
-                    relIntervals.sort((a, b) => a - b);
-
-                    for (const formula of formulas) {
-                        if (arraysEqual(relIntervals, formula.intervals)) {
-                            bestChord = {
-                                root: NOTE_NAMES[root],
-                                type: formula.name,
-                                bass: NOTE_NAMES[root] === bassNoteName ? "" : bassNoteName,
-                                rootSemi: root
-                            };
-                            break;
-                        }
-                    }
-                    if (bestChord) break;
-                }
-
-                if (!bestChord) {
-                    const notesString = uniquePitches.map(p => NOTE_NAMES[p]).join(", ");
-                    return { name: `Desconocido (${notesString})`, rootSemi: uniquePitches[0] };
-                }
-
-                let chordString = bestChord.root + bestChord.type;
-                if (bestChord.bass) {
-                    chordString += "/" + bestChord.bass;
-                }
-                return { name: chordString, rootSemi: bestChord.rootSemi };
+                // El reconocimiento vive en el núcleo: sólo mira clases de altura
+                // y cuál es la nota más grave, así que no sabe ni le importa que
+                // esto sea un mástil.
+                return identifyChord(sounding);
             };
 
-            const handleTuningPresetChange = (notesArray, name) => {
+            const handleTuningPresetChange = (notesArray, name, explicitMidi = null) => {
                 setTuning(notesArray);
                 setSelectedTuningName(name);
+                setTuningMidi(explicitMidi);
                 showToast(`Afinación cambiada a: ${name}`);
             };
 
@@ -708,7 +529,7 @@
             // --- EVENTOS DE INTERACCIÓN AUDIBLE ---
             const playSingleNoteAudio = (stringIndex, fretNum) => {
                 synthInstance.init();
-                const baseMidi = getStringBaseMIDI(tuning[stringIndex], stringIndex, numStrings);
+                const baseMidi = stringBaseMIDI(stringIndex);
                 const absMidi = baseMidi + fretNum;
                 synthInstance.playNote(absMidi);
 
@@ -838,6 +659,8 @@
                 updated[index] = value;
                 setTuning(updated);
                 setSelectedTuningName("Personalizada");
+                // Afinación libre: se vuelve a deducir la octava por cercanía.
+                setTuningMidi(null);
             };
 
             const toggleCustomInterval = (idx) => {
@@ -848,7 +671,7 @@
 
             const loadPreset = (preset) => {
                 setChordName(preset.name.split(" ")[0]);
-                setNumStrings(preset.numStrings);
+                setInstrument(preset.instrument);
                 setNumFrets(preset.numFrets);
                 setStartingFret(preset.startingFret);
                 setDots(preset.dots);
@@ -856,6 +679,7 @@
                 setBarres(preset.barres ?? []);
                 setTuning(preset.tuning);
                 setSelectedTuningName("Estándar (E A D G B e)");
+                setTuningMidi(null);
                 setAutoUpdateTitle(true);
                 setAppMode("chord");
                 showToast(`Acorde ${preset.name} cargado correctamente`);
@@ -1027,7 +851,7 @@
                         const state = stringStates[s];
                         if (state === "muted") continue;
 
-                        const baseMidi = getStringBaseMIDI(tuning[s], s, numStrings);
+                        const baseMidi = stringBaseMIDI(s);
                         
                         const dot = dots.find(d => d.s === s);
                         if (dot) {
@@ -1048,13 +872,13 @@
                 } else if (appMode === "scale") {
                     const opens = generateScaleOpenNotes();
                     opens.forEach(op => {
-                        const baseMidi = getStringBaseMIDI(tuning[op.s], op.s, numStrings);
+                        const baseMidi = stringBaseMIDI(op.s);
                         notesToPlay.push({ s: op.s, f: 0, midi: baseMidi });
                     });
 
                     const frets = generateScaleRenderDots();
                     frets.forEach(fr => {
-                        const baseMidi = getStringBaseMIDI(tuning[fr.s], fr.s, numStrings);
+                        const baseMidi = stringBaseMIDI(fr.s);
                         notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
                     });
 
@@ -1073,13 +897,13 @@
                 } else if (appMode === "arpeggio") {
                     const opens = generateArpeggioOpenNotes();
                     opens.forEach(op => {
-                        const baseMidi = getStringBaseMIDI(tuning[op.s], op.s, numStrings);
+                        const baseMidi = stringBaseMIDI(op.s);
                         notesToPlay.push({ s: op.s, f: 0, midi: baseMidi });
                     });
 
                     const frets = generateArpeggioRenderDots();
                     frets.forEach(fr => {
-                        const baseMidi = getStringBaseMIDI(tuning[fr.s], fr.s, numStrings);
+                        const baseMidi = stringBaseMIDI(fr.s);
                         notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
                     });
 
@@ -1596,17 +1420,15 @@
                                             
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
-                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Cuerdas</label>
+                                                    <label class="block text-[10px] font-medium text-slate-400 mb-1">Instrumento</label>
                                                     <select
-                                                        value={numStrings}
-                                                        onChange={(e) => { setNumStrings(parseInt(e.target.value)); }}
+                                                        value={instrument}
+                                                        onChange={(e) => { setInstrument(e.target.value); }}
                                                         class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
                                                     >
-                                                        <option value={4}>4 (Ukelele/Bajo)</option>
-                                                        <option value={5}>5 (Bajo 5c)</option>
-                                                        <option value={6}>6 (Guitarra Std)</option>
-                                                        <option value={7}>7 (Extendida)</option>
-                                                        <option value={8}>8 (Rango Ext)</option>
+                                                        {INSTRUMENT_ORDER.map(id => (
+                                                            <option key={id} value={id}>{INSTRUMENTS[id].label}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                                 <div>
@@ -1659,17 +1481,17 @@
                                                     value={selectedTuningName}
                                                     onChange={(e) => {
                                                         const pName = e.target.value;
-                                                        const found = TUNING_PRESETS[numStrings]?.find(p => p.name === pName);
+                                                        const found = TUNING_PRESETS[instrument]?.find(p => p.name === pName);
                                                         if (found) {
-                                                            handleTuningPresetChange(found.notes, found.name);
+                                                            handleTuningPresetChange(found.notes, found.name, found.midi ?? null);
                                                         } else {
                                                             setSelectedTuningName("Personalizada");
                                                         }
                                                     }}
                                                     class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
                                                 >
-                                                    {TUNING_PRESETS[numStrings] ? (
-                                                        TUNING_PRESETS[numStrings].map(preset => (
+                                                    {TUNING_PRESETS[instrument] ? (
+                                                        TUNING_PRESETS[instrument].map(preset => (
                                                             <option key={preset.name} value={preset.name}>{preset.name}</option>
                                                         ))
                                                     ) : (
