@@ -209,15 +209,31 @@
      * -------------------------------------------------------------------- */
 
     // Traste absoluto (1 = primer traste real) desde el traste dibujado.
+    //
+    // `relFret = 0` es la CEJUELA de la ventana, y por eso devuelve
+    // `startingFret - 1`: al subir la ventana, la cejuela de la digitación se
+    // convierte en una cejilla un traste por encima del primero dibujado.
     function toAbsoluteFret(startingFret, relFret) {
         return startingFret + relFret - 1;
     }
 
-    // MIDI de una nota pisada. `relFret` es el traste tal y como se DIBUJA;
-    // `relFret = 0` significa cuerda al aire y no se desplaza.
+    /* MIDI de una posición de una DIGITACIÓN de acorde.
+     *
+     * Una digitación es una FORMA que se desplaza entera con la ventana: si
+     * mueves la ventana, se mueve todo, incluidas las cuerdas al aire. Un
+     * guitarrista hace justo eso al subir la forma de C por el mástil — la
+     * cejuela pasa a ser una cejilla.
+     *
+     * Antes las notas pisadas se transponían y las cuerdas al aire no, así que
+     * el acorde salía medio transpuesto: la forma de C en el traste 3 se
+     * nombraba "Em9/D" en vez de "D".
+     *
+     * OJO: esto vale para acordes, NO para escalas ni arpegios. Ahí el
+     * diagrama es un MAPA del mástil, no una forma, y una cuerda al aire es
+     * literalmente la cuerda al aire (`baseMidi`, sin desplazar).
+     */
     function fretToMidi(baseMidi, startingFret, relFret) {
-        if (!relFret) return baseMidi; // al aire: 0, null o undefined
-        return baseMidi + toAbsoluteFret(startingFret, relFret);
+        return baseMidi + toAbsoluteFret(startingFret, relFret || 0);
     }
 
     // Nombre de nota con octava, p. ej. 40 -> "E2". Para depurar y para la UI.

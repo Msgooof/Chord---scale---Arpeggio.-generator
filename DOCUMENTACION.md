@@ -209,6 +209,32 @@ acorde distinto. En modo escala, el diagrama mostraba Do mayor y sonaban A#, C#,
 Ahora toda conversión de traste a MIDI pasa por `fretToMidi(baseMidi, startingFret, relFret)`
 en el núcleo, que además trata `relFret = 0` como cuerda al aire (no se desplaza).
 
+### Bug D — Al mover la ventana, la digitación se transponía a medias
+
+Una digitación es una FORMA que se desplaza entera con la ventana: es lo que hace un
+guitarrista al subir la forma de C por el mástil, donde la cejuela pasa a ser una cejilla.
+
+Pero las notas pisadas se transponían y las cuerdas al aire no, así que el acorde salía medio
+transpuesto — igual que el Bug C. La forma de C subiendo por el mástil se nombraba así:
+
+```
+traste 1  C     traste 5  Desconocido (E, G#, G)
+traste 2  Desconocido (C#, F, G, E)     traste 6  Fmaj9
+traste 3  Em9/D                          traste 7  F#7b9
+traste 4  Em(maj7)/D#                    traste 8  G6
+```
+
+Ahora `toAbsoluteFret(startingFret, 0)` devuelve `startingFret - 1`: la cuerda al aire es la
+**cejuela de la digitación**, y sube con ella. La misma forma da C, C#, D, D#, E, F, F#, G…
+
+**Importante:** esta regla vale sólo en modo Acorde. En escalas y arpegios el diagrama es un
+**mapa del mástil**, no una forma transponible, así que una cuerda al aire es literal y no se
+desplaza. Por eso `playSingleNoteAudio` mira `appMode`.
+
+**Consecuencia visual conocida:** con `startingFret > 1`, esa cejilla cae en el traste
+`startingFret - 1`, que queda justo por encima de la ventana. Suena y cuenta, pero no se dibuja.
+Es una decisión consciente, no un descuido.
+
 ### Bugs A y B — Dos sistemas de afinación en paralelo
 
 El análisis de acordes leía el array `tuning[]` (las letras), y el audio usaba unas tablas

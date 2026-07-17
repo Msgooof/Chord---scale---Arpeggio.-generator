@@ -125,6 +125,7 @@
             getInstrument,
             identifyChord,
             fretToMidi,
+            toAbsoluteFret,
             midiToNoteName,
             midiToFrequency
         } = window.KharoTheory;
@@ -558,15 +559,16 @@
                         continue;
                     }
 
-                    if (state === "open" || state === "none") {
-                        if (state === "open") {
-                            sounding.push({
-                                semitone: baseSemi % 12,
-                                stringIndex: s,
-                                isFretted: false,
-                                absoluteFret: 0
-                            });
-                        }
+                    if (state === "open") {
+                        // La cuerda al aire es la CEJUELA de la digitación, y la
+                        // digitación se desplaza entera con la ventana.
+                        const absFret = toAbsoluteFret(startingFret, 0);
+                        sounding.push({
+                            semitone: (baseSemi + absFret) % 12,
+                            stringIndex: s,
+                            isFretted: absFret > 0,
+                            absoluteFret: absFret
+                        });
                     }
                 }
 
@@ -593,7 +595,17 @@
             // --- EVENTOS DE INTERACCIÓN AUDIBLE ---
             const playSingleNoteAudio = (stringIndex, fretNum) => {
                 synthInstance.init();
-                const absMidi = fretToMidi(stringBaseMIDI(stringIndex), startingFret, fretNum);
+                const baseMidi = stringBaseMIDI(stringIndex);
+
+                // En modo acorde el diagrama es una FORMA que se desplaza entera
+                // con la ventana, así que una cuerda al aire (fretNum 0) es la
+                // cejuela de la forma y sube con ella. En escalas y arpegios el
+                // diagrama es un MAPA del mástil: al aire es al aire.
+                const esCuerdaAlAireDeUnMapa = fretNum === 0 && appMode !== "chord";
+                const absMidi = esCuerdaAlAireDeUnMapa
+                    ? baseMidi
+                    : fretToMidi(baseMidi, startingFret, fretNum);
+
                 synthInstance.playNote(absMidi);
 
                 // Disparar destello visual
@@ -929,7 +941,9 @@
                         }
 
                         if (state === "open" || state === "none") {
-                            notesToPlay.push({ s, f: 0, midi: baseMidi });
+                            // Igual que en el análisis: al aire = cejuela de la
+                            // digitación, y la digitación se desplaza entera.
+                            notesToPlay.push({ s, f: 0, midi: fretToMidi(baseMidi, startingFret, 0) });
                         }
                     }
                 } else if (appMode === "scale") {
@@ -1845,7 +1859,9 @@
                                                 const y = paddingTop - 20;
 
                                                 if ((chordDisplayMode === "note" || chordDisplayMode === "degree") && state === "open") {
-                                                    const baseSemi = parseNoteToSemi(tuning[idx]) % 12;
+                                                    // La cuerda al aire se desplaza con la forma, así que
+                                                    // su nombre tiene que decir lo mismo que suena.
+                                                    const baseSemi = (parseNoteToSemi(tuning[idx]) + toAbsoluteFret(startingFret, 0)) % 12;
                                                     let label = "";
                                                     const relativeSemi = (baseSemi - detectedRootSemi + 12) % 12;
                                                     const degreeStr = INTERVAL_DEGREES[relativeSemi];
