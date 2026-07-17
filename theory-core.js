@@ -193,6 +193,33 @@
         return result;
     }
 
+    /* --- Trastes relativos y absolutos -----------------------------------
+     *
+     * La app dibuja una VENTANA del mástil: `startingFret` dice en qué traste
+     * empieza, y los trastes dentro del diagrama se numeran desde 1. Así que
+     * hay dos numeraciones y es fácil confundirlas:
+     *
+     *   relFret  1  = el primer traste DIBUJADO
+     *   absFret  1  = el primer traste REAL del instrumento
+     *   absFret = startingFret + relFret - 1
+     *
+     * Confundirlas es justo lo que hacía que un acorde dibujado en el traste 5
+     * sonara como si estuviera en el 1: el análisis usaba el absoluto y el
+     * audio el relativo. Toda conversión de traste a MIDI pasa por aquí.
+     * -------------------------------------------------------------------- */
+
+    // Traste absoluto (1 = primer traste real) desde el traste dibujado.
+    function toAbsoluteFret(startingFret, relFret) {
+        return startingFret + relFret - 1;
+    }
+
+    // MIDI de una nota pisada. `relFret` es el traste tal y como se DIBUJA;
+    // `relFret = 0` significa cuerda al aire y no se desplaza.
+    function fretToMidi(baseMidi, startingFret, relFret) {
+        if (!relFret) return baseMidi; // al aire: 0, null o undefined
+        return baseMidi + toAbsoluteFret(startingFret, relFret);
+    }
+
     // Nombre de nota con octava, p. ej. 40 -> "E2". Para depurar y para la UI.
     function midiToNoteName(midi) {
         const pitchClass = ((midi % 12) + 12) % 12;
@@ -393,6 +420,8 @@
         nearestMidiWithPitchClass,
         getStringBaseMIDI,
         resolveTuningMIDI,
+        toAbsoluteFret,
+        fretToMidi,
         midiToNoteName,
         midiToFrequency,
         identifyChord

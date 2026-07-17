@@ -122,6 +122,7 @@
             parseNoteToSemi,
             getInstrument,
             identifyChord,
+            fretToMidi,
             midiToNoteName,
             midiToFrequency
         } = window.KharoTheory;
@@ -529,8 +530,7 @@
             // --- EVENTOS DE INTERACCIÓN AUDIBLE ---
             const playSingleNoteAudio = (stringIndex, fretNum) => {
                 synthInstance.init();
-                const baseMidi = stringBaseMIDI(stringIndex);
-                const absMidi = baseMidi + fretNum;
+                const absMidi = fretToMidi(stringBaseMIDI(stringIndex), startingFret, fretNum);
                 synthInstance.playNote(absMidi);
 
                 // Disparar destello visual
@@ -855,13 +855,13 @@
                         
                         const dot = dots.find(d => d.s === s);
                         if (dot) {
-                            notesToPlay.push({ s, f: dot.f, midi: baseMidi + dot.f });
+                            notesToPlay.push({ s, f: dot.f, midi: fretToMidi(baseMidi, startingFret, dot.f) });
                             continue;
                         }
 
                         const barre = barres.find(b => s >= b.fromString && s <= b.toString);
                         if (barre) {
-                            notesToPlay.push({ s, f: barre.fret, midi: baseMidi + barre.fret });
+                            notesToPlay.push({ s, f: barre.fret, midi: fretToMidi(baseMidi, startingFret, barre.fret) });
                             continue;
                         }
 
@@ -879,7 +879,7 @@
                     const frets = generateScaleRenderDots();
                     frets.forEach(fr => {
                         const baseMidi = stringBaseMIDI(fr.s);
-                        notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
+                        notesToPlay.push({ s: fr.s, f: fr.f, midi: fretToMidi(baseMidi, startingFret, fr.f) });
                     });
 
                     notesToPlay.sort((a, b) => a.midi - b.midi);
@@ -904,7 +904,7 @@
                     const frets = generateArpeggioRenderDots();
                     frets.forEach(fr => {
                         const baseMidi = stringBaseMIDI(fr.s);
-                        notesToPlay.push({ s: fr.s, f: fr.f, midi: baseMidi + fr.f });
+                        notesToPlay.push({ s: fr.s, f: fr.f, midi: fretToMidi(baseMidi, startingFret, fr.f) });
                     });
 
                     notesToPlay.sort((a, b) => a.midi - b.midi);

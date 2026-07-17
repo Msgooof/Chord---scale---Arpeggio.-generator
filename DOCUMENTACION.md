@@ -170,10 +170,31 @@ abre el archivo no tiene, el texto se sustituye. En el PNG el riesgo es menor pe
 
 ## Bugs de afinación — CORREGIDOS (2026-07-16)
 
-Los dos eran el mismo problema de fondo: **había dos sistemas de afinación en paralelo que no
-se hablaban.** El análisis de acordes leía el array `tuning[]` (las letras), y el audio usaba
-unas tablas fijas dentro de `getStringBaseMIDI` que ignoraban ese array. Por eso el diagrama
-siempre se veía bien y el sonido no le correspondía.
+Los tres eran la misma familia: **el diagrama y el audio no calculaban la misma nota.** El
+diagrama siempre se vio bien; el sonido no le correspondía.
+
+### Bug C — El audio ignoraba el traste de inicio
+
+La app dibuja una VENTANA del mástil, así que hay dos numeraciones de traste y es fácil
+confundirlas:
+
+```
+relFret 1 = el primer traste DIBUJADO      absFret 1 = el primer traste REAL
+absFret = startingFret + relFret - 1
+```
+
+`analyzeCurrentChord` usaba el absoluto; las dos rutas de audio usaban el **relativo**. Con
+`startingFret = 5`, un acorde sonaba como si estuviera en el traste 1. No era ni siquiera una
+transposición: las cuerdas al aire sonaban bien y las pisadas no, así que el resultado era un
+acorde distinto. En modo escala, el diagrama mostraba Do mayor y sonaban A#, C#, D# y G#.
+
+Ahora toda conversión de traste a MIDI pasa por `fretToMidi(baseMidi, startingFret, relFret)`
+en el núcleo, que además trata `relFret = 0` como cuerda al aire (no se desplaza).
+
+### Bugs A y B — Dos sistemas de afinación en paralelo
+
+El análisis de acordes leía el array `tuning[]` (las letras), y el audio usaba unas tablas
+fijas dentro de `getStringBaseMIDI` que ignoraban ese array.
 
 **Bug A — Ukelele y bajo compartían opción y ambos sonaban mal.** La decisión "¿ukelele o
 bajo?" se tomaba cuerda por cuerda, mirando la letra de esa cuerda (`if (noteStr === 'g' ...)`),
@@ -211,6 +232,8 @@ Interceptando el sintetizador en el navegador y leyendo las frecuencias que toca
 | DADGAD | `D2 A2 D3 G3 A3 D4` | `E2 A2 D3 G3 B3 E4` ❌ |
 | Bajo 4c, al aire | `E1 A1 D2 G2` | `E1 C4 D2 A4` ❌ |
 | Ukelele, al aire | `G4 C4 E4 A4` | `G4 A1 D2 A4` ❌ |
+| Acorde C con `startingFret=5` | `E3 G#3 G3 E4 E4` (lo que dice el análisis) | `C3 E3 G3 C4 E4`, idéntico al traste 1 ❌ |
+| Escala de Do mayor en el traste 5 | solo notas de Do mayor | sonaban A#, C#, D#, G# ❌ |
 
 Los modos de escalas y arpegios siguen funcionando, la exportación sigue intacta, y no hay
 errores en consola.
