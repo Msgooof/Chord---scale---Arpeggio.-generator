@@ -319,7 +319,23 @@ Nota de diseño: el piano NO debería ser un cuarto `appMode`. `appMode` disting
 piano sea otra opción del selector de instrumento, con `INSTRUMENTS` declarando si se dibuja
 como mástil o como teclado.
 
-## 12. Deuda técnica que noté de paso
+## 12. Diseño responsive (móvil)
+
+El punto de quiebre es `sm`/`md` de Tailwind. En móvil (< 768px):
+
+- La **toolbar** pasa de columna flotante a la izquierda a **barra horizontal inferior**
+  centrada. El lienzo reserva `pb-24` para ella; en `md+` vuelve `md:pl-20`.
+- Los **paneles** dejan de ser popovers laterales y se abren como **hoja casi a pantalla
+  completa** (`inset-x-2 top-3 bottom-20`), sin tapar la toolbar.
+- Los **botones ± del mástil** saltan debajo del diagrama (con `order-*` y `flex-wrap`): a
+  375px no caben flanqueándolo y provocaban scroll horizontal.
+- **Todas las áreas táctiles son ≥ 44px** en móvil (patrón `py-2.5 sm:py-1.5 min-h-[44px]
+  sm:min-h-0`). Ojo con `scale-90`: encoge el área táctil real, por eso en móvil va
+  `scale-100`.
+- Trampa aprendida: un hijo `flex-1` con scroll necesita `min-h-0`, si no se desborda sobre
+  el padding reservado y "tapa" lo que hay debajo.
+
+## 13. Deuda técnica que noté de paso
 
 - `App()` sigue siendo un único componente gigante (líneas 311–2494). Todo el estado y todo el JSX juntos. El núcleo de teoría ya salió; la interfaz no.
 - El JSX usa `class` en vez de `className`. Funciona porque React lo tolera, pero llena la consola

@@ -334,13 +334,13 @@
          * rápidas dentro del mismo ciclo partirían todas del mismo valor y se
          * perderían clics.
          * ----------------------------------------------------------------- */
-        function FretStepper({ label, value, min, max, onStep, titleUp, titleDown }) {
+        function FretStepper({ label, value, min, max, onStep, titleUp, titleDown, className }) {
             const puedeSubir = value < max;
             const puedeBajar = value > min;
             const claseBoton = "w-11 h-11 flex items-center justify-center rounded-xl text-lg font-black transition-all active:scale-90 select-none";
 
             return (
-                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                <div class={`flex flex-col items-center gap-1.5 shrink-0 ${className || ""}`}>
                     <button
                         onClick={() => onStep(+1)}
                         disabled={!puedeSubir}
@@ -1173,24 +1173,24 @@
                         </div>
 
                         {/* MODE PICKER TOGGLE */}
-                        <div class="flex items-center p-1 rounded-xl border scale-90" style={{backgroundColor:'#001d38', borderColor:'#013FF6'}}>
+                        <div class="flex items-center p-1 rounded-xl border scale-100 sm:scale-90" style={{backgroundColor:'#001d38', borderColor:'#013FF6'}}>
                             <button
                                 onClick={() => { setAppMode("chord"); setAutoUpdateTitle(true); }}
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                class="px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-bold transition-all"
                                 style={appMode === "chord" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#ACEC00', opacity:0.5}}
                             >
                                 Acordes
                             </button>
                             <button
                                 onClick={() => { setAppMode("scale"); setAutoUpdateTitle(true); }}
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                class="px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-bold transition-all"
                                 style={appMode === "scale" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#ACEC00', opacity:0.5}}
                             >
                                 Escalas
                             </button>
                             <button
                                 onClick={() => { setAppMode("arpeggio"); setAutoUpdateTitle(true); }}
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                class="px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-bold transition-all"
                                 style={appMode === "arpeggio" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#ACEC00', opacity:0.5}}
                             >
                                 Arpegios
@@ -1204,7 +1204,7 @@
                         {/* ===================================================== */}
                         {/* --- TOOLBAR FLOTANTE CONTEXTUAL (siempre visible) --- */}
                         {/* ===================================================== */}
-                        <div class="absolute left-3 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1 p-1.5 rounded-2xl border shadow-2xl" style={{backgroundColor:'rgba(0,29,56,0.92)', borderColor:'rgba(1,63,246,0.5)', backdropFilter:'blur(10px)'}}>
+                        <div class="absolute z-40 flex gap-1 p-1.5 rounded-2xl border shadow-2xl bottom-3 left-1/2 -translate-x-1/2 flex-row md:bottom-auto md:left-3 md:top-1/2 md:translate-x-0 md:-translate-y-1/2 md:flex-col" style={{backgroundColor:'rgba(0,29,56,0.92)', borderColor:'rgba(1,63,246,0.5)', backdropFilter:'blur(10px)'}}>
                             {[
                                 { id: 'theory', label: appMode === 'chord' ? 'Acorde' : appMode === 'scale' ? 'Escala' : 'Arpegio', icon: '♪' },
                                 { id: 'instrument', label: 'Instrumento', icon: '🎸' },
@@ -1236,12 +1236,12 @@
                         {(openPanel === "theory" || openPanel === "instrument") && (
                         <div
                             style={{backgroundColor:'#001d38', borderColor:'rgba(1,63,246,0.5)'}}
-                            class="absolute left-20 top-4 bottom-4 z-40 w-80 max-w-[calc(100vw-6rem)] border rounded-2xl flex flex-col shadow-2xl overflow-hidden"
+                            class="absolute z-40 border rounded-2xl flex flex-col shadow-2xl overflow-hidden inset-x-2 top-3 bottom-20 md:inset-x-auto md:left-20 md:top-4 md:bottom-4 md:w-80 md:max-w-[calc(100vw-6rem)]"
                         >
                             {/* Panel Header */}
                             <div class="flex justify-between items-center px-4 py-3 border-b shrink-0" style={{borderColor:'rgba(1,63,246,0.35)', backgroundColor:'rgba(0,24,46,0.6)'}}>
                                 <span class="text-xs font-bold uppercase tracking-wider" style={{color:'#ACEC00'}}>{openPanel === "theory" ? "Teoría & Modo" : "Instrumento"}</span>
-                                <button onClick={() => setOpenPanel(null)} class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-base bg-slate-900 rounded-lg transition">×</button>
+                                <button onClick={() => setOpenPanel(null)} class="w-11 h-11 md:w-8 md:h-8 shrink-0 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-base bg-slate-900 rounded-lg transition">×</button>
                             </div>
 
                             {/* Panel Contents */}
@@ -1585,10 +1585,10 @@
                         {/* --- CENTER VIEWPORT (INTERACTIVE CANVAS) --- */}
                         {/* --- Lienzo a pantalla completa (base layer) --- */}
                         {/* ========================================== */}
-                        <div class="flex-1 flex flex-col justify-between items-center p-4 md:p-6 lg:pl-20 relative overflow-hidden" style={{backgroundColor:'#00182E'}}>
+                        <div class="flex-1 flex flex-col justify-between items-center p-3 pb-24 md:p-6 md:pb-6 md:pl-20 relative overflow-hidden" style={{backgroundColor:'#00182E'}}>
                             
                             {/* Interactive helper bar */}
-                            <div class="w-full flex flex-col sm:flex-row gap-3 justify-between items-center px-4 py-3 rounded-2xl z-10 shadow-lg" style={{backgroundColor:'rgba(0,29,56,0.7)', border:'1px solid rgba(1,63,246,0.35)'}}>
+                            <div class="w-full flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between items-center px-3 py-2 sm:px-4 sm:py-3 rounded-2xl z-10 shadow-lg shrink-0" style={{backgroundColor:'rgba(0,29,56,0.7)', border:'1px solid rgba(1,63,246,0.35)'}}>
                                 <div class="flex items-center gap-3">
                                     <span class="w-2.5 h-2.5 rounded-full animate-pulse" style={{backgroundColor:'#ACEC00'}}></span>
                                     {appMode === "chord" ? (
@@ -1605,11 +1605,11 @@
                                 </div>
 
                                 {/* AUDIO PLAYBACK INTEGRATION CONTROLLERS */}
-                                <div class="flex items-center gap-3 px-3 py-1.5 rounded-xl border scale-90 sm:scale-100" style={{backgroundColor:'rgba(0,24,46,0.8)', borderColor:'rgba(1,63,246,0.3)'}}>
+                                <div class="flex items-center gap-3 px-3 py-1.5 rounded-xl border scale-100" style={{backgroundColor:'rgba(0,24,46,0.8)', borderColor:'rgba(1,63,246,0.3)'}}>
                                     <button
                                         onClick={triggerStrumOrSequence}
                                         disabled={isPlayingSequence}
-                                        class={`flex items-center gap-1.5 text-xs font-black px-3.5 py-1.5 rounded-lg shadow-md transition-all ${
+                                        class={`flex items-center gap-1.5 text-xs font-black px-3.5 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg shadow-md transition-all ${
                                             isPlayingSequence 
                                                 ? "cursor-not-allowed opacity-50" 
                                                 : "hover:scale-105 active:scale-95"
@@ -1638,26 +1638,26 @@
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 scale-90">
+                                <div class="flex items-center gap-2 scale-100 sm:scale-90">
                                     {appMode === "chord" && (
                                         <div class="flex p-0.5 rounded-lg border" style={{backgroundColor:'#00182E', borderColor:'rgba(1,63,246,0.4)'}}>
                                             <button
                                                 onClick={() => setChordDisplayMode("diagram")}
-                                                class="px-2.5 py-1 rounded text-[10px] font-bold transition-all"
+                                                class="px-2.5 py-2.5 sm:py-1 min-h-[44px] sm:min-h-0 rounded text-[10px] font-bold transition-all"
                                                 style={chordDisplayMode === "diagram" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#6b7280'}}
                                             >
                                                 Diagrama
                                             </button>
                                             <button
                                                 onClick={() => setChordDisplayMode("note")}
-                                                class="px-2.5 py-1 rounded text-[10px] font-bold transition-all"
+                                                class="px-2.5 py-2.5 sm:py-1 min-h-[44px] sm:min-h-0 rounded text-[10px] font-bold transition-all"
                                                 style={chordDisplayMode === "note" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#6b7280'}}
                                             >
                                                 Notas
                                             </button>
                                             <button
                                                 onClick={() => setChordDisplayMode("degree")}
-                                                class="px-2.5 py-1 rounded text-[10px] font-bold transition-all"
+                                                class="px-2.5 py-2.5 sm:py-1 min-h-[44px] sm:min-h-0 rounded text-[10px] font-bold transition-all"
                                                 style={chordDisplayMode === "degree" ? {backgroundColor:'#013FF6', color:'#ACEC00'} : {color:'#6b7280'}}
                                             >
                                                 Grados
@@ -1667,7 +1667,7 @@
                                     {appMode === "chord" && (
                                         <button
                                             onClick={() => { clearAll(); }}
-                                            class="text-[10px] font-bold px-2.5 py-1.5 rounded border transition"
+                                            class="text-[10px] font-bold px-2.5 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded border transition"
                                             style={{color:'#ACEC00', backgroundColor:'rgba(172,236,0,0.05)', borderColor:'rgba(172,236,0,0.2)'}}
                                         >
                                             Vaciar
@@ -1677,13 +1677,14 @@
                             </div>
 
                             {/* Contenedor con alineación superior para evitar que se desborde el mástil alto por arriba */}
-                            <div class="flex-1 w-full flex items-start justify-center overflow-y-auto max-h-[66vh] md:max-h-[72vh] my-3 scroll-smooth relative">
+                            <div class="flex-1 min-h-0 w-full flex items-start justify-center overflow-y-auto max-h-[66vh] md:max-h-[72vh] my-3 scroll-smooth relative">
                                 <div class="p-2 sm:p-4 rounded-3xl border shadow-inner flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full" style={{backgroundColor:'rgba(0,29,56,0.3)', borderColor:'rgba(1,63,246,0.2)'}}>
 
                                   {/* El mástil, flanqueado por sus dos controles rápidos */}
-                                  <div class="flex items-center justify-center gap-2 sm:gap-3 w-full xl:w-auto">
+                                  <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full xl:w-auto">
 
                                     <FretStepper
+                                        className="order-2 sm:order-1"
                                         label="Traste"
                                         value={startingFret}
                                         min={MIN_FRET}
@@ -1705,7 +1706,7 @@
                                             height: 'auto'
                                         }}
                                         viewBox={`0 0 ${width} ${height}`}
-                                        class="shadow-2xl transition-all duration-300 shrink-0 select-none"
+                                        class="shadow-2xl transition-all duration-300 shrink-0 select-none order-1 sm:order-2"
                                         onTouchMove={handleTouchMove}
                                     >
                                         <rect width={width} height={height} fill={bgStyleColor} rx={DEFAULT_STYLE.fretboardRadius} />
@@ -2208,6 +2209,7 @@
                                     </svg>
 
                                     <FretStepper
+                                        className="order-3"
                                         label="Trastes"
                                         value={numFrets}
                                         min={MIN_NUM_FRETS}
@@ -2246,12 +2248,12 @@
                         {(openPanel === "style" || openPanel === "intervals" || openPanel === "export") && (
                         <div
                             style={{backgroundColor:'#001d38', borderColor:'rgba(1,63,246,0.5)'}}
-                            class="absolute left-20 top-4 bottom-4 z-40 w-80 max-w-[calc(100vw-6rem)] border rounded-2xl flex flex-col shadow-2xl overflow-hidden"
+                            class="absolute z-40 border rounded-2xl flex flex-col shadow-2xl overflow-hidden inset-x-2 top-3 bottom-20 md:inset-x-auto md:left-20 md:top-4 md:bottom-4 md:w-80 md:max-w-[calc(100vw-6rem)]"
                         >
                             {/* Panel Header */}
                             <div class="flex justify-between items-center px-4 py-3 border-b shrink-0" style={{borderColor:'rgba(1,63,246,0.35)', backgroundColor:'rgba(0,24,46,0.6)'}}>
                                 <span class="text-xs font-bold uppercase tracking-wider" style={{color:'#ACEC00'}}>{openPanel === "style" ? "Estilo Visual" : openPanel === "intervals" ? "Colores de Intervalos" : "Exportar"}</span>
-                                <button onClick={() => setOpenPanel(null)} class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-base bg-slate-900 rounded-lg transition">×</button>
+                                <button onClick={() => setOpenPanel(null)} class="w-11 h-11 md:w-8 md:h-8 shrink-0 flex items-center justify-center text-slate-400 hover:text-white font-extrabold text-base bg-slate-900 rounded-lg transition">×</button>
                             </div>
 
                             {/* Panel Contents */}
