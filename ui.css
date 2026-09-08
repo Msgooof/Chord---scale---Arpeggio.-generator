@@ -1,0 +1,565 @@
+/* ==========================================================================
+ * KHARO STUDIO — CAPA DE COMPONENTES
+ * ==========================================================================
+ *
+ * Las clases `.k-*` con las que se viste la aplicación. Todas se pintan con
+ * los tokens de theme.css: aquí NO hay ni un color escrito a mano.
+ *
+ * El reparto:
+ *   theme.css  QUÉ colores, medidas y tipografías (los tokens)
+ *   ui.css     CÓMO se combina eso en un botón, un panel o una pestaña
+ *   index.html sólo estructura y comportamiento — ninguna decisión de estilo
+ *
+ * Un sistema de diseño que llegue después reescribe estos dos archivos y la
+ * app cambia de aspecto sin que se toque una línea de JSX.
+ *
+ * NO metas aquí nada del DIAGRAMA ni de la HOJA DE CANCIÓN: eso es la obra
+ * que exporta el usuario, y su aspecto lo mandan DEFAULT_STYLE e
+ * intervalColors. Ver la regla dura en la cabecera de theme.css.
+ * ========================================================================== */
+
+/* --- Tipografía de marca (copia local, no requiere internet) ------------- */
+@font-face {
+    font-family: 'Fjalla One';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('vendor/fonts/FjallaOne-Regular.ttf') format('truetype');
+}
+
+/* --- Base ---------------------------------------------------------------- */
+body {
+    font-family: var(--k-font-ui);
+    background-color: var(--k-bg);
+    color: var(--k-text);
+}
+
+h1, h2, h3, .k-title, .font-title {
+    font-family: var(--k-font-title);
+}
+
+.k-mono {
+    font-family: var(--k-font-mono);
+}
+
+/* --- Barra de desplazamiento --------------------------------------------- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--k-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--k-accent);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--k-highlight);
+}
+
+/* --- Superficies --------------------------------------------------------- */
+.k-panel {
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-border-strong);
+    border-radius: var(--k-radius-xl);
+    box-shadow: var(--k-shadow-panel);
+}
+
+.k-panel-header {
+    background-color: rgba(var(--k-bg-rgb), 0.6);
+    border-bottom: 1px solid var(--k-border);
+}
+
+/* Barra flotante translúcida: toolbar, barra de estado. */
+.k-bar {
+    background-color: rgba(var(--k-surface-rgb), 0.85);
+    border: 1px solid var(--k-border);
+    border-radius: var(--k-radius-xl);
+    backdrop-filter: blur(10px);
+}
+
+/* El velo que cierra un panel al tocar fuera. */
+.k-scrim {
+    background-color: var(--k-scrim);
+}
+
+/* --- Botones -------------------------------------------------------------
+ * `.k-btn` sólo define comportamiento y forma. El color lo pone el
+ * modificador, para que un mismo botón pueda cambiar de papel sin cambiar
+ * de clase base. */
+.k-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--k-radius-md);
+    font-weight: 700;
+    line-height: 1;
+    transition: background-color .15s, color .15s, transform .1s, opacity .15s;
+    cursor: pointer;
+    user-select: none;
+}
+
+.k-btn:active {
+    transform: scale(0.95);
+}
+
+.k-btn:disabled,
+.k-btn[aria-disabled="true"] {
+    background-color: rgba(var(--k-bg-rgb), 0.5);
+    color: var(--k-text-disabled);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* En móvil todo lo pulsable cumple el área mínima; en escritorio manda el
+ * contenido, porque el ratón acierta donde el dedo no. */
+.k-btn--touch {
+    min-height: var(--k-touch);
+    min-width: var(--k-touch);
+}
+@media (min-width: 640px) {
+    .k-btn--touch {
+        min-height: 0;
+        min-width: 0;
+    }
+}
+
+/* Cuadrado del tamaño del dedo, para iconos. Este NO encoge en escritorio. */
+.k-btn--icon {
+    width: var(--k-touch);
+    height: var(--k-touch);
+    border-radius: var(--k-radius-md);
+    padding: 0;
+}
+
+.k-btn--primary {
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+}
+.k-btn--primary:hover:not(:disabled) {
+    background-color: var(--k-accent-hover);
+}
+
+.k-btn--ghost {
+    background-color: rgba(var(--k-bg-rgb), 0.55);
+    color: var(--k-text-muted);
+}
+.k-btn--ghost:hover:not(:disabled) {
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+}
+
+.k-btn--outline {
+    background-color: transparent;
+    border: 1px solid var(--k-border-strong);
+    color: var(--k-highlight);
+}
+.k-btn--outline:hover:not(:disabled) {
+    background-color: var(--k-surface-raised);
+}
+
+.k-btn--danger {
+    background-color: transparent;
+    border: 1px solid var(--k-danger);
+    color: var(--k-danger);
+}
+.k-btn--danger:hover:not(:disabled) {
+    background-color: var(--k-danger);
+    color: var(--k-bg);
+}
+
+/* --- Pestañas ------------------------------------------------------------ */
+.k-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-accent);
+}
+
+/* En móvil las pestañas ocupan la fila entera y se reparten a partes iguales;
+ * en escritorio miden lo que mide su texto.
+ *
+ * Desde que hay DOS grupos, `width: 100%` ya no vale: son dos `.k-tabs` dentro
+ * de una fila, y cada uno tiene que poder encogerse hasta lo que le toque. Con
+ * un ancho fijo del 100% cada uno, los seis botones más los dos bordes se
+ * pasaban de los 375 px y la última pestaña quedaba cortada. */
+.k-tabs--stretch {
+    /* El peso lo pone el JSX en `--k-tabs-peso` (la suma de letras del grupo).
+     * Va en una variable y no en el atributo `style` porque un `flex` en linea
+     * gana a cualquier media query, y la de abajo necesita poder mandar. */
+    flex: var(--k-tabs-peso, 1) 1 0;
+    min-width: 0;
+}
+.k-tabs--stretch .k-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 0.125rem;
+    padding-right: 0.125rem;
+    font-size: 0.6875rem;
+    display: block;
+    line-height: var(--k-touch);
+    /* Ultimo recurso, no plan: con la fila partida de abajo el texto cabe
+     * entero en todos los anchos que soportamos. Se queda por si un idioma o
+     * un nombre mas largo aprieta, para que se recorte antes que desbordar. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Por debajo de 480 px, dos filas ---------------------------------------
+ *
+ * Los seis destinos piden 424 px y en un teléfono de 359 no los hay. El padre
+ * lleva `overflow-hidden`, así que lo que sobraba no se recortaba con puntos
+ * suspensivos: desaparecía, y «Ejercicios» quedaba cortada por la mitad.
+ *
+ * El segundo grupo baja a su propia fila. Es mejor que esconderlo tras un
+ * scroll horizontal: una pestaña que no se ve es una pestaña que no existe.
+ * -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+    .k-tabs-row--stretch {
+        flex-wrap: wrap;
+    }
+    .k-tabs-row--stretch > .k-tabs--stretch {
+        flex: 1 1 100%;
+    }
+}
+
+.k-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.625rem;
+    min-height: var(--k-touch);
+    border-radius: var(--k-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--k-highlight);
+    opacity: 0.5;
+    transition: background-color .15s, opacity .15s;
+    cursor: pointer;
+}
+
+@media (min-width: 768px) {
+    .k-tab {
+        min-height: 0;
+        padding: 0.375rem 0.75rem;
+    }
+}
+
+.k-tab--active {
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    opacity: 1;
+}
+
+/* --- Etiquetas y valores ------------------------------------------------- */
+.k-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--k-text-muted);
+}
+
+.k-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    color: var(--k-highlight);
+}
+
+.k-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-border);
+    background-color: rgba(var(--k-accent-rgb), 0.1);
+    color: var(--k-highlight);
+    font-size: 0.625rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* --- Campos -------------------------------------------------------------- */
+.k-field,
+select,
+input[type="text"],
+input[type="number"],
+textarea {
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-border);
+    border-radius: var(--k-radius-sm);
+    color: var(--k-text);
+}
+
+select option {
+    background-color: var(--k-surface);
+}
+
+/* iOS hace zoom al enfocar un campo con letra menor de 16px. En móvil, por
+ * pequeño que se vea el resto, los campos van a 16px o la pantalla salta. */
+@media (max-width: 767px) {
+    .k-field,
+    select,
+    input[type="text"],
+    input[type="number"],
+    textarea {
+        font-size: 16px;
+    }
+}
+
+/* --- Hoja inferior (móvil) ----------------------------------------------
+ * En pantalla pequeña un panel lateral no cabe: sube desde abajo, con un asa
+ * para que se lea como algo que se puede cerrar. */
+.k-sheet {
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-border-strong);
+    border-top-left-radius: var(--k-radius-xl);
+    border-top-right-radius: var(--k-radius-xl);
+    box-shadow: var(--k-shadow-float);
+}
+
+.k-sheet-handle {
+    width: 2.5rem;
+    height: 0.25rem;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-border-strong);
+    margin: 0.5rem auto 0.25rem;
+}
+
+/* Tira que se desliza en horizontal. Sin barra a la vista: en una fila de dos
+ * centímetros de alto, la barra pesa más que el contenido. */
+.k-strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.k-strip::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- Encaje del diagrama --------------------------------------------------
+ * Cómo se ENMARCA el diagrama en pantalla, que no es lo mismo que cómo se
+ * dibuja. Va en una clase y no en el `style` del SVG a propósito: el atributo
+ * style se serializa dentro del archivo exportado, y un `max-height: 100%`
+ * viajando dentro de un SVG suelto se resuelve contra la ventana de quien lo
+ * abra y le cambia el tamaño. La clase no viaja.
+ *
+ * Se encoge por ancho Y por alto: con los atributos width/height puestos el
+ * navegador conoce la proporción, así que respeta el límite que más apriete y
+ * el mástil cabe entero con 5 trastes y con 24.
+ * ------------------------------------------------------------------------- */
+.k-fretboard-fit {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+/* Las dos líneas de un verso: acordes arriba, letra abajo. Se desplazan en
+ * horizontal, pero con una barra fina — la de 8 px del resto de la app pesa
+ * casi tanto como el propio renglón y separa las dos líneas que tienen que
+ * leerse juntas. */
+.k-lyric-line {
+    scrollbar-width: thin;
+}
+.k-lyric-line::-webkit-scrollbar {
+    height: 4px;
+}
+.k-lyric-line::-webkit-scrollbar-thumb {
+    background: var(--k-border-strong);
+}
+
+/* --- Cabecera que se queda pegada ----------------------------------------
+ * Lo que hace falta tener siempre a mano —qué canción es, a qué velocidad y
+ * los botones de escucharla— mientras se baja por secciones y versos.
+ *
+ * `sticky` dentro del contenedor que hace scroll, no `fixed`: así no tapa nada
+ * de lo que hay fuera del apartado y no hay que reservarle sitio a mano.
+ * ------------------------------------------------------------------------- */
+.k-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+/* --- La rejilla del rasgueo ----------------------------------------------
+ * Dos filas de la misma cuadrícula: arriba las casillas con las flechas y
+ * abajo la regla de pulsos, en el mismo `grid` para que cada número caiga
+ * exactamente bajo su casilla sin tener que sincronizar dos anchos.
+ * ------------------------------------------------------------------------- */
+.k-strum-grid {
+    display: grid;
+    gap: 2px;
+    min-width: max-content;
+}
+
+.k-strum-cell {
+    min-width: 22px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--k-radius-sm);
+    border: 1px solid var(--k-border);
+    background-color: rgba(var(--k-bg-rgb), 0.5);
+    color: var(--k-text-muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color .12s, color .12s;
+}
+
+/* La casilla que cae en pulso se marca: es la referencia para contar. */
+.k-strum-cell--beat {
+    border-color: var(--k-border-strong);
+    background-color: rgba(var(--k-surface-rgb), 0.9);
+}
+
+.k-strum-cell--on {
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+}
+
+/* El acento se ve más fuerte porque suena más fuerte. */
+.k-strum-cell--accent {
+    box-shadow: inset 0 0 0 2px var(--k-highlight);
+    font-weight: 900;
+}
+
+/* El apagado no es un golpe flojo, es otra cosa: se dibuja aparte. */
+.k-strum-cell--muted {
+    background-color: transparent;
+    border-style: dashed;
+    border-color: var(--k-text-muted);
+    color: var(--k-text-muted);
+    box-shadow: none;
+}
+
+.k-strum-ruler {
+    text-align: center;
+    font-family: var(--k-font-mono);
+    font-size: 10px;
+    color: var(--k-text-faint);
+    padding-top: 2px;
+}
+
+.k-strum-ruler--beat {
+    color: var(--k-highlight);
+    font-weight: 700;
+}
+
+/* --- El carril de acordes sobre un verso ---------------------------------
+ * Los acordes viven en su propia franja, encima de la letra. Arrastrarlos ahí
+ * es lo que sustituye a contar espacios.
+ *
+ * `overflow: hidden` con la capa interior desplazada por transform, en vez de
+ * un scroll propio: así el carril sigue exactamente al desplazamiento de la
+ * caja de la letra y las dos líneas nunca se despegan.
+ * ------------------------------------------------------------------------- */
+.k-chord-lane {
+    position: relative;
+    height: 30px;
+    overflow: hidden;
+    border-radius: var(--k-radius-sm);
+    background-color: rgba(var(--k-accent-rgb), 0.06);
+    border: 1px dashed var(--k-border);
+    cursor: copy;
+    touch-action: pan-y;
+}
+
+/* Arranca 0,5rem a la derecha para igualar el `px-2` de la caja de la letra:
+ * si no, el acorde de la columna 0 no caería sobre su primera letra. Va en
+ * `left` y no en `padding` porque el padding no desplaza a los hijos
+ * posicionados en absoluto. */
+.k-chord-lane__inner {
+    position: absolute;
+    left: 0.5rem;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.k-chord-chip {
+    position: absolute;
+    top: 4px;
+    padding: 2px 5px;
+    border-radius: var(--k-radius-sm);
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    font-family: var(--k-font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.k-chord-chip--moving {
+    cursor: grabbing;
+    opacity: 0.85;
+    box-shadow: 0 0 0 2px var(--k-highlight);
+    z-index: 2;
+}
+
+/* Cómo se PRESENTA en pantalla una página de la hoja de canción. Igual que
+ * con el mástil: en una clase y no en el `style` del SVG, porque el atributo
+ * style viaja dentro del archivo exportado y un ancho del 100% o una sombra no
+ * pintan nada dentro de un A4 que alguien abre en Illustrator. */
+.k-sheet-page {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: var(--k-shadow-panel);
+}
+
+/* --- Indicador de actividad ---------------------------------------------- */
+.k-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-highlight);
+}
+
+/* ==========================================================================
+ * CAPA DE COMPATIBILIDAD CON TAILWIND — EN RETIRADA
+ * ==========================================================================
+ *
+ * Tailwind trae su propia paleta (slate, indigo, emerald...) y el JSX todavía
+ * la usa en muchos sitios. Esto la repinta con los tokens de Kharo.
+ *
+ * Es deuda, y se paga sola: cada vez que un componente pasa a usar `.k-*`,
+ * su regla de aquí sobra y se borra. El objetivo es que este bloque quede
+ * vacío. Mientras exista, cualquier clase de color de Tailwind puede salir
+ * con un color que no es el que dice su nombre.
+ * ========================================================================== */
+
+[class*="bg-slate-900"], .bg-slate-900 { background-color: var(--k-surface) !important; }
+[class*="bg-slate-950"], .bg-slate-950 { background-color: var(--k-bg) !important; }
+[class*="bg-slate-800"], .bg-slate-800 { background-color: var(--k-surface-raised) !important; }
+[class*="border-slate-800"], .border-slate-800 { border-color: var(--k-border) !important; }
+[class*="border-slate-700"], .border-slate-700 { border-color: rgba(var(--k-accent-rgb), 0.45) !important; }
+[class*="text-indigo-400"], .text-indigo-400 { color: var(--k-highlight) !important; }
+[class*="text-indigo-300"], .text-indigo-300 { color: var(--k-highlight-soft) !important; }
+[class*="bg-indigo-600"], .bg-indigo-600 { background-color: var(--k-accent) !important; }
+[class*="hover\:bg-indigo-500"]:hover { background-color: var(--k-accent-hover) !important; }
+[class*="text-teal-400"], .text-teal-400 { color: var(--k-highlight) !important; }
+[class*="text-emerald-400"], .text-emerald-400 { color: var(--k-highlight) !important; }
+[class*="bg-emerald-600"], .bg-emerald-600 { background-color: var(--k-accent) !important; }
+[class*="hover\:bg-emerald-500"]:hover { background-color: var(--k-accent-hover) !important; }
+[class*="bg-amber-600"], .bg-amber-600 { background-color: var(--k-surface-raised) !important; border: 1px solid var(--k-accent); }
+[class*="hover\:bg-amber-500"]:hover { background-color: rgba(var(--k-accent-rgb), 0.3) !important; }
+[class*="accent-indigo-500"], .accent-indigo-500 { accent-color: var(--k-accent) !important; }
+[class*="bg-red-950"], .bg-red-950 { background-color: rgba(var(--k-accent-rgb), 0.1) !important; }
+[class*="border-red-900"], .border-red-900 { border-color: rgba(var(--k-highlight-rgb), 0.2) !important; }
+.font-extrabold, h1 { font-family: var(--k-font-title) !important; }
+header h1, .app-title { font-family: var(--k-font-title) !important; }
+.bg-black\/70 { background-color: var(--k-overlay) !important; }

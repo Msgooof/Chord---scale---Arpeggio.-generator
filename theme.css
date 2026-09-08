@@ -1,0 +1,116 @@
+/* ==========================================================================
+ * KHARO STUDIO — TOKENS DE DISEÑO
+ * ==========================================================================
+ *
+ * Este archivo es la ÚNICA fuente de verdad del aspecto de la aplicación.
+ * Contiene tokens y nada más: ni selectores de componente, ni layout.
+ * La capa de componentes vive en ui.css y consume estos tokens.
+ *
+ * ---------------------------------------------------------------------------
+ * LA REGLA DURA: la PIEL no es la OBRA
+ * ---------------------------------------------------------------------------
+ *
+ *   PIEL (chrome)  header, toolbar, paneles, botones, hojas.
+ *                  Manda este archivo.
+ *
+ *   OBRA (artwork) el diagrama del mástil y la hoja de canción que se
+ *                  EXPORTAN. Manda el usuario, con DEFAULT_STYLE e
+ *                  intervalColors dentro de index.html.
+ *
+ * Un tema NO puede tocar la obra. Si lo hiciera, el PNG exportado cambiaría
+ * según el tema activo y el producto dejaría de ser fiable: lo que ves tiene
+ * que ser exactamente lo que se descarga, hoy y con cualquier piel.
+ *
+ * Prueba de que se respeta: cambia toda esta paleta, exporta el mismo
+ * diagrama, y el archivo tiene que salir idéntico.
+ *
+ * ---------------------------------------------------------------------------
+ * CÓMO METER UN SISTEMA DE DISEÑO DESPUÉS
+ * ---------------------------------------------------------------------------
+ *
+ *   1. Reescribe los valores de este archivo. Nada más. La app entera cambia.
+ *   2. Si además cambia la FORMA de los componentes (no sólo el color),
+ *      reescribe ui.css.
+ *   3. Para varios temas a la vez, duplica el bloque bajo
+ *      [data-theme="loQueSea"] y pon ese atributo en el <html>.
+ *
+ * Los nombres son SEMÁNTICOS a propósito: --k-accent, nunca --k-azul.
+ * Un tema que llegue con otra paleta no tiene por qué llamarse igual.
+ * ========================================================================== */
+
+:root {
+    /* --- Tripletes RGB ------------------------------------------------------
+     * Existen para poder componer transparencias sin repetir el color:
+     * rgba(var(--k-accent-rgb), 0.35). Si cambias un color sólido, cambia
+     * también su triplete. */
+    --k-bg-rgb: 0, 24, 46;
+    --k-surface-rgb: 0, 29, 56;
+    --k-accent-rgb: 1, 63, 246;
+    --k-highlight-rgb: 172, 236, 0;
+    --k-shadow-rgb: 0, 6, 18;
+
+    /* --- Superficies -------------------------------------------------------- */
+    --k-bg: #00182E;              /* fondo de la aplicación */
+    --k-bg-deep: #001020;         /* el escalón más hondo: pie de página */
+    --k-surface: #001d38;         /* paneles, campos, barras */
+    --k-surface-raised: #002548;  /* lo que se levanta sobre un panel */
+    --k-overlay: rgba(var(--k-shadow-rgb), 0.85);  /* capas sobre el lienzo */
+    --k-scrim: rgba(var(--k-shadow-rgb), 0.45);    /* backdrop de los paneles */
+
+    /* --- Trazo -------------------------------------------------------------- */
+    --k-border: rgba(var(--k-accent-rgb), 0.35);
+    --k-border-strong: rgba(var(--k-accent-rgb), 0.5);
+
+    /* --- Acento ------------------------------------------------------------- */
+    --k-accent: #013FF6;          /* la acción principal */
+    --k-accent-hover: #0133D0;
+    --k-accent-ink: #ACEC00;      /* lo que se escribe ENCIMA del acento */
+
+    /* --- Realce ------------------------------------------------------------- */
+    --k-highlight: #ACEC00;       /* el dato que importa: valores, títulos */
+    --k-highlight-soft: #c8f542;
+
+    /* --- Texto -------------------------------------------------------------- */
+    --k-text: #e2e8f0;
+    --k-text-muted: #9fb3c8;
+    --k-text-faint: #64748b;
+    --k-text-disabled: #3f5773;
+
+    /* --- Estado ------------------------------------------------------------- */
+    --k-danger: #ff5470;
+    --k-ok: #ACEC00;
+
+    /* --- Forma -------------------------------------------------------------- */
+    --k-radius-sm: 0.5rem;
+    --k-radius-md: 0.75rem;
+    --k-radius-lg: 1rem;
+    --k-radius-xl: 1.5rem;
+    --k-radius-pill: 9999px;
+
+    /* Área táctil mínima. 44px es el mínimo para usar algo con el dedo;
+     * no lo bajes por mucho que aprieten los píxeles en móvil. */
+    --k-touch: 44px;
+
+    /* --- Elevación ---------------------------------------------------------- */
+    --k-shadow-panel: 0 10px 30px rgba(var(--k-shadow-rgb), 0.45);
+    --k-shadow-float: 0 12px 40px rgba(var(--k-shadow-rgb), 0.6);
+
+    /* --- Tipografía --------------------------------------------------------- */
+    --k-font-ui: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --k-font-title: 'Fjalla One', sans-serif;
+    /* La monoespaciada NO es decorativa: la hoja de canción coloca cada
+     * acorde por número de columna, y eso sólo cuadra si todos los caracteres
+     * miden lo mismo. */
+    --k-font-mono: ui-monospace, 'Courier New', monospace;
+}
+
+/* --- Gancho para temas alternativos -------------------------------------
+ * No hay ninguno todavía; el gancho existe para que añadir uno sea sólo CSS.
+ * Se activa poniendo data-theme="claro" en el <html>.
+ *
+ * :root[data-theme="claro"] {
+ *     --k-bg: #f8fafc;
+ *     --k-text: #0f172a;
+ *     ...
+ * }
+ * ------------------------------------------------------------------------ */
