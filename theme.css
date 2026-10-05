@@ -1,116 +1,193 @@
 /* ==========================================================================
- * KHARO STUDIO — TOKENS DE DISEÑO
+ * KHARO STUDIO — TOKENS DE LA PRUEBA «PAPEL Y TINTA» (2026-10-02)
  * ==========================================================================
  *
- * Este archivo es la ÚNICA fuente de verdad del aspecto de la aplicación.
- * Contiene tokens y nada más: ni selectores de componente, ni layout.
- * La capa de componentes vive en ui.css y consume estos tokens.
+ * Versión de PRUEBA. La carga sólo `prueba.html`; la app de verdad sigue con
+ * theme.css. Si se aprueba, estos valores pasan a theme.css y este archivo se
+ * borra.
  *
- * ---------------------------------------------------------------------------
- * LA REGLA DURA: la PIEL no es la OBRA
- * ---------------------------------------------------------------------------
+ * LA IDEA: un cuaderno de música. Papel crema, tinta casi negra, el cobalto de
+ * Kharo como bolígrafo y el lima como ROTULADOR FLUORESCENTE: ya no es un
+ * color de texto (sobre papel no se lee: 1,3:1) sino el fondo con el que se
+ * subraya el dato que importa.
  *
- *   PIEL (chrome)  header, toolbar, paneles, botones, hojas.
- *                  Manda este archivo.
+ * Por eso aparece un token que en la piel oscura no existía: `--k-marker`.
+ * `--k-highlight` sigue siendo «el color del dato» —lo usa el JSX en línea en
+ * una treintena de sitios— pero aquí pasa a un verde oliva que se lee
+ * (6,2:1). El lima puro vive en `--k-marker` y sólo se usa de fondo.
  *
- *   OBRA (artwork) el diagrama del mástil y la hoja de canción que se
- *                  EXPORTAN. Manda el usuario, con DEFAULT_STYLE e
- *                  intervalColors dentro de index.html.
+ * La regla dura no cambia: la PIEL no es la OBRA. Nada de esto toca
+ * DEFAULT_STYLE ni intervalColors.
  *
- * Un tema NO puede tocar la obra. Si lo hiciera, el PNG exportado cambiaría
- * según el tema activo y el producto dejaría de ser fiable: lo que ves tiene
- * que ser exactamente lo que se descarga, hoy y con cualquier piel.
- *
- * Prueba de que se respeta: cambia toda esta paleta, exporta el mismo
- * diagrama, y el archivo tiene que salir idéntico.
- *
- * ---------------------------------------------------------------------------
- * CÓMO METER UN SISTEMA DE DISEÑO DESPUÉS
- * ---------------------------------------------------------------------------
- *
- *   1. Reescribe los valores de este archivo. Nada más. La app entera cambia.
- *   2. Si además cambia la FORMA de los componentes (no sólo el color),
- *      reescribe ui.css.
- *   3. Para varios temas a la vez, duplica el bloque bajo
- *      [data-theme="loQueSea"] y pon ese atributo en el <html>.
- *
- * Los nombres son SEMÁNTICOS a propósito: --k-accent, nunca --k-azul.
- * Un tema que llegue con otra paleta no tiene por qué llamarse igual.
+ * Contrastes WCAG 2.1 sobre la superficie (--k-surface) salvo que se diga.
  * ========================================================================== */
 
 :root {
-    /* --- Tripletes RGB ------------------------------------------------------
-     * Existen para poder componer transparencias sin repetir el color:
-     * rgba(var(--k-accent-rgb), 0.35). Si cambias un color sólido, cambia
-     * también su triplete. */
-    --k-bg-rgb: 0, 24, 46;
-    --k-surface-rgb: 0, 29, 56;
-    --k-accent-rgb: 1, 63, 246;
-    --k-highlight-rgb: 172, 236, 0;
-    --k-shadow-rgb: 0, 6, 18;
+    /* --- Tripletes RGB ---------------------------------------------------- */
+    --k-bg-rgb: 242, 238, 229;
+    --k-surface-rgb: 251, 249, 244;
+    --k-accent-rgb: 30, 63, 230;
+    --k-highlight-rgb: 75, 102, 0;
+    --k-marker-rgb: 172, 236, 0;
+    /* La sombra en papel es tinta muy diluida, no negro: un negro puro sobre
+     * crema ensucia en vez de levantar. */
+    --k-shadow-rgb: 40, 32, 18;
 
-    /* --- Superficies -------------------------------------------------------- */
-    --k-bg: #00182E;              /* fondo de la aplicación */
-    --k-bg-deep: #001020;         /* el escalón más hondo: pie de página */
-    --k-surface: #001d38;         /* paneles, campos, barras */
-    --k-surface-raised: #002548;  /* lo que se levanta sobre un panel */
-    --k-overlay: rgba(var(--k-shadow-rgb), 0.85);  /* capas sobre el lienzo */
-    --k-scrim: rgba(var(--k-shadow-rgb), 0.45);    /* backdrop de los paneles */
+    /* --- Superficies ------------------------------------------------------- */
+    --k-bg: #F2EEE5;              /* el papel */
+    --k-bg-deep: #E8E3D7;         /* el papel en sombra: pie, carriles */
+    --k-surface: #FBF9F4;         /* una hoja encima del papel (1,10:1) */
+    --k-surface-raised: #FFFFFF;
+    --k-overlay: rgba(var(--k-shadow-rgb), 0.55);
+    --k-scrim: rgba(var(--k-shadow-rgb), 0.18);
 
-    /* --- Trazo -------------------------------------------------------------- */
-    --k-border: rgba(var(--k-accent-rgb), 0.35);
-    --k-border-strong: rgba(var(--k-accent-rgb), 0.5);
+    /* --- Trazo ------------------------------------------------------------- */
+    --k-border-rgb: 126, 129, 135;
+    --k-border: #7E8187;          /* 3,71:1 sobre hoja, 3,37:1 sobre papel */
+    --k-border-strong: #676C78;   /* 5,0:1 */
+    --k-divider: rgba(22, 24, 29, 0.10);
 
-    /* --- Acento ------------------------------------------------------------- */
-    --k-accent: #013FF6;          /* la acción principal */
-    --k-accent-hover: #0133D0;
-    --k-accent-ink: #ACEC00;      /* lo que se escribe ENCIMA del acento */
+    /* --- Acento: el bolígrafo --------------------------------------------- */
+    --k-accent: #1E3FE6;          /* 6,9:1 — en papel el cobalto se lee solo */
+    --k-accent-hover: #1733C2;
+    --k-accent-ink: #FFFFFF;      /* 7,2:1 */
+    --k-accent-soft: rgba(var(--k-accent-rgb), 0.10);
 
-    /* --- Realce ------------------------------------------------------------- */
-    --k-highlight: #ACEC00;       /* el dato que importa: valores, títulos */
-    --k-highlight-soft: #c8f542;
+    /* --- Realce: el dato --------------------------------------------------- */
+    --k-highlight: #4B6600;       /* oliva legible: 6,2:1 */
+    --k-highlight-soft: #6A8A00;
 
-    /* --- Texto -------------------------------------------------------------- */
-    --k-text: #e2e8f0;
-    --k-text-muted: #9fb3c8;
-    --k-text-faint: #64748b;
-    --k-text-disabled: #3f5773;
+    /* --- El rotulador ------------------------------------------------------
+     * Sólo de FONDO, con tinta encima (12,5:1). Nunca como color de letra. */
+    --k-marker: #ACEC00;
+    --k-marker-soft: #D9F77E;
+    /* El rotulador tiene dos usos y cada uno su token:
+     *   --k-marker + --k-marker-ink  lima SÓLIDO con tinta oscura encima
+     *                                 (stickers, el acorde elegido): 12,5:1
+     *                                 en los dos modos.
+     *   --k-marker-trazo              el subrayado DETRÁS del texto normal.
+     *                                 En claro es lima pleno; en oscuro va
+     *                                 semitransparente, porque la letra es
+     *                                 clara y sobre lima pleno no se leería. */
+    --k-marker-ink: #16181D;
+    --k-marker-trazo: #ACEC00;
 
-    /* --- Estado ------------------------------------------------------------- */
-    --k-danger: #ff5470;
-    --k-ok: #ACEC00;
+    /* --- Texto ------------------------------------------------------------- */
+    --k-text: #16181D;            /* 16,9:1 */
+    --k-text-muted: #4A4F5A;      /*  7,8:1 */
+    --k-text-faint: #5F6470;      /*  5,6:1 */
+    --k-text-disabled: #676C78;   /*  5,0:1 */
 
-    /* --- Forma -------------------------------------------------------------- */
-    --k-radius-sm: 0.5rem;
-    --k-radius-md: 0.75rem;
-    --k-radius-lg: 1rem;
-    --k-radius-xl: 1.5rem;
+    /* --- Estado ------------------------------------------------------------ */
+    --k-danger: #C4213E;          /*  5,5:1 */
+    --k-ok: #4B6600;
+
+    /* --- Forma: más recta, de papelería ----------------------------------- */
+    --k-radius-sm: 0.375rem;
+    --k-radius-md: 0.5rem;
+    --k-radius-lg: 0.625rem;
+    --k-radius-xl: 0.875rem;
     --k-radius-pill: 9999px;
 
-    /* Área táctil mínima. 44px es el mínimo para usar algo con el dedo;
-     * no lo bajes por mucho que aprieten los píxeles en móvil. */
     --k-touch: 44px;
 
-    /* --- Elevación ---------------------------------------------------------- */
-    --k-shadow-panel: 0 10px 30px rgba(var(--k-shadow-rgb), 0.45);
-    --k-shadow-float: 0 12px 40px rgba(var(--k-shadow-rgb), 0.6);
+    /* --- Elevación: una hoja sobre otra ----------------------------------- */
+    --k-shadow-panel: 0 1px 2px rgba(var(--k-shadow-rgb), 0.08), 0 6px 18px rgba(var(--k-shadow-rgb), 0.07);
+    --k-shadow-float: 0 2px 4px rgba(var(--k-shadow-rgb), 0.08), 0 18px 40px rgba(var(--k-shadow-rgb), 0.16);
+    --k-shadow-inset: inset 0 0 0 0 transparent;
 
-    /* --- Tipografía --------------------------------------------------------- */
+    /* --- Escala tipográfica (igual que la app: el suelo son 12 px) -------- */
+    --k-text-xs: 12px;
+    --k-text-sm: 13px;
+    --k-text-md: 14px;
+    --k-text-lg: 16px;
+    --k-text-xl: 18px;
+    --k-text-2xl: 22px;
+    --k-tracking-label: .08em;
+
+    /* --- Escala de espacio ------------------------------------------------- */
+    --k-space-1: 4px;
+    --k-space-2: 8px;
+    --k-space-3: 12px;
+    --k-space-4: 16px;
+    --k-space-5: 24px;
+    --k-space-6: 32px;
+
+    /* --- Tipografía -------------------------------------------------------- */
     --k-font-ui: 'Segoe UI', system-ui, -apple-system, sans-serif;
     --k-font-title: 'Fjalla One', sans-serif;
-    /* La monoespaciada NO es decorativa: la hoja de canción coloca cada
-     * acorde por número de columna, y eso sólo cuadra si todos los caracteres
-     * miden lo mismo. */
     --k-font-mono: ui-monospace, 'Courier New', monospace;
+    /* Los textos AUXILIARES de la portada (rótulos, pies, números de pista,
+     * botones de acorde). Iban en la monoespaciada, que leída suelta parece
+     * una máquina de escribir y pesa más que el texto al que acompaña. Ahora
+     * van en la letra de la interfaz; lo que los distingue es el tamaño, el
+     * peso y, en los rótulos, las mayúsculas espaciadas.
+     * La monoespaciada se queda donde es necesaria: la hoja de canción, que
+     * coloca cada acorde por número de columna. */
+    --k-font-aux: var(--k-font-ui);
 }
 
-/* --- Gancho para temas alternativos -------------------------------------
- * No hay ninguno todavía; el gancho existe para que añadir uno sea sólo CSS.
- * Se activa poniendo data-theme="claro" en el <html>.
+/* ==========================================================================
+ * MODO OSCURO: PAPEL DE NOCHE
+ * ==========================================================================
  *
- * :root[data-theme="claro"] {
- *     --k-bg: #f8fafc;
- *     --k-text: #0f172a;
- *     ...
- * }
- * ------------------------------------------------------------------------ */
+ * El mismo cuaderno con la luz apagada. NO es el grafito frío de la piel
+ * «Estudio de noche»: aquí el fondo es tinta cálida y las letras tienen el
+ * color del papel, para que se reconozca como la misma marca en otra hora.
+ *
+ * Se activa con data-theme="oscuro" en el <html>. Lo pone el botón de la
+ * cabecera y, la primera vez, la preferencia del sistema.
+ *
+ * La regla dura sigue igual: esto es PIEL. El diagrama exportado no cambia
+ * con el modo; su tarjeta blanca queda como la hoja iluminada del escritorio.
+ *
+ * Contrastes sobre la superficie (--k-surface) salvo que se diga.
+ * ========================================================================== */
+:root[data-theme="oscuro"] {
+    color-scheme: dark;   /* desplegables, casillas y barras nativas, en oscuro */
+
+    --k-bg-rgb: 20, 18, 14;
+    --k-surface-rgb: 29, 26, 21;
+    --k-accent-rgb: 125, 150, 255;
+    --k-highlight-rgb: 172, 236, 0;
+    --k-shadow-rgb: 0, 0, 0;
+    --k-border-rgb: 130, 121, 106;
+
+    --k-bg: #14120E;              /* tinta cálida */
+    --k-bg-deep: #0E0C09;
+    --k-surface: #1D1A15;         /* 1,08:1 sobre el fondo */
+    --k-surface-raised: #27231C;  /* 1,11:1 sobre la superficie */
+    --k-overlay: rgba(0, 0, 0, 0.7);
+    --k-scrim: rgba(0, 0, 0, 0.45);
+
+    --k-border: #82796A;          /* 4,0:1 */
+    --k-border-strong: #A39A88;   /* 6,2:1 */
+    --k-divider: rgba(242, 237, 227, 0.10);
+
+    /* El cobalto se aclara para leerse sobre tinta (6,3:1) y, al ser claro,
+     * lo que va encima pasa a tinta oscura (6,8:1). */
+    --k-accent: #7D96FF;
+    --k-accent-hover: #9AAEFF;    /* tinta encima: 8,8:1 */
+    --k-accent-ink: #14120E;
+    --k-accent-soft: rgba(125, 150, 255, 0.14);
+
+    /* En oscuro el lima vuelve a ser color de letra: se lee (12,2:1). */
+    --k-highlight: #ACEC00;
+    --k-highlight-soft: #C8F542;
+
+    --k-marker: #ACEC00;
+    --k-marker-soft: #D9F77E;
+    --k-marker-ink: #16181D;
+    --k-marker-trazo: rgba(172, 236, 0, 0.34);   /* letra encima: 6,4:1 */
+
+    --k-text: #F2EDE3;            /* 14,9:1 — el color del papel */
+    --k-text-muted: #C2B9A8;      /*  8,9:1 */
+    --k-text-faint: #A39A88;      /*  6,2:1 */
+    --k-text-disabled: #948B7A;   /*  5,2:1 */
+
+    --k-danger: #FF6B81;          /*  6,3:1 */
+    --k-ok: #ACEC00;
+
+    --k-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+    --k-shadow-float: 0 2px 6px rgba(0, 0, 0, 0.45), 0 20px 48px rgba(0, 0, 0, 0.55);
+}

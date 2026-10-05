@@ -621,6 +621,11 @@
      * -------------------------------------------------------------------- */
     const STORAGE_SONGS = "kharo.songs.v1";
     const STORAGE_CHORDS = "kharo.chords.v1";
+    /* El mástil del estudio. Era lo ÚNICO que no sobrevivía a un F5: se podía
+     * pasar media hora trazando una escala y perderla al recargar. Guarda la
+     * misma foto que alimenta el deshacer, así que no hay dos ideas distintas
+     * de «lo que es tu trabajo». */
+    const STORAGE_STUDIO = "kharo.studio.v1";
 
     function loadJSON(clave, porDefecto) {
         try {
@@ -646,6 +651,8 @@
     function saveSongs(songs) { return saveJSON(STORAGE_SONGS, songs); }
     function loadChordLibrary() { return loadJSON(STORAGE_CHORDS, []); }
     function saveChordLibrary(acordes) { return saveJSON(STORAGE_CHORDS, acordes); }
+    function loadStudio() { return loadJSON(STORAGE_STUDIO, null); }
+    function saveStudio(foto) { return saveJSON(STORAGE_STUDIO, foto); }
 
     /* Una canción que llega de fuera (un archivo importado) puede venir de
      * cualquier versión, o directamente rota. Se normaliza contra el modelo
@@ -778,7 +785,13 @@
             colocar({ tipo: "seccion", section }, m.sectionHeader);
 
             if ((section.bars || []).length > 0) {
-                colocar({ tipo: "compases", section }, m.barsRow);
+                /* `barsRow` puede ser un número o una FUNCIÓN de la sección: la
+                 * progresión ocupa las filas que necesite, y cuántas son sólo lo
+                 * sabe quien la dispone. El alto viaja dentro del bloque, igual
+                 * que en el diccionario de acordes, para que quien dibuja avance
+                 * exactamente lo que se reservó aquí. */
+                const alto = typeof m.barsRow === "function" ? m.barsRow(section) : m.barsRow;
+                colocar({ tipo: "compases", section, alto: alto }, alto);
             }
 
             (section.lines || []).forEach((line, indice) => {
@@ -989,6 +1002,8 @@
         loadSongs,
         saveSongs,
         loadChordLibrary,
-        saveChordLibrary
+        saveChordLibrary,
+        loadStudio,
+        saveStudio
     };
 })(typeof window !== "undefined" ? window : this);

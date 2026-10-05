@@ -2012,6 +2012,1198 @@ del recorrido» repinta las flechas.
   **siguen puestos** en el navegador integrado, en `http://localhost:8731`. Hacen falta para las
   etapas 3 y 4; se borran al terminar.
 
+## Etapa 3 — Las flechas se revisan (2026-09-07)
+
+No estaba en `HOJA-DE-RUTA.md` ni en `BUGS.md`. Es la causa de fondo de la que cuelgan varios
+síntomas que sí estaban apuntados: el bug 8, el 10 y el 11 son tres caras de lo mismo.
+
+### La invariante que faltaba
+
+**El recorrido es una lista de posiciones y nada comprobaba que esas posiciones siguieran
+existiendo.** Cuando el mapa de notas cambia por debajo, la lista se queda apuntando a sitios
+que ya no hay: flechas hacia el vacío, cuentas falsas en el panel («12 notas, a mano» con seis
+dibujadas) y notas que suenan sin verse.
+
+Sólo **dos** sitios de todo el archivo hacían la limpieza —`quitarNotaLibre` y la rama de quitar
+nota de `handleMouseUp`—. Los ocho caminos que cambian el mapa y **no** la hacían:
+
+| Camino | Qué dejaba atrás |
+|---|---|
+| `toggleStringState` marca al aire o muteada | Flecha a una nota que deja de dibujarse |
+| Encoger la ventana de trastes | Notas fuera → `NaN` (bug 11) |
+| Cambiar de instrumento con otro nº de cuerdas | Vacía los dos mástiles, **no** el recorrido |
+| `loadPreset` | Repone el mástil entero y deja el recorrido anterior |
+| `cargarPasoEnMastil` | Escribe el recorrido del paso sin comprobarlo contra el mástil |
+| Cambiar raíz o tipo de escala o arpegio | El recorrido congelado sigue sobre otro mapa |
+| `clearAll` | Vacía el mástil y deja el recorrido |
+| Los atajos de tríada | Recolocan la ventana con `setStartingFret`/`setNumFrets` |
+
+### `sanearRecorrido`, en `theory-core.js`
+
+Al lado de `buildNotePath` y de `samePosition`, que es de quien tira. Devuelve
+`{ recorrido, quitadas }` y habla **sólo de validez**: qué hacer cuando quedan menos de dos
+posiciones lo decide quien llama, porque no es lo mismo que el mástil se lleve las notas por
+delante —ahí lo suyo es volver al estado de entrada del modo— que cortar el recorrido a
+propósito desde el menú, donde una lista corta es lo que se ha pedido.
+
+**Las repeticiones se conservan.** Una nota pedal o una vuelta atrás repiten posición a
+propósito, y confundirlas con basura sería romper justo lo que el modo a mano existe para poder
+escribir.
+
+### Un punto de aplicación, no ocho
+
+Un `useEffect` sobre una huella del mapa, y no ocho llamadas repartidas por los ocho caminos:
+una llamada que hay que acordarse de poner es una llamada que algún día no se pone. Los dos
+sitios que ya limpiaban a mano se quedan — son inmediatos y ahorran un fotograma de flecha
+colgando.
+
+La huella se recalcula en **cada render**, sin `useMemo` a propósito: su lista de dependencias
+tendría diecisiete entradas —modo, los dos mástiles, la ventana, la afinación, la escala, el
+arpegio y sus cinco ajustes— y una que se olvidara dejaría la huella vieja, que es exactamente
+el fallo que esto viene a arreglar.
+
+Tres guardas en el efecto, y las tres hacen falta:
+
+- **En Acordes no se sanea.** Ahí `notasDelMapa` devuelve `[]` por diseño, no porque hayan
+  desaparecido notas. Sin esto, cargar un preset desde Escalas soltaba un aviso de que el
+  recorrido se había quedado sin notas, que sería mentira.
+- **Un recorrido a mano vacío es legítimo:** es con lo que entra Libre. No hay nada que revisar.
+- **`restaurando`**, la bandera de la etapa 2.
+
+Cuando quedan menos de dos posiciones se vuelve al **estado de entrada del modo**: el automático
+en Escalas y Arpegios, y `[]` en Libre, porque ahí no hay fórmula de la que sacar un recorrido y
+decir «automático» sería no decir nada.
+
+**Se avisa.** Un saneado callado deja al usuario con un recorrido más corto del que escribió y
+sin saber por qué. No lleva «Deshacer»: las notas ya no están, así que no hay nada que devolver.
+Es el primer llamante de la firma con acción de `showToast`… y no la usa, precisamente porque
+aquí no hay acción honesta que ofrecer.
+
+### Las cinco operaciones del menú de la flecha
+
+`invertirSaltoEn(i)` **no comprobaba que existiera `base[i + 1]`**. El índice se guarda en
+`menuFlecha` en el momento del clic derecho, y el recorrido puede cambiar debajo antes de que se
+elija una opción: entonces metía un `undefined` en la lista y el render moría al pedirle su
+posición a una nota que no existe.
+
+Ahora las tres que reciben índice pasan por `flechaSigueAhi`, y si la flecha ya no está se dice
+—«Esa flecha ya no está»— en vez de no hacer nada: un menú que se cierra sin efecto se lee como
+que la app se ha colgado.
+
+Las cuatro que modifican pasan por `aplicarAlRecorrido`, que hace dos cosas que antes no se
+hacían: pasa el resultado por `sanearRecorrido`, y **si el resultado es igual a lo que había y
+el recorrido era automático, lo deja automático**. Las tres que tiraban de `recorridoParaEditar`
+congelaban el automático en `pathManual` como efecto colateral aunque no cambiaran nada.
+
+### El menú nombra la flecha que se ve
+
+`renderNotePath` salta los tramos demasiado cortos (`largo <= margen * 2`), así que el segmento
+`i` de la lista **no siempre es la flecha `i` que se ve**. El menú titulaba «Flecha {i + 1}» con
+el índice de la lista: con un tramo saltado, la segunda flecha que ves se llamaba «Flecha 3».
+Ahora se cuenta lo dibujado. Para operar sigue mandando `i`, que es el índice de verdad; el
+número es sólo el nombre.
+
+### `conectarEnRecorrido` comprueba su destino
+
+Hoy `notaMasCercana` sólo devuelve notas del mapa, así que la guarda no salta nunca. Está
+escrita porque el resto de la función ya contempla sus cuatro casos de índice, y confiar en el
+llamante era la única suposición sin comprobar que quedaba.
+
+### Comprobado
+
+| Qué | Resultado |
+|---|---|
+| «Vaciar» en Libre con recorrido puesto | 2 notas y 1 flecha → 0 y 0, con aviso |
+| Guitarra → bajo de 4 cuerdas con recorrido de 5 notas | 5 fuera, aviso, sin `NaN` |
+| Cambiar de Do a Fa# mayor con 6 notas a mano | sobreviven 2, se van 4, y lo dice |
+| Recorrido con nota pedal (tramo de largo cero) | 3 tramos en la lista, 2 flechas, y la segunda se llama «Flecha 2» |
+| Menú abierto + vaciar + «Invertir este salto» | «Esa flecha ya no está», sin romper nada |
+| «Invertir el recorrido» con ida y vuelta (palíndromo) | sigue en «automático», no se congela |
+
+Cero `NaN` y cero `undefined` en el SVG de las seis pantallas.
+
+### Si añades un camino que cambia el mapa
+
+No tienes que llamar a nada: el efecto de la huella lo coge solo. Lo que **sí** tienes que hacer
+es preguntarte si tu camino es una restauración —escribe mástil y recorrido a la vez— y en ese
+caso levantar `restaurando`, como hacen `loadPreset` y `cargarPasoEnMastil`. Si no, el saneado
+verá el mástil nuevo con el recorrido nuevo a medio aplicar y se comerá lo que acabas de poner.
+
+## Etapa 4 — La hoja dice la verdad, y el archivo sale limpio (2026-09-07)
+
+Todo lo que hacía que lo impreso o lo exportado mintiera. Cierra tomando las tres fotos SVG de
+referencia, en `referencia-svg/`, que gobiernan el `diff` de la etapa 6.
+
+### Bug 3 — la hoja tiraba los compases que no cabían en la fila
+
+Una progresión de doce compases se imprimía con ocho, sin decirlo: la peor forma de estar mal,
+porque la hoja parece correcta.
+
+No era un `break` mal puesto que se pudiera cambiar por otra cosa. `SheetBars` hacía `return` en
+cuanto un compás se pasaba del ancho útil **porque el bloque tenía reservada UNA fila de alto
+fijo** (`HOJA.altoCompases`, 58 px) y `paginateSong` ya había repartido las páginas contando con
+eso. Arreglar el dibujo sin arreglar la reserva habría cambiado un fallo por otro peor: compases
+pisando la letra.
+
+Tres piezas:
+
+1. **`disponerCompases(section, song, ancho)`** — UNA función para las dos cosas que tienen que
+   decir lo mismo: cuánto alto ocupa el bloque —que lo pregunta la paginación **antes** de
+   dibujar nada— y dónde va cada celda. Separadas, la hoja se descuadra en cuanto una de las dos
+   cambie.
+2. **`paginateSong` acepta `barsRow` como número o como función de la sección**, y guarda el alto
+   dentro del bloque, igual que ya hacía el diccionario de acordes con `bloque.alto`.
+3. **`SheetBars` pinta todas las filas** y `SongSheet` avanza `y` por `bloque.alto`.
+
+Con una sola fila el alto da 58, que es lo que valía antes: una progresión corta se pagina
+exactamente igual. Y un compás más ancho que la página se topa al ancho útil en vez de salirse.
+
+Comprobado con 14 compases: se dibujan los 14 en dos filas, y **cero solapes** entre bloques de
+la hoja (la progresión ocupa 334–418 y el verso siguiente empieza en 440).
+
+### Bug 6 — borrar un acorde dejaba compases huérfanos en las demás canciones
+
+La biblioteca es de TODAS las canciones, pero `removeChordFromLibrary` sólo tocaba la abierta:
+las demás se quedaban con compases apuntando a un id que ya no existe, que en la hoja salen como
+«?» y al reproducir no suenan. El paso que faltaba ya estaba escrito cuarenta líneas más abajo,
+en `borrarTodosLosAcordes`: `fundirEnLista(prev, song).map(limpiar)`.
+
+Y el aviso mentía por lo mismo: contaba los usos de la canción abierta.
+
+Comprobado con dos canciones que comparten un acorde: 12 → 6 compases en una, 5 → 0 en la otra, y
+el toast dice «quitado de 11 compases en 2 canciones».
+
+### Bug 4 — la hoja imprimía «Negras» cuando el rasgueo es tuyo
+
+`Song.getRhythm(s.rhythmId || song.rhythmId)` sin el segundo argumento. Era el único sitio del
+proyecto donde se llamaba con uno solo, y por eso la canción **sonaba** con tu rasgueo mientras
+la hoja decía otra cosa. Comprobado: la hoja dice «Mi rasgueo X».
+
+### Bug 13 — la hoja de tonalidad cogía la afinación del primer acorde de la biblioteca
+
+Ahora sale de los acordes que **esta canción** usa, que ya se calculaban ahí al lado en `usados`.
+La biblioteca queda de recurso para una canción que todavía no usa ninguno. Comprobado: con un
+acorde de ukelele guardado el primero, el mástil horizontal de una canción de guitarra sale con
+seis cuerdas, `E A D G B E`.
+
+### Bug 12 — una nota por debajo de una cejilla sonaba en vez de la cejilla
+
+`chordVoicingToMidi` buscaba primero el punto y hacía `continue`, así que el punto siempre ganaba.
+Con el punto **por encima** de la cejilla eso es correcto, que es el caso normal; **por debajo**,
+no: físicamente suena la cejilla, porque la cuerda vibra desde ahí. Es alcanzable porque crear una
+cejilla no borra las notas que hubiera («Cejilla es INMUNE», dice el comentario de
+`handleMouseUp`).
+
+Ahora gana el que está más cerca del puente, **y en los dos sitios**: `chordVoicingToMidi` y
+`analyzeCurrentChord`. Si se arregla sólo uno, lo que se ve y lo que se oye dejan de coincidir,
+que es peor que estar los dos igual de mal.
+
+Comprobado: punto en el traste 1 bajo cejilla en el 3 suena el 3 (MIDI 43, igual que la cejilla
+sola); punto en el 3 sobre cejilla en el 1 sigue sonando el 3.
+
+### Bugs 16 y 17 — la suciedad del archivo exportado
+
+`data-transient="1"` a la rejilla de clic del modo Acorde (treinta rectángulos invisibles por
+archivo), al área de toque de las marcas de la cejuela, al halo de nota pulsada —que además se
+llevaba una clase CSS que en el archivo suelto no anima nada— y a la previsualización del
+arrastre, que es del gesto por definición.
+
+`fontWeight="black"` no existe: el valor válido es `900`. Eran las etiquetas de las notas al aire
+de escalas y arpegios, que salían en peso normal mientras las demás usaban `"bold"`.
+
+Comprobado en los cuatro modos: el SVG exportado tiene **cero** rectángulos invisibles, cero
+`font-weight="black"`, cero clases de animación y cero `NaN`; y el SVG vivo conserva sus 36
+casillas de clic y muestra los seis rótulos a peso 900.
+
+### Bug 18 — la miniatura dibujaba fuera de la caja lo que no cabía
+
+`MiniFretboard` topaba la rejilla en seis trastes pero colocaba los puntos sin ese tope. Ahora la
+ventana crece hasta la nota más alta del acorde: uno de ocho trastes sale más apretado, que es
+mejor que salir roto. Comprobado con una nota en el traste 7: `cy` 92,9 dentro de una caja de 112.
+
+### Las tres fotos de referencia
+
+En `referencia-svg/`, con su `LEEME.md` diciendo qué escena es cada una y cómo reproducirla.
+Tomadas **después** de los bugs 5, 11, 16 y 17, que son los que cambian el archivo que sale.
+
+### Un aviso que costó una hora: el navegador cachea los `.js` del núcleo
+
+Durante esta etapa, `song-core.js` se sirvió con **200 OK** y aun así se ejecutó la versión
+vieja: la paginación de la hoja parecía rota cuando el arreglo ya estaba puesto. `location.reload()`
+no revalida esos cuatro archivos, y abrir una pestaña nueva tampoco —la caché es del navegador,
+no de la pestaña—.
+
+Antes de dar por buena cualquier comprobación que dependa de `theory-core.js`, `render-core.js` o
+`song-core.js`, refresca con la **URL exacta**, sin query (un `?v=` crea otra entrada de caché y
+no sirve de nada):
+
+```js
+for (const f of ['song-core.js','theory-core.js','render-core.js','ui.css','theme.css'])
+  await fetch(f, { cache: 'reload' });
+location.reload();
+```
+
+Y confírmalo mirando el código **cargado**, no el del disco:
+
+```js
+window.KharoSong.paginateSong.toString().includes('typeof m.barsRow === "function"')
+```
+
+### Lo que la etapa 4 deja sin hacer
+
+- El bug 19 (`LyricEditor` y los scrolls por índice) y el 15 (el ⟲ del ejercicio) siguen
+  pendientes: van en la etapa 8, con el resto de Canción y Ejercicios.
+- El bug 14 (JSON en Ejercicios) también es de la etapa 8.
+- El bug 20 (el doble toque en móvil) necesita un teléfono de verdad: etapa 9.
+
+## Etapa 5 — Que perdone (2026-09-07)
+
+La que más cambia cómo se siente usar la app, y la más barata de lo que parece: cada cambio del
+mástil ya era un gesto discreto —`setBarres` sólo se llama al soltar, `conectarEnRecorrido` una
+vez en el `pointerUp`— así que un historial de fotos funciona sin reescribir nada.
+
+### `useHistorial`: una pila de fotos
+
+De **fotos** y no de acciones. Con acciones habría que escribir el inverso de cada una, y el de
+«cambiar a un instrumento con otro número de cuerdas» —que vacía el mástil— no es una acción
+inversible: es una foto anterior o no es nada. Pila con índice, tope 60, comparación por
+`JSON.stringify` porque la foto es pequeña y plana.
+
+Dos banderas dentro del hook, y las dos hicieron falta:
+
+- **`aplicando`** — reponer una foto CAMBIA la foto, y ese cambio no es un paso nuevo. Sin ella,
+  deshacer empuja lo deshecho y el rehacer no llega nunca a ningún sitio.
+- **`rebasar`** — al reponer el mástil guardado al arrancar, la foto que llega es el punto de
+  partida, no un paso. Sin ella, lo primero que hace Ctrl+Z recién abierta la app es borrarte el
+  trabajo que se acaba de recuperar. Comprobado: ahora dice «Nada que deshacer».
+
+### El respiro de 150 ms, que no estaba previsto
+
+Apareció al probarlo: **un gesto llega en DOS commits.** El clic cambia el modo, y el efecto que
+reacciona al modo cambia el recorrido — un efecto no puede correr en el mismo commit que el
+manejador que lo dispara. Cada cambio de pestaña dejaba dos pasos en la pila y el primer Ctrl+Z
+parecía no hacer nada, que es peor que no tener deshacer: parece que la app no responde.
+
+Con la limpieza del `useEffect`, de una ráfaga sólo se guarda la última foto. La granularidad
+pasa a ser «lo que hiciste, ya asentado», que es como cuenta los pasos una persona.
+
+De paso salió sobrando `prepararModoLibre`: desde la etapa 2 el efecto de `[appMode]` es el dueño
+de lo que vale en cada modo, y `selectMode` hacía lo mismo otra vez en otro commit.
+
+### La foto: tres campos más de los que decía la hoja de ruta
+
+Los once de la hoja, **más `appMode`, `showPath` y `editandoPath`**. La razón apareció al
+escribirlo: desde la etapa 2 el recorrido muere con el modo, así que `pathManual` no significa
+nada sin saber de qué modo es. Una foto con el recorrido y sin el modo se puede restaurar sobre
+el modo equivocado, y entonces devuelve un recorrido que no es de ahí.
+
+**Fuera queda el estilo**, que tiene su propio «Reiniciar». Es la trampa que avisa la hoja de
+ruta y es real: mueves el radio de la nota, pulsas Ctrl+Z para quitar una nota que sobra, y se
+deshace el radio. Comprobado: el radio va de 10 a 13 y Ctrl+Z lo deja en 13.
+
+Fuera también los paneles, el toast, la reproducción, `dragCurrent` y `arrastreFlecha`: son del
+gesto en curso, no del trabajo.
+
+### El mástil se guarda — `kharo.studio.v1`
+
+Era lo único que no sobrevivía a un F5: se podía pasar media hora trazando una escala y perderla
+al recargar. Guarda **la misma foto** que alimenta el deshacer, así que no hay dos ideas
+distintas de «lo que es tu trabajo». Mismo respiro de 500 ms que la canción y la biblioteca.
+
+Se repone en un efecto de arranque y no en los `useState`: son catorce estados repartidos por el
+componente y tocarlos todos serían catorce sitios donde equivocarse.
+
+### Borrar un acorde: deshacer, no confirmación
+
+**Nada de `confirm`.** El diálogo pone el peso ANTES de saber si te has equivocado; el toast lo
+pone cuando ya lo sabes. Se guarda la copia de la biblioteca y de **todas** las canciones —la
+etapa 4 amplió el alcance del borrado, así que el deshacer tiene que cubrir lo mismo— y se ofrece
+en el toast.
+
+Es el primer llamante de verdad de la firma con acción de `showToast`, que la etapa 1 dejó escrita
+sin ejercitar. Comprobado de punta a punta: biblioteca 3 → 2, la canción de 14 → 0 compases, toast
+«"G" borrado, y quitado de 14 compases · Deshacer», y al pulsarlo vuelve todo.
+
+### La papelera, al menú
+
+El icono medía 19×14 px y estaba pegado a «Añadir». Lo destructivo no va al lado de lo que se
+pulsa cien veces al día. Borrar vive en el menú del clic derecho, que ya lo tenía; «Añadir» se
+queda a lo ancho, con área táctil de verdad.
+
+### Cambiar de instrumento lo dice, y se deshace
+
+Sigue vaciando —las posiciones del instrumento anterior no significan lo mismo aquí— pero ahora
+avisa: «Mástil vaciado: Bajo (4c) tiene 4 cuerdas · Deshacer». Vaciar y cambiar de instrumento
+ocurren en el mismo commit, así que son **un solo paso** de la pila.
+
+**Un choque que sólo se ve probándolo:** el saneado del recorrido de la etapa 3 se disparaba
+inmediatamente después y su toast pisaba a éste — el único de los dos que traía el «Deshacer».
+Son dos avisos del mismo suceso. Ahora una bandera, `vaciadoPorInstrumento`, hace que el saneado
+limpie **en silencio** cuando el vaciado ya se ha anunciado.
+
+### Comprobado
+
+| Qué | Resultado |
+|---|---|
+| Poner notas y Ctrl+Z / Ctrl+Shift+Z | baja a cero y vuelve, simétrico, y luego «Nada que deshacer» |
+| Cambiar de pestaña | **un** paso, no dos |
+| Mover el radio y Ctrl+Z | el radio no se toca |
+| F5 con notas puestas | vuelven, y el primer Ctrl+Z dice «Nada que deshacer» |
+| Borrar un acorde usado en 14 compases y «Deshacer» | vuelven el acorde y los 14 compases |
+| Cambiar a bajo de 4 cuerdas y «Deshacer» | vuelven las 6 cuerdas y la nota |
+| `referencia-acorde.svg` | sha256 idéntico: la obra no se ha movido |
+
+Cero `NaN` y cero `undefined` en las seis pantallas.
+
+### Lo que la etapa 5 deja sin hacer
+
+- **El respiro de 150 ms junta dos ediciones muy seguidas en un solo paso.** Es deliberado, pero
+  significa que colocar dos notas a toda prisa se deshace de una vez. Si algún día molesta, la
+  salida no es bajar el respiro —volvería el paso fantasma— sino marcar explícitamente qué
+  commits son continuación de un gesto.
+- Sólo se ha vuelto a comprobar la foto del **acorde**. Las tres se comparan enteras al cerrar la
+  etapa 6, que es para lo que existen.
+
+## Etapa 6 — Que se lea (2026-09-07)
+
+La más ancha del plan, y casi toda mecánica. Lo que no era mecánico está abajo.
+
+### La escala que faltaba
+
+`theme.css` no tenía **ninguna** escala de tamaños ni de espacios, y por eso el JSX había
+acumulado 155 tamaños escritos a mano por debajo de 12 px: 102 a 10, 26 a 11, 25 a 9 y 2 a 8.
+Un tamaño que se elige a ojo en cada sitio no es una decisión, es una acumulación.
+
+`--k-text-xs` 12 · `sm` 13 · `md` 14 · `lg` 16 · `xl` 18 · `2xl` 22, y `--k-space-1…6` de 4 a 32.
+**El suelo son 12 px.** Lo que estaba a 8–10 sube a 12; lo que estaba a 11–12 sube a 13.
+
+Las clases `.k-text-*` llevan `line-height` propio a propósito: las de Tailwind que sustituyen
+traían el suyo (`text-xs` es 12/16), y cambiar el tamaño sin cambiar la altura de línea mueve
+todo lo que hay alrededor.
+
+### La migración, y la trampa del guion
+
+190 sustituciones en seis tandas, por tamaño y de mayor a menor, mirando la app entre tanda y
+tanda.
+
+**`\btext-xs\b` casa DENTRO de `k-text-xs`**, porque el guion es un límite de palabra. Sin un
+`(?<!k-)` delante, la quinta tanda habría convertido las 129 clases recién migradas en
+`k-k-text-sm`. Se vio antes de ejecutarla, pero por poco: es el fallo que habría dejado la app
+en blanco sin decir por qué.
+
+### Contraste: lo que estaba mal y por qué
+
+| Token | Antes | Ahora |
+|---|---|---|
+| `--k-text-faint` | #64748b, 3,58:1 | #8AA0B8, **5,4:1** |
+| `--k-text-disabled` | #3f5773, 1,94:1 | #6B84A1, **4,65:1** |
+| `--k-border` | `rgba(acento, .35)`, 1,30:1 | #4074DA sólido, **3,25:1** |
+| `--k-surface` | #001d38, 1,05:1 sobre el fondo | #062A50, **1,24:1** |
+
+El borde pasa de transparencia a color sólido: **un borde es un LÍMITE**, y un límite tiene que
+verse contra lo que separa. A 0,35 de opacidad era una raya que se adivinaba, y la separación
+entre panel y lienzo dependía toda de ella porque el panel estaba a 1,05:1 del fondo — que es no
+estar.
+
+### Lo que no era mecánico
+
+**Los números de la leyenda de intervalos.** Fallaban hasta 1,56:1 —blanco sobre el amarillo del
+grado 3— y no se podían arreglar cambiando el color: **los colores de intervalo son OBRA**, los
+elige el usuario y salen en el archivo exportado. Lo que sí es piel es la TINTA de la ficha. Se
+añadió `tintaLegibleSobre(color)`, que elige negro o blanco según la luminancia relativa del
+fondo. El umbral no es a ojo: sale de igualar los dos contrastes, y el blanco y el negro empatan
+en L ≈ 0,179.
+
+**Las pestañas del header medían 25 px en escritorio.** No lo había roto la migración: había una
+`@media (min-width: 768px)` que ponía `min-height: 0`. Eran los seis destinos principales de la
+app y el objetivo más pequeño que había. Subidas a 28 px — es criterio de la etapa 9, pero estaba
+en el archivo que tenía abierto y arreglarlo aquí costaba una línea.
+
+### La retirada de Tailwind, completa
+
+**El bloque de compatibilidad está vacío**, que era el criterio de cierre de la etapa 9. Vivían
+allí diecinueve reglas repintando la paleta de Tailwind a golpe de `!important`; en `ui.css` ya
+no queda ni un `!important` fuera de los comentarios.
+
+Ahora los textos van por `.k-ink*` (98 usos), los fondos por `.k-fill*` (55) y los bordes por
+`.k-stroke*` (48), y todos leen `theme.css`.
+
+**Las peores eran las de opacidad.** `bg-slate-900/90` o `border-slate-800/60` **no se podían
+repintar desde el bloque ni con `!important`**, porque Tailwind las genera a partir de su propio
+color: componía el rgba antes de que `ui.css` tuviera nada que decir. Salían con el azul de
+Tailwind y nadie lo veía, porque se parecía bastante al del tema. Cada una tiene ahora su clase
+(`.k-fill-90`, `.k-stroke-60`…) compuesta sobre el triplete del token.
+
+### El foco, que no existía
+
+No había **ninguna** regla de foco, y el JSX además apagaba el del navegador con
+`focus:outline-none` en seis sitios. Quien navega con teclado no tenía forma de saber dónde
+estaba. Ahora `:focus-visible` con un aro de 2 px del realce y 2 px de separación — comprobado
+con Tab de verdad: `2px solid rgb(172, 236, 0)`.
+
+`:focus-visible` y no `:focus`, para que un clic con el ratón no deje el aro puesto: eso es lo
+que llevó a apagarlo en su día.
+
+### Los números
+
+| Pantalla | 1280 px antes | 1280 px ahora | 375 px antes | 375 px ahora |
+|---|---|---|---|---|
+| Portada | — | **0** | — | — |
+| Acordes | 32 | **2** | 10 | **2** |
+| Escalas | 64 | **2** | 21 | **2** |
+| Arpegios | — | **2** | 15 | — |
+| Libre | 24 | **1** | 10 | **2** |
+| Canción | 162 | **78** | 184 | **111** |
+| Ejercicios | 28 | **7** | 34 | **15** |
+
+**Cero avisos de «letra < 12 px» y cero de «contraste < 4,5» en todas las pantallas y en los dos
+anchos.** Todo lo que queda son objetivos táctiles y dos desbordes, que son de las etapas 8 y 9.
+
+En el archivo: 0 `text-[Npx]`, 0 `text-slate-*`, 0 `text-gray-*`, 0 `text-white`,
+0 `focus:outline-none`.
+
+### Y la obra no se ha movido
+
+Las **tres** fotos de `referencia-svg/` salen byte a byte idénticas después de reescribir la
+escala tipográfica, la paleta, los bordes y el foco:
+
+```
+acorde   3311 chars  c28789593cc3eed3…  IDÉNTICO
+escala  12104 chars  911658b856d64979…  IDÉNTICO
+hoja    10861 chars  e034369b05b95b5a…  IDÉNTICO
+```
+
+Que es exactamente para lo que existen: la regla de §12 dice que un tema no puede tocar la obra,
+y ésta era la fase que más podía romperla.
+
+### Lo que la etapa 6 deja sin hacer
+
+- **`text-base`, `text-lg`, `text-xl` y `text-2xl` de Tailwind siguen puestos** (7 usos entre los
+  cuatro). Están por encima del suelo y son tamaños semánticos, no números a ojo, así que no
+  hacían daño. Pasarlos a `.k-text-*` es trabajo de limpieza, no de legibilidad.
+- La escala de espacio (`--k-space-*`) está declarada pero **todavía no se usa**: el espaciado
+  sigue viniendo de las clases de Tailwind, que ahí sí son una escala coherente. Queda para
+  cuando alguien toque el layout.
+- Los objetivos táctiles por debajo de 28/44 px: 78 en Canción a 1280 y 106 a 375. Es la etapa 9,
+  y el grueso está en la vista previa de la hoja A4.
+
+## Piel «Estudio de noche» (2026-10-02)
+
+Una actualización de la interfaz con libertad de color y de disposición. La única condición era no
+tocar lo esencial. Fuera de esta etapa: la etapa 7 (el lienzo) sigue a medias y sin documentar.
+
+**El problema.** La piel era azul marino de punta a punta: fondo, paneles, bordes, pestañas y
+botones en la misma familia, con el lima repartido por todas partes (pestañas inactivas, títulos de
+panel, pista de abajo, texto de los botones). Si todo resalta, no resalta nada, y el mástil
+competía con lo que tenía alrededor.
+
+**La regla nueva.** La piel pasa a grafito neutro y el color se gasta sólo en dos cosas:
+
+| Color | Para qué | Ejemplos |
+|---|---|---|
+| Cobalto `#3D66FF` | Lo que **actúa** | Botón principal, pestaña activa, el cerco del modo «a mano» |
+| Lima `#ACEC00` | El **dato** | Acorde detectado, número de trastes, grados de la leyenda |
+
+El lienzo blanco del diagrama queda como el único objeto luminoso de la pantalla.
+
+**Paleta y contrastes** (WCAG 2.1, medidos sobre panel `#161D27`):
+
+| Token | Valor | Contraste |
+|---|---|---|
+| `--k-bg` / `--k-surface` / `--k-surface-raised` | `#0B0F15` / `#161D27` / `#202937` | escalones de 1,13 y 1,16:1 |
+| `--k-text` | `#E8ECF2` | 14,3:1 |
+| `--k-text-muted` | `#A3AFC0` | 7,6:1 |
+| `--k-text-faint` | `#8C99AC` | 5,9:1 |
+| `--k-text-disabled` | `#7E8B9F` | 4,9:1 |
+| `--k-border` / `--k-border-strong` | `#647186` / `#7E8B9F` | 3,4:1 / 4,9:1 (límite ≥ 3) |
+| `--k-accent` + `--k-accent-ink` | `#3D66FF` + blanco | 4,6:1 (5,9:1 en hover) |
+| `--k-highlight` | `#ACEC00` | 11,9:1 |
+
+El cobalto de marca `#013FF6` se aclaró a `#3D66FF` porque sobre grafito se hundía (2,2:1 contra
+el fondo). Encima del acento ya no se escribe en lima sino en blanco: el lima sobre cobalto vibraba
+y gastaba el color del dato en un botón.
+
+Tokens nuevos: `--k-divider` (la raya que ordena dentro de un panel; no es un límite, por eso va
+suave), `--k-accent-soft` (fondo de lo elegido) y `--k-shadow-inset` (una luz de 1 px en el canto
+superior, que en grafito separa mejor que una sombra negra).
+
+**Disposición:**
+
+- **Cabecera** más baja, separada por un divisor en vez de la línea cobalto. Las pestañas van
+  centradas y, desde `lg`, cada grupo lleva su nombre («Diagramas», «Documentos»), igual que en la
+  portada.
+- **Pestañas** como control segmentado: contenedor hundido, inactivas en texto apagado (antes lima
+  al 50 %) y la activa en cobalto. En móvil pasan de 60 a 44 px de alto: el relleno de `.k-tab` se
+  sumaba al `line-height` de 44.
+- **Lienzo** con marco neutro y una rejilla de puntos muy tenue (piel, fuera del SVG). El **pie de
+  página sólo sale en la portada**, y esos 33 px vuelven al mástil.
+- **Los ± de trastes y posición** (`.k-stepper`) son una cápsula discreta: botones en superficie
+  elevada que se encienden en cobalto al pasar por encima, y el número en lima. En móvil la cápsula
+  desaparece y se aprietan los huecos para que los dos quepan en una fila a 359 px.
+- **Toolbar flotante**: el icono abierto se marca con `--k-accent-soft` y un aro cobalto, no con un
+  bloque cobalto relleno. Se añadieron `aria-label` y `aria-pressed`.
+- **Paneles**: título en texto claro con una muesca cobalto (`.k-panel-title`) en vez de lima.
+- **Pista bajo el mástil**: pasa de ser una píldora con borde a una frase al margen (`.k-hint`).
+- **Portada**: título grande con «Studio» en lima y fichas (`.k-card`) con una franja superior que
+  dice el grupo (cobalto en Diagramas y lima en Documentos).
+- **Exportar**: PNG como acción principal y SVG / Illustrator como secundarias neutras.
+
+**Lo que no cambió.** La obra (`DEFAULT_STYLE`, `intervalColors`, el SVG del mástil y la hoja) y
+todo el comportamiento. Comprobado: el `outerHTML` del `#chord-diagram-svg` con el acorde de C da
+el mismo SHA-256 antes y después (`068460074dfe928b…`). Las clases del propio `<svg>` no se
+tocaron, porque viajan dentro del archivo exportado.
+
+**Pendiente visto de paso.** ~~En Canción, a 359 px, un `.k-lyric-line` mide 960 px y hace salir una
+barra horizontal en el contenedor. No viene de este cambio.~~ **RESUELTO (2026-10-03).** Ver la
+sección siguiente.
+
+## La barra horizontal de Canción en móvil — RESUELTO (2026-10-03)
+
+**El síntoma.** En Canción, a 359 px, el contenedor con scroll del editor medía 985 px de
+`scrollWidth` para 351 de `clientWidth`: todo el apartado se podía arrastrar de lado.
+
+**La causa.** El `span.k-lyric-line` de 960 px no era una caja de letra, era el **medidor** de
+`useCharWidth`: cien ceros (`"0".repeat(100)`) a 9,6 px cada uno. Lleva las mismas clases que la
+caja de la letra a propósito (ver el comentario del hook), así que las reglas de `.k-lyric-line`
+le afectan, pero esas reglas sólo afinan la barra de desplazamiento: no ponen `overflow` ni ancho,
+y aunque los pusieran, el medidor tiene que medir su ancho natural. Es invisible y va en
+`position: absolute`, pero eso no lo saca del cálculo: un hijo absoluto que se sale de su bloque
+contenedor cuenta como desbordamiento del contenedor con scroll más cercano. En escritorio no se
+notaba porque 840 px (a 14 px de letra) caben en el editor; en móvil, a 16 px y en 351 px de
+ancho, no.
+
+**El arreglo.** Sólo JSX, en `useCharWidth`: el medidor va dentro de una capa
+`position: absolute; inset: 0; overflow: hidden` que ocupa exactamente lo que el editor y recorta
+lo que sobresale. `getBoundingClientRect` devuelve la caja sin recortar, así que la medida es la
+misma de antes y el carril de acordes no se mueve. El medidor sigue siendo `inline-block` dentro
+de la capa. Ni `theme.css` ni `ui.css` cambian.
+
+**Comprobado** con un verso de prueba de 80 caracteres y cinco acordes (borrado después):
+
+| | 359 px | 1400 px |
+| --- | --- | --- |
+| `scrollWidth` / `clientWidth` del contenedor | 985 / 351 → **351 / 351** | 1392 / 1392 |
+| Ancho del medidor (100 caracteres) | 960,16 px, igual que antes | 840,14 px |
+| Inicio de `.k-chord-lane__inner` = inicio del texto | 45 = 45 | 197 = 197 |
+| Con la letra desplazada 200 px | −155 = −155 | — |
+
+A 1400 px el ancho por carácter del medidor (8,4014) coincide con el de la tipografía real de la
+caja medido con `canvas.measureText` (8,4014).
+
+**Lo que no cambió.** La hoja exportada (SVG, PNG, PDF) no usa `LyricEditor` ni `useCharWidth`;
+el cambio no llega a ella.
+
+Lección: **`visibility: hidden` y `position: absolute` no sacan un elemento del desbordamiento**.
+Un medidor fuera de la vista necesita algo que lo recorte, o acaba ensanchando la página justo en
+la pantalla donde menos sitio hay.
+
+## Versiones de prueba de la interfaz: 0.1 y 0.2 (2026-10-02 → 2026-10-04)
+
+> **La 0.2 es Prime desde el 2026-10-04.** Carlos la aprobó con sus cuatro vueltas y se aplicó así:
+>
+> - `index.html` es la 0.2, sin el selector de versión y con el título «Kharo Studio».
+> - `theme.css` es el antiguo `theme-prueba.css`.
+> - `ui.css` es `ui-prueba.css` con `ui-v02.css` pegado al final, en ese orden, para que la cascada no cambie.
+> - `render-core.js` es el antiguo `render-core-prueba.js` (trae la piel «madera»).
+>
+> Se borraron `prueba.html`, `v02.html`, `theme-prueba.css`, `ui-prueba.css`, `ui-v02.css` y
+> `render-core-prueba.js`. Comprobado antes de borrar: con el mismo estado guardado, el
+> `#chord-diagram-svg` de `index.html` y el de `v02.html` daban el mismo SHA-256 en Acordes y en
+> Escalas.
+>
+> **Claves de almacenamiento que siguen con su nombre de prueba**, a propósito, para no perder lo
+> guardado: `kharo.prueba.modo` (claro u oscuro) y `kharo.v02.inspector`.
+>
+> Lo que sigue es la historia de cómo se llegó aquí. Donde dice `-prueba` o `v02`, hoy es el archivo de
+> Prime equivalente.
+
+Eran **propuestas para confirmar antes de aplicarlas**:
+
+| Versión | Archivos | Qué es |
+|---|---|---|
+| **Prime** | `index.html` · `theme.css` · `ui.css` · `render-core.js` | La app de verdad |
+| **0.1** | `prueba.html` · `theme-prueba.css` · `ui-prueba.css` · `render-core-prueba.js` | Piel «Papel y tinta», sitio y app separados |
+| **0.2** | `v02.html` · lo de la 0.1 · `ui-v02.css` | La 0.1 con todo el Taller reorganizado |
+
+Se cambia de una a otra con el selector **Prime · 0.1 · 0.2** de la cabecera (sólo está en 0.1 y 0.2). Las
+tres comparten el almacenamiento del navegador (`kharo.*`): lo que se guarda en una aparece en las otras.
+Ninguna cambia la forma de los datos, así que no hay migración.
+
+**La obra no cambia en ninguna.** Comprobado el 2026-10-04: el `outerHTML` de `#chord-diagram-svg` da el
+mismo SHA-256 en Prime, 0.1 y 0.2 con el mismo estado guardado (acordes y escala de C mayor). Se mide
+cargando las tres en iframes con el mismo `localStorage`.
+
+### 0.1 · «Papel y tinta» y el sitio
+
+- **Piel clara de cuaderno** (`theme-prueba.css`): papel crema, tinta casi negra, el cobalto como bolígrafo y
+  el lima como **rotulador**. El lima deja de ser color de letra, porque sobre papel no se lee (1,3:1).
+  Por eso hay un token nuevo: `--k-marker` (fondo, con `--k-marker-ink` encima, 12,5:1) frente a
+  `--k-marker-trazo` (el subrayado detrás del texto).
+- **Modo oscuro «Papel de noche»** (`:root[data-theme="oscuro"]`): tinta cálida, letra color papel. Lo pone el
+  botón sol/luna de la cabecera; se guarda en `kharo.prueba.modo` y, si no hay elección, sigue al sistema.
+  Se aplica antes de pintar, con un script en el `<head>`, para que no parpadee.
+- **Sitio y app, separados.** El sitio (Inicio, Sobre el proyecto, Foro, Tienda) tiene su navegación; la app
+  (el Taller) tiene sus pestañas. Foro y Tienda todavía no existen: ficha a trazos, sticker «en obra» y una
+  página que cuenta qué serán, con textos escritos con la guía de voz.
+- **La portada como disco:** mástil de madera que suena (cuerdas al aire o acordes con sus botones, con el
+  mismo `synthInstance` del estudio), Lado A · Diagramas y Lado B · Documentos como pistas, y las fichas de
+  los seis instrumentos que salen de `INSTRUMENT_ORDER` / `TUNING_PRESETS` (nada escrito a mano).
+- **Diapasón «Madera»** (`render-core-prueba.js`, clave de estilo `fretboardSkin`): es obra, se exporta.
+  Con «Plano», que es el valor por defecto, el SVG sale idéntico al de siempre.
+
+### 0.2 · El Taller reorganizado
+
+El inventario de controles sacó seis problemas de fondo: controles lejos de lo que tocan, duplicados,
+funciones sólo con clic derecho, cuatro formas distintas de borrar, huecos de accesibilidad y rótulos en
+inglés o fuera del glosario. La 0.2 los resuelve con una regla por pantalla: **qué tengo** (el lienzo),
+**qué puedo hacer ahora** (una barra de acción) y **cómo lo ajusto** (un inspector).
+
+**Componentes base** (al principio del bloque `app-source-core`, clases `.k2-*`). Traen la accesibilidad
+de serie:
+
+| Componente | Qué trae |
+|---|---|
+| `Segmentado` | radiogroup, flechas del teclado, 44 px en móvil |
+| `Interruptor` | `role="switch"` + `aria-checked`; toda la fila es pulsable |
+| `Campo` | `<label htmlFor>` y ayuda en `aria-describedby` |
+| `BotonIcono` | no se pinta sin `etiqueta` (avisa en consola) |
+| `MenuAcciones` | el «⋯» visible de lo que antes era sólo clic derecho |
+| `MenuContextualAccesible` | foco en la primera opción, flechas y Esc |
+| `Dialogo` / `DialogoBorrar` | foco atrapado, Esc, devuelve el foco; sustituyen a `confirm()` |
+| `Seccion` | plegable; recuerda si estaba abierta |
+| `Icono` | SVG de un trazo en vez de emojis |
+| `crearPulsacionLarga` | 500 ms sin moverse abre el menú en móvil; se come el clic de después |
+
+**El estudio.**
+
+- **Barra de acción:** qué hay · escuchar y tempo · deshacer y rehacer visibles · «Guardar acorde» · el «⋯»
+  (Mandar a Ejercicios, que ya no exige tener las flechas puestas; Vaciar el mástil; Atajos) · panel ·
+  Exportar.
+- **Inspector con cuatro pestañas:** Qué tocar · Vista · Instrumento · Estilo. Desde 1280 px es una
+  columna que recuerda si estaba abierta (`kharo.v02.inspector`). Por debajo es un cajón, y en el
+  teléfono una hoja que sube desde un dock con las mismas cuatro pestañas. La barra flotante de emojis
+  ya no existe.
+- **Un control, un sitio:**
+  - «Las notas muestran» es un solo control en todos los modos (Dedos / Notas / Grados).
+  - La leyenda se enciende sólo desde Vista.
+  - «A mano» y «Barrido (sweep)» viven en Vista › Recorrido.
+  - Los selectores duplicados de trastes y traste inicial se quitaron: mandan los ± del lienzo.
+  - Colores de intervalos entra en Estilo.
+- **Exportar** es un diálogo con el nombre de archivo editable, el tamaño y para qué sirve cada formato.
+  Las funciones `exportPNG` / `exportSVG` / `exportSVGForIllustrator` son las mismas.
+- **Atajos:** 1–4 cambian de modo, P escucha, [ y ] mueven la ventana, E exporta, ? muestra la lista.
+  Ninguno funciona mientras se escribe.
+- **Pulsación larga** en flechas, notas de Libre y tríadas. La pista del lienzo ya no promete un menú de
+  nota en Acordes, que no existe.
+
+**Canción y Ejercicios** tienen la misma forma, para aprenderla una vez:
+
+- **Cabecera:** campos con nombre, «Escuchar» o «Practicar», qué suena (toda la canción o esta sección),
+  Repetir con estado visible, deshacer y rehacer, y el «⋯» (mis canciones o ejercicios, nueva, duplicar,
+  copia de seguridad).
+- **Dos columnas:** el editor a la izquierda y la hoja o ficha **en vivo** a la derecha, con exportar pegado
+  a ella. En el teléfono, «Editar / Ver la hoja».
+- **Canción en tres pasos:** 1 Los acordes, 2 La estructura (las secciones llevan su «⋯»: duplicar, nueva
+  después, mover, borrar) y 3 El ritmo base. El rasgueo se edita en su diálogo, con un nombre accesible en
+  cada casilla y pulsación larga para elegir el golpe.
+- **Deshacer** con `useHistorial`, que ahora acepta un respiro propio (400 ms en los documentos). Cada
+  editor se monta con `key={id}`, así que el historial no cruza de una canción a otra.
+- **Ejercicios gana la copia de seguridad en JSON**, que no existía aunque el aviso de «Borrar todo» la pedía.
+- **Arreglado de paso:** el medidor del ancho de carácter de la letra era un `absolute` de cien caracteres
+  y sacaba una barra horizontal en Canción en el teléfono. Ahora es `fixed`.
+
+**Borrar, siempre igual:**
+
+- **Una cosa** (sección, paso, rasgueo, canción, ejercicio, estilo, recorrido, mástil): se borra y el aviso
+  trae «Deshacer».
+- **En masa** (todas las canciones, todos los ejercicios, la biblioteca): `DialogoBorrar` con la cifra
+  exacta, qué se pierde y qué se conserva. El foco empieza en «Cerrar».
+- **Ya no queda ningún `confirm()`.**
+
+**Lenguaje.** Fuera «Entorno Vectorial», «Cromaticidad», «Geometría Física», «Escala Pro», «High-Res»,
+«Lienzo Width», «Preset de Afinación», «Tónica / Raíz», «limpiado completamente», «descargado
+correctamente». «Afinación Libre» pasa a «Afinación propia», para no chocar con el modo Libre.
+
+**Comprobado (2026-10-04):**
+
+- Auditoría automática a 375 px en estudio (con dos pestañas del inspector abiertas), Canción y
+  Ejercicios: 0 controles sin nombre, 0 por debajo de 44 px y sin scroll horizontal.
+- Sin errores en consola.
+- Probados de punta a punta: deshacer, menús, diálogos y la pulsación larga.
+- El `localStorage` se devolvió como estaba tras las pruebas.
+
+**Sin probar:** no he escuchado el audio (sólo comprobé que el reproductor se dispara) ni he descargado
+archivos desde los diálogos nuevos. Tampoco he pasado un lector de pantalla real: sólo el árbol de
+accesibilidad.
+
+**Segunda vuelta de la 0.2 (2026-10-04), a pedido de Carlos:**
+
+- **Mandar acordes y pasos:** todo pasa por un diálogo «¿Adónde va?» (`DialogoMandar`), con el nombre
+  editable, la lista de destinos (radios nativos) y un interruptor «Ir allí después». Si no se va, el
+  aviso trae «Ir allí».
+  - **Acordes:** «Guardar acorde» ya no guarda a ciegas. Se elige entre «Sólo a la biblioteca» o una
+    sección de cualquier canción, agrupadas por canción.
+  - **Pasos:** «Mandar a Ejercicios» es ahora un botón visible en la barra de Escalas, Arpegios y Libre.
+    Se elige el ejercicio abierto, otro, o uno nuevo, y ya no te saca del mástil sin preguntar.
+  - **Desde la biblioteca de Canción:** el «⋯» de un acorde abre el mismo diálogo en vez de la lista de
+    todas las secciones de todas las canciones en fila.
+  - **Por qué las listas se calculan en el momento:** `confirmarMandar` las calcula y las fija de una vez,
+    para que «Ir allí» abra la canción o el ejercicio ya con lo mandado. El «Ir allí» del aviso lee
+    `ultimasRef`, porque se pulsa segundos después, cuando su cierre ya es viejo.
+- **Canción plegable:** Tonalidad y notas, 1 Los acordes, 2 La estructura y 3 El ritmo base son `Seccion`
+  y recuerdan si estaban abiertas. El ritmo y la tonalidad empiezan cerrados. Ejercicios igual (Los pasos,
+  Nota).
+- **«Página de la tonalidad» pasa a «Tonalidad y notas»**, que es lo que la hace posible.
+- **Columna del editor angosta** (380–460 px). La hoja en vivo se queda con el resto; a 1440 px pasa de
+  460 a 820 px.
+- **Pantalla de carga de 1 s** («Afinando el Taller…», seis cuerdas que se afinan) al pasar del sitio a la
+  app. El temporizador va en una ref: si cambias de sección dentro de ese segundo, la limpieza del efecto
+  la dejaría puesta para siempre.
+- **Raíl lateral** (`RailTaller`) con iconos y agrupado como el disco: Lado A (Acordes, Escalas,
+  Arpegios, Libre) y Lado B (Canción, Ejercicios). Sustituye a las pestañas de la cabecera desde 768 px;
+  en el teléfono se quedan las pestañas.
+- **Comprobado:**
+  - Los cuatro destinos de mandar, «Ir allí» desde el diálogo y desde el aviso, y la carga.
+  - Auditoría a 375 px: sin controles sin nombre, sin scroll horizontal y todo a 44 px tras subir los
+    chips de acorde de la letra.
+  - Datos de Carlos devueltos como estaban.
+
+**Tercera vuelta de la 0.2 (2026-10-04), a pedido de Carlos:**
+
+- **Raíl en dos bandas de color.** El Lado A va en cobalto pastel y el Lado B en lima tenue, y cada banda
+  cubre su sección entera (la B se estira hasta abajo). Cada banda lleva la galleta, «Lado A» o «Lado B»
+  escrito y qué hay (Diagramas, Documentos). Los colores son tokens `--k2-lado-a` / `--k2-lado-b`, hechos
+  con `color-mix` sobre `--k-accent` y `--k-marker`, con su versión para oscuro.
+- **«Vaciar» a la vista.** En escritorio va encima del control de Posición, a la derecha del mástil. En el
+  teléfono es una papelera en la esquina del lienzo, porque la fila de los ± no tiene sitio para un tercero
+  (se partía en dos y le quitaba alto al mástil). Sólo sale en Acordes y Libre, se apaga si el mástil
+  está vacío y se puede deshacer. Sigue también en el «⋯».
+- **Guardar acorde, rehecho** (`PanelGuardarAcorde`). Ya no es un diálogo en medio de la pantalla con
+  todas las secciones de todas las canciones en fila:
+  - Es un panel pegado al botón; en el teléfono, una hoja que sube desde abajo.
+  - Enseña la miniatura de lo que se guarda y el nombre, con el foco puesto. Enter guarda en la biblioteca.
+  - «También en una canción» es opcional: un selector de canción (la abierta por defecto) y sus secciones
+    como fichas. Al elegir una, el botón pasa a «Guardar y añadir a Coro». Se quita el interruptor «Ir
+    allí después»: el aviso ya trae «Ir allí».
+  - **Si la biblioteca ya tiene esa digitación**, lo dice. Añadirlo a una sección usa el acorde que ya
+    estaba, y guardar sin sección pasa a «Guardar otra copia». Se compara instrumento y notas MIDI por
+    cuerda (`chordVoicingToMidi`). La biblioteca de Carlos tenía dos F# iguales: es justo lo que esto evita.
+  - `DialogoMandar` se queda para mandar pasos a Ejercicios y para el «⋯» de la biblioteca de Canción.
+    La lógica de añadir un compás a una sección es ahora `anadirAcordeASeccion`, compartida por los dos.
+- **Comprobado:** guardar en la biblioteca, guardar y añadir a una sección, el aviso de repetido, Esc y
+  clic fuera. A 375 px: la hoja sin controles por debajo de 44 px y sin scroll horizontal. Raíl en claro
+  y oscuro. Los datos de Carlos se devolvieron como estaban.
+
+**Cuarta vuelta de la 0.2 (2026-10-04): tríadas a la vista y «dibujo vivo».**
+
+- **El mástil del Taller sale de `App`.** El SVG del estudio pasa a `DiagramaKharo`, un componente puro,
+  y se parte en dos mitades:
+  - La **escena** dice qué se dibuja: datos sueltos, sin coordenadas ni colores. La hace
+    `escenaDelEstudio(op)` en `App`.
+  - El **estilo** lo pone el Context, así que un cambio en Estilo redibuja todo lo que usa el componente.
+  - El estudio le pasa `interaccion`: manejadores y capas del gesto (zonas de toque, arrastres, el halo
+    del audio). Fuera del estudio no se pasa y el dibujo es sólo obra.
+  - Ayudantes puros: `colorDeGrado` (era `getIntervalColor`), `alAireDeDigitacion`,
+    `acordeDeDigitacion` y `medidaDeEscena`.
+  - `renderNotePath`, `renderEnvolventesDeTriadas` y `MiniFretboard` se borraron; su código vive en el
+    componente.
+- **La obra no cambió.** Un banco de 17 escenarios (Acordes en sus tres modos, cejilla con números a la
+  derecha, Escalas con flechas, sweep y tríadas, Arpegios con tapping, Libre, madera, bajo de 4 cuerdas
+  con 12 trastes) saca el SHA-256 del `outerHTML` de `#chord-diagram-svg`. Antes y después de la
+  mudanza dio lo mismo en los 17.
+- **Cambio a propósito en la obra:** con una tríada señalada, las notas que no son suyas pasan de 0,15
+  a 0,3 de opacidad (`OPACIDAD_FUERA_DE_TRIADA`). Con 0,15 casi no se veían. Comprobado: es la única
+  diferencia del SVG.
+- **Ejercicios con el dibujo del Taller.**
+  - Cada paso nuevo guarda su `escena` (`crearPasoDelMastil`, `pasoDeTriada`).
+  - `escenaDePaso` pone el título y las flechas desde `paso.path`, que sigue siendo lo que suena.
+  - Los pasos viejos se dibujan con `escenaDePasoLegado`: geometría y colores por grado del Taller, pero
+    sólo con sus notas.
+  - `ExerciseFretboard` queda como último recurso, si una escena no se puede montar.
+  - `Song.normalizeExercise` tira las claves que no conoce. `normalizarEjercicio` (en la 0.2) le devuelve
+    a cada paso su escena saneada (`sanearEscena`). `song-core.js` no se tocó.
+  - **Ojo:** si se abre Prime o la 0.1 y se guarda un ejercicio, las escenas se pierden y esos pasos
+    vuelven al dibujo de respaldo.
+- **Tríada con su escala.** Un paso de tríada lleva toda la escala de la ventana. Lo que no es de la
+  tríada va a 0,3, con la mancha de su color y sin flechas; suena sólo la tríada. «Mandar a Ejercicios»
+  de la barra, con una tríada fijada, manda esa tríada. Arreglado de paso: el color de la mancha usaba
+  `grado - 1` y el estudio usa el índice entre las visibles.
+- **Canción con el dibujo del Taller.**
+  - `escenaDeAcorde` se calcula al vuelo desde la digitación guardada. Dedos, notas y grados siguen
+    funcionando, ahora con los colores por grado del Taller. En notas, el color sale de la fundamental
+    reconocida (`fundamentalDe`, con la caché de antes); si no se reconoce, se queda el color base.
+  - Las tarjetas de la biblioteca pasan de 108 a 168 px para que el diagrama se lea.
+  - En la hoja, el diccionario va a 128 px y el alto de la fila se mide con la geometría real.
+  - La miniatura del panel Guardar acorde también usa el componente.
+  - Cada diagrama lleva su propio id de degradado de madera: con dos en la página y el mismo id, Chrome
+    pinta el primero que encuentra.
+- **Botón Tríadas** encima de Posición en Escalas (`botonTriadas`, misma pieza que Vaciar, icono
+  `triadas`). En el teléfono va en la esquina del lienzo, con su nombre.
+  - Al encenderlo queda fijada la I.
+  - La tira pasa a «Elige tríada»: un radiogroup con «Todas» delante. «Todas» da exactamente el dibujo
+    de antes, comprobado por hash. El «⋯» pasa a «Mandar…».
+  - El interruptor del inspector hace lo mismo (`activarTriadas`).
+  - En el teléfono las fichas miden 44 px.
+- **Comprobado:**
+  - Los 17 hashes.
+  - Mandar una tríada y una escala a Ejercicios, recargar (la escena sigue), un paso viejo, la madera
+    redibujando fichas y hoja en vivo, las tarjetas de Canción en modo notas.
+  - A 375 px, sin scroll lateral.
+  - «Practicar» arranca y para, y la consola sólo da los avisos de Babel de siempre.
+  - Datos de Carlos devueltos como estaban.
+  - **Sin probar:** exportar a PNG o PDF las hojas nuevas, y escuchar el audio.
+
+**Menú «Mandar…» de una tríada, simplificado (2026-10-04, ya en Prime).** Queda «Abrir en Arpegios» y
+dos formas de mandarla:
+- **Toda la tríada (N notas):** todas sus notas en la ventana.
+- **Cada posición, un paso (N):** una ficha por cada forma que cabe en la mano. Sólo sale si hay más de
+  una.
+
+Se quitaron las entradas sueltas «Sólo la agrupación (trastes X-Y)» y «Quitar la selección», que ya hace
+la ficha «Todas». Las dos opciones llevan la escala alrededor en cada ficha.
+
+## Prueba 0.3: Biblioteca y Tablaturas (2026-10-04)
+
+> **Es una prueba.** Vive en `v03.html` + `tab-core.js` + `ui-v03.css`. Prime (`index.html`, `ui.css`,
+> `theme.css`, `render-core.js`, `song-core.js`) no se tocó. Se cambia de una a otra con el selector
+> **Prime · 0.3** de la cabecera de la 0.3.
+>
+> **Si se aprueba:** `v03.html` pasa a ser `index.html` (sin el selector), `ui-v03.css` se pega al final de
+> `ui.css` y `tab-core.js` se queda como está.
+
+Carlos pidió dos cosas:
+
+- **Una Biblioteca:** un botón abajo a la izquierda del raíl que lleve a una vista grande donde ver y
+  gestionar canciones, ejercicios y acordes.
+- **Una sección «Tablaturas» en el Lado B:** pentagrama y TAB a la vez, con las técnicas de guitarra
+  como anotación y la púa con la notación internacional, inspirada en MuseScore pero sencilla.
+
+Decidió:
+
+- hacerlo como prueba aparte
+- dibujar la notación con SVG propio, no con VexFlow
+- que la tablatura lleve ritmo de verdad
+- que la Biblioteca tenga lo básico, imprimir o PDF y organizar
+- **dejar fuera, por ahora, compartir**
+
+### Datos nuevos
+
+| Clave | Qué guarda |
+|---|---|
+| `kharo.tabs.v1` | Las tablaturas (lista, como canciones y ejercicios) |
+| `kharo.biblioteca.v1` | Por id: `{ fijado, etiquetas[], modificado, abierto }` |
+| `kharo.v03.biblioteca.vista` | Filtro de tipo, orden y fichas o lista. Es una comodidad de quien mira |
+
+Canciones y ejercicios **no ganan campos**. `normalizeSong` y `normalizeExercise` tiran lo que no conocen,
+así que guardar desde Prime borraría las etiquetas. Por eso lo de la Biblioteca va aparte, por id.
+
+**Fecha de una pieza:**
+
+- Es `modificado` si la 0.3 la ha visto cambiar.
+- Si no, sale del propio id: `newId` lleva dentro `Date.now()` en base 36, así que es su fecha de creación.
+
+### La Biblioteca
+
+- **Botón al pie del raíl**, dentro de la banda del Lado B (`.k3-rail__pie`, `margin-top:auto`). En el teléfono
+  no hay raíl: es un icono en la cabecera. Canción, Ejercicios y Tablaturas tienen «Ver en la Biblioteca» en su «⋯».
+- **Cabecera:**
+  - buscador (`/` lo enfoca)
+  - orden: recientes, nombre o tipo
+  - vista en fichas o en lista
+  - filtros por tipo con su cifra, «Fijados» y una ficha por etiqueta
+- **«Seguir con…»:** las cuatro últimas piezas abiertas, cuando no hay filtro.
+- **Miniaturas reales:**
+  - acorde: `DiagramaKharo`
+  - ejercicio: el primer paso con el número de los demás
+  - tablatura: su primer sistema
+  - canción: sus acordes como fichas
+- **Cada pieza:**
+  - abrir (un acorde se abre en el mástil con `loadPreset`)
+  - **renombrar en el sitio** (F2). Era deuda de §23
+  - duplicar
+  - fijar
+  - etiquetas
+  - PDF
+  - imprimir
+  - copia JSON
+  - borrar con «Deshacer»
+  - un acorde dice en cuántas canciones está y, desde «Dónde se usa», abre cada una
+- **Varias a la vez:**
+  - casillas, Mayús+clic para un tramo y Ctrl+A para todo lo visible
+  - la barra trae PDF, imprimir, etiquetar, fijar y borrar
+  - borrar varias usa `DialogoBorrar` con la cuenta por tipo y **un solo «Deshacer»** que lo devuelve todo,
+    también los compases que se quitaron al borrar acordes
+- **Imprimir o pasar a PDF sin abrir nada:**
+  - `Imprenta` monta fuera de la pantalla (en un portal colgado de `<body>`) las hojas de lo elegido:
+    `SongSheet`, `ExerciseSheet`, `TabSheet` y la nueva `HojaDeAcordes` (rejilla A4 de 4×4).
+  - `paginasDeLaHoja(raiz)` las recoge y `exportSheetPDF(paginas, nombre)` hace el PDF. Las dos funciones
+    ganaron un argumento opcional y sin él hacen lo de antes.
+  - Imprimir usa la clase `k3-imprimiendo` y un `@media print` que sólo deja la imprenta, una página A4 por hoja.
+  - Se espera con un temporizador y no con `requestAnimationFrame`, porque con la pestaña en segundo plano
+    los fotogramas se paran y el PDF no llegaba nunca.
+
+### Tablaturas
+
+**Modelo (`tab-core.js`).** Una tablatura lleva:
+
+- título, artista, nota
+- instrumento, afinación, cejilla
+- tempo, compás y armadura (en quintas)
+- `compases[{ eventos[] }]`
+
+Cada evento lleva:
+
+- figura, puntillo y tresillo
+- `notas[{ s, f, tec }]` (vacío es un silencio)
+- púa, P.M., let ring, sweep y texto encima
+
+Las técnicas de cada nota son: ligado H o P, tap, slide (hasta la siguiente, de entrada o de salida), bend
+(bend, bend y suelta, suelta, prebend, de ½ a 2 tonos), vibrato, armónico natural o artificial, muerta,
+fantasma y acento.
+
+**El tiempo va en ticks, con la negra en 48.** Es el menor número que deja enteros la fusa, su puntillo y los
+tresillos. Con decimales, un compás de tresillos daba «incompleto» por 0,0001.
+
+**Altura:**
+
+- MIDI = afinación de la cuerda + traste + cejilla.
+- Se nombra con sostenidos, o con bemoles si la armadura los lleva.
+- Las alteraciones duran el compás.
+- Guitarra y bajo se escriben en clave de sol y de fa con el 8 debajo (suenan una octava más grave). El
+  ukelele, en sol sin 8.
+
+**Maquetación pura:**
+
+- `maquetar` reparte compases en sistemas y sistemas en páginas A4, y devuelve las coordenadas.
+- El ancho de cada evento crece con la raíz de su duración. Los sistemas se justifican, menos el último si está
+  muy vacío, como en MuseScore.
+- La armadura se repite en cada sistema y el compás sólo en el primero.
+- El editor usa las mismas coordenadas para saber dónde has hecho clic.
+
+**El dibujo (`TabSheet` / `SistemaTab`):**
+
+- **Pentagrama:** cabezas (huecas en redonda y blanca), segundas desplazadas, plicas, corchetes, barras por
+  pulso con secundarias y ganchos, puntillos, «3» de tresillo, líneas adicionales, alteraciones y silencios.
+- **Glifos:** trazos SVG en `GLIFOS` (claves, silencio de negra, ♯ ♭ ♮, púas). No hay fuente musical, así que
+  el SVG, el PNG y el PDF salen iguales en cualquier ordenador.
+- **TAB:** traste con fondo de papel, `x` en la muerta, `(n)` en la fantasma y `<n>` en el armónico.
+- **Técnicas:**
+  - H y P van en arco con la letra y con su ligadura en el pentagrama.
+  - El slide es una diagonal.
+  - El bend es una flecha curva con ½, full o 1½. Al soltarlo baja en discontinua.
+  - T, A.H. y el vibrato ondulado van en la banda entre los dos.
+  - P.M., let ring y sweep (con flecha) van en tramos discontinuos sobre los eventos seguidos que los llevan.
+  - La púa va encima del pentagrama: ⊓ abajo, V arriba.
+  - El acento va del lado de la cabeza, el contrario a la plica.
+- **Sólo en pantalla:** el cursor, lo que suena y la raya de «le faltan / le sobran tiempos» llevan
+  `data-no-exportar`. `svgDeLaPagina` los quita del archivo.
+
+**El editor (`TabEditor`), al estilo de la entrada TAB de MuseScore.** Se escribe sobre la hoja:
+
+| Tecla | Qué hace |
+|---|---|
+| `0–9` | El traste. Dos cifras en menos de 0,7 s hacen 10–24 |
+| ↑ ↓ | Cambia de cuerda |
+| ← → y Espacio | Se mueve. En un hueco, → deja un silencio |
+| Mayús+1…6 | La figura |
+| `.` | Puntillo |
+| `R` | Silencio |
+| Supr | Borra |
+| H P T S B V X G A N | Las técnicas de la nota |
+| M L | P.M. y let ring |
+| [ ] | La púa |
+| Ctrl+Z | Deshacer |
+
+- Varias notas en el mismo evento forman un acorde.
+- Si el compás se llena, la nota va al siguiente.
+- La paleta hace lo mismo con botones y devuelve el foco a la hoja.
+- Hay un teclado de trastes 0–24 para el teléfono y el ratón.
+- La barra de estado dice compás, tiempo, cuerda, traste y nota, y avisa si al compás le faltan o le sobran
+  tiempos.
+
+**Suena** con el mismo sintetizador:
+
+- `playNote` ganó un argumento opcional `curva` (`[[segundos, semitonos]]`). Sin él suena como antes.
+- El bend, el slide y el vibrato doblan el tono.
+- La muerta es `playPercussion("seco")`.
+- El P.M. corta la nota, el let ring la deja sonar y el ligado ataca más suave.
+- Se puede escuchar desde el compás del cursor y en bucle.
+
+**Desde otros sitios:**
+
+- «Mandar el recorrido» (Escalas, Arpegios, Libre) ofrece también una tablatura abierta, otra o una nueva.
+- En Ejercicios, «Pasar a una tablatura» funciona con un paso o con el ejercicio entero.
+- En los dos casos, una nota por corchea, el tap como T y el sweep como su marca.
+
+### Comprobado (2026-10-04)
+
+- **La obra no cambia:** el SHA-256 de `#chord-diagram-svg` es el mismo en Prime y en la 0.3 con el mismo
+  estado guardado.
+- **Escribir con el teclado:** H, el traste 12 de dos cifras, bend, vibrato, púa, silencio, P.M. y cambio de
+  figura.
+- **Una tablatura de 17 compases con todas las técnicas:**
+  - sale en 2 páginas
+  - la armadura de 2♭ se repite en cada sistema
+  - las alteraciones son correctas
+  - barras de semicorchea, tresillo, acorde de 6 notas, sweep y let ring en su sitio
+- **Reproducir:** se ilumina lo que suena, y para.
+- **Exportar SVG:** 2 páginas sin el cursor dentro.
+- **Biblioteca:**
+  - renombrar con F2
+  - fijar (sube arriba)
+  - duplicar
+  - borrar y deshacer
+  - Mayús+clic para elegir un tramo
+  - etiquetar 4 piezas (sale el filtro #etiqueta)
+  - PDF de 6 piezas: 7 páginas
+- **A 375 px:**
+  - sin scroll horizontal en Biblioteca ni en Tablaturas
+  - en la Biblioteca, todo a 44 px
+  - el «0.3» del selector de versión mide 40 px, como el de Prime
+- **Consola:** sólo el aviso de Babel de siempre.
+- **Datos:** el `localStorage` de Carlos se devolvió como estaba.
+
+### El sonido: guitarras grabadas (2026-10-04, segunda vuelta)
+
+Antes de elegir, Carlos comparó tres motores en `prueba-sonido.html`, una página aparte: el sintetizador de
+Kharo, las muestras de tonejs-instruments y WebAudioFont. Eligió **tonejs-instruments con Tone.js**.
+
+**Los sonidos son de Nicholaus Brosowsky** ([tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments)),
+con licencia **CC BY 3.0**, así que hay que citarlo. La cita está en tres sitios:
+
+- debajo de cada selector de sonido (`CreditoSonidos`)
+- en el pie del sitio
+- en `vendor/sonidos/LEEME.md`, junto con la licencia MIT de su código
+
+**Archivos nuevos en `vendor/`.** Se copiaron para que la app siga funcionando sin conexión:
+
+- `vendor/tone.js`: Tone.js 14.8.49, de cdnjs, 349 KB.
+- `vendor/sonidos/`: 99 MP3 sin cambios, 16 MB.
+
+| Carpeta | Instrumento | Archivos | Peso |
+|---|---|---|---|
+| `guitar-acoustic/` | Acústica | 37 | 7,0 MB |
+| `bass-electric/` | Bajo eléctrico | 16 | 4,9 MB |
+| `guitar-nylon/` | Nylon | 29 | 2,4 MB |
+| `guitar-electric/` | Eléctrica | 17 | 1,8 MB |
+
+**Cómo suena.**
+
+- `InstrumentSynth.playNote` prueba primero `tocarMuestra`: elige la grabación más cercana a la nota y la
+  acelera o frena hasta ella con `Tone.ToneBufferSource`.
+- La `curva` de bends, slides y vibrato rampea esa misma velocidad, así que la tablatura suena con sus
+  técnicas.
+- Tone.js usa el **mismo** `AudioContext` que el sintetizador (`Tone.setContext`).
+- Cada juego se carga con `Tone.ToneAudioBuffers` la primera vez que hace falta: al primer gesto, o al cambiar
+  de instrumento o de sonido.
+- Mientras no ha cargado, o si falta `vendor/tone.js`, suena el sintetizador de siempre. La app nunca se
+  queda muda.
+- La percusión del rasgueo y la nota muerta siguen sintetizadas.
+
+**Selector «Sonido».** Está en el inspector (pestaña Instrumento) y en Tablaturas (Instrumento y compás), y
+se recuerda en `kharo.v03.timbre`. Las opciones son:
+
+- **Según el instrumento**, que es la opción por defecto:
+
+  | Instrumento | Suena con |
+  |---|---|
+  | Ukelele | Nylon |
+  | Bajos | Bajo eléctrico |
+  | Guitarra de 6 cuerdas | Acústica |
+  | Guitarras de 7 y 8 cuerdas | Eléctrica |
+
+- Cualquiera de los cuatro juegos, fijo.
+- El sintetizador de Kharo.
+
+**Comprobado:**
+
+- Las 37 muestras de la acústica cargan desde `vendor/`.
+- Tone.js usa el contexto del sintetizador.
+- Escribir un traste en Tablaturas y reproducir con un bend arranca `ToneBufferSource` sin errores.
+- La cita sale en el selector y en el pie.
+
+**Sin probar:** no lo he escuchado; eso queda para Carlos.
+
+**Ojo:** el sonido es parte de la app, no de la obra exportada. Lo que se descarga no cambia.
+
+### Retoques de la portada (2026-10-04, tercera vuelta)
+
+- **El mástil de la portada pasa a vertical**, como los diagramas que hace el Taller. Tiene la cejuela arriba,
+  hasta el traste 5 y la grave a la izquierda. Encima va el nombre del acorde y una ○ o una × por cuerda;
+  abajo, la nota de cada cuerda. Se toca igual, pasando el dedo de lado a lado, y las cuerdas vibran en
+  horizontal.
+- **Suena siempre con la guitarra acústica grabada**, con independencia del selector de sonido. Si las
+  muestras aún no han llegado, espera a que lleguen en vez de sonar al sintetizador. Para eso,
+  `playNote` acepta un sexto argumento, `juego`, y el sintetizador gana `muestrasListas` y `esperarMuestras`.
+- **La pantalla de carga también sale al volver del Taller a la portada** con el logo. Dice «Volviendo a la
+  portada…»; al entrar sigue diciendo «Afinando el Taller…».
+- **Comprobado:** el acorde G dibuja 3 dedos y sus 6 notas arrancan con muestras. La carga sale al pulsar
+  el logo y se va sola.
+
+### Cuarta vuelta (2026-10-04)
+
+- **Portada equilibrada.**
+  - El diagrama es más pequeño (300 px).
+  - Los acordes van en una columna a su derecha y «Rasguear …» debajo de ellos.
+  - Se quitó «Elige un acorde y pasa el dedo por las cuerdas».
+  - Por debajo de 600 px no cabe la columna: los acordes bajan en filas bajo el diagrama.
+- **La fila de acordes de Canción no se podía deslizar.** `.k-strip` escondía la barra y la fila no tenía
+  ancho propio. Ahora es `TiraDeslizable`:
+  - barra fina visible
+  - flechas ‹ › cuando hay más a un lado
+  - la rueda del ratón desliza en horizontal
+  - se puede enfocar con el teclado
+
+  Comprobado con 16 acordes: 2.808 px de contenido en 426 px de ancho, con la flecha a la vista.
+- **El rasgueo del editor ya no sigue sonando.** Se para:
+  - al cerrar «Editar rasgueo» (Cerrar, Listo o Esc)
+  - al salir de Canción
+  - al empezar cualquier otra cosa
+- **Una sola cosa suena a la vez.** Canción, ejercicio, tablatura y rasgueo paran a los demás al empezar.
+- **Ventana «Sonando», abajo a la izquierda** (`Reproduciendo`).
+  - Dice exactamente qué suena: «Rasgueo «Mi rasgueo» en bucle», la canción con su sección, el ejercicio o
+    la tablatura.
+  - Tiene **Pausar / Seguir**, que suspende el reloj de audio: todo se congela y sigue desde el mismo sitio.
+  - Tiene **Parar todo**.
+  - Con la pausa puesta, una nota suelta no despierta el audio (`synthInstance.pausado`).
+- **Tablaturas sonaba con el sintetizador** porque las grabaciones aún estaban cargando cuando sonaba la
+  primera nota. Ahora:
+  - las muestras se cargan al abrir la página, sin esperar a un gesto (Tone decodifica con su contexto y el
+    AudioBuffer sirve en el de la app)
+  - una nota suelta espera a que lleguen
+  - Canción, Ejercicios y Tablaturas esperan a las muestras antes de arrancar
+
+  Comprobado: la primera nota y la reproducción usan sólo `ToneBufferSource`, con 0 osciladores.
+- **Datos:** los de Carlos se devolvieron como estaban.
+
+### «Cómo se hizo» en Sobre el proyecto (2026-10-04)
+
+- **Cuarto bloque de `NOTAS_FUNDA`**, a pedido de Carlos. Cuenta que Kharo se hizo en colaboración con IA:
+  - la IA escribió el código
+  - las decisiones las tomó él, como diseñador y como guitarrista
+  - eso tiene valor: no es un prompt de 20 palabras
+- **Está escrito con `voz-kharo`:**
+  - en primera persona y firmado («— Carlos, guitarrista y diseñador de Kharo»), como pide la guía para contar el
+    origen
+  - con un solo remate: «La IA puso las manos en el teclado. Las de la guitarra fueron mías.»
+- **Las bandas aceptan ahora un campo opcional `firma`** (`.k3-nota__firma`).
+
+### Sin probar
+
+- No he escuchado el audio (sólo comprobé que se dispara y se ilumina).
+- No he abierto el diálogo de impresión real ni he descargado archivos de verdad: las descargas se
+  interceptaron.
+- No he pasado un lector de pantalla.
+- No he probado el bajo de 4 cuerdas ni el ukelele en la hoja.
+
+### Pendiente o a decidir
+
+- **En el teléfono la hoja A4 se ve pequeña** para tocar una cuerda concreta. Se escribe mejor con el teclado
+  de trastes y las flechas de la paleta. Una vista «sólo TAB» a lo ancho sería el siguiente paso.
+- **No hay ligaduras de prolongación** (una nota que pasa de un compás a otro).
+- **Tampoco hay copiar y pegar** compases, sólo duplicar.
+- **Compartir** quedó fuera de esta vuelta, a pedido de Carlos.
+
 ## 23. Deuda técnica de fondo
 
 - `App()` sigue siendo un componente enorme: todo el estado y todo el JSX del estudio juntos. Va

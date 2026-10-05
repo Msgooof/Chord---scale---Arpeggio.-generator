@@ -1,5 +1,11 @@
 /* ==========================================================================
- * KHARO STUDIO — CAPA DE COMPONENTES
+ * KHARO STUDIO — CAPA DE COMPONENTES · VERSIÓN DE PRUEBA «PAPEL Y TINTA»
+ * ==========================================================================
+ *
+ * Copia de ui.css para la prueba (la carga sólo prueba.html). Cambia lo que
+ * en papel no funciona —tintes blancos, el lima como letra— y suma al final
+ * las piezas de la portada-disco (`.kp-*`). Si la prueba se aprueba, esto
+ * sustituye a ui.css.
  * ==========================================================================
  *
  * Las clases `.k-*` con las que se viste la aplicación. Todas se pintan con
@@ -50,33 +56,56 @@ h1, h2, h3, .k-title, .font-title {
 ::-webkit-scrollbar-track {
     background: var(--k-bg);
 }
+/* Neutra en reposo: una barra cobalto en cada panel que hace scroll era
+ * color gastado en algo que no se pulsa casi nunca. */
 ::-webkit-scrollbar-thumb {
-    background: var(--k-accent);
+    background: var(--k-border);
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--k-highlight);
+    background: var(--k-accent);
 }
 
 /* --- Superficies --------------------------------------------------------- */
 .k-panel {
     background-color: var(--k-surface);
-    border: 1px solid var(--k-border-strong);
+    border: 1px solid var(--k-divider);
     border-radius: var(--k-radius-xl);
-    box-shadow: var(--k-shadow-panel);
+    box-shadow: var(--k-shadow-inset), var(--k-shadow-panel);
 }
 
 .k-panel-header {
-    background-color: rgba(var(--k-bg-rgb), 0.6);
-    border-bottom: 1px solid var(--k-border);
+    background-color: rgba(var(--k-bg-rgb), 0.35);
+    border-bottom: 1px solid var(--k-divider);
+}
+
+/* El título de un panel: dice DÓNDE estás, no es un dato. Por eso va en texto
+ * claro con una muesca de acento, y no en lima. */
+.k-panel-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--k-tracking-label);
+    color: var(--k-text);
+}
+.k-panel-title::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: var(--k-accent);
 }
 
 /* Barra flotante translúcida: toolbar, barra de estado. */
 .k-bar {
-    background-color: rgba(var(--k-surface-rgb), 0.85);
-    border: 1px solid var(--k-border);
+    background-color: rgba(var(--k-surface-rgb), 0.92);
+    border: 1px solid var(--k-divider);
     border-radius: var(--k-radius-xl);
-    backdrop-filter: blur(10px);
+    box-shadow: var(--k-shadow-inset);
+    backdrop-filter: blur(8px);
 }
 
 /* El velo que cierra un panel al tocar fuera. */
@@ -143,7 +172,7 @@ h1, h2, h3, .k-title, .font-title {
 }
 
 .k-btn--ghost {
-    background-color: rgba(var(--k-bg-rgb), 0.55);
+    background-color: rgba(var(--k-shadow-rgb), 0.05);
     color: var(--k-text-muted);
 }
 .k-btn--ghost:hover:not(:disabled) {
@@ -153,8 +182,8 @@ h1, h2, h3, .k-title, .font-title {
 
 .k-btn--outline {
     background-color: transparent;
-    border: 1px solid var(--k-border-strong);
-    color: var(--k-highlight);
+    border: 1px solid var(--k-border);
+    color: var(--k-text);
 }
 .k-btn--outline:hover:not(:disabled) {
     background-color: var(--k-surface-raised);
@@ -170,14 +199,176 @@ h1, h2, h3, .k-title, .font-title {
     color: var(--k-bg);
 }
 
+/* --- Tamaños de texto -----------------------------------------------------
+ *
+ * La escala vive en `theme.css`; esto es sólo la forma de usarla desde el JSX,
+ * que es donde estaban los 155 `text-[Npx]` escritos a mano.
+ *
+ * Llevan `line-height` propio a propósito. Las clases de Tailwind que
+ * sustituyen traían el suyo (`text-xs` es 12/16, `text-sm` 14/20), y cambiar
+ * el tamaño sin cambiar la altura de línea mueve todo lo que hay alrededor.
+ * Un 1,35 uniforme mantiene la proporción en toda la escala.
+ * ------------------------------------------------------------------------- */
+.k-text-xs  { font-size: var(--k-text-xs);  line-height: 1.35; }
+.k-text-sm  { font-size: var(--k-text-sm);  line-height: 1.35; }
+.k-text-md  { font-size: var(--k-text-md);  line-height: 1.35; }
+.k-text-lg  { font-size: var(--k-text-lg);  line-height: 1.3; }
+.k-text-xl  { font-size: var(--k-text-xl);  line-height: 1.25; }
+.k-text-2xl { font-size: var(--k-text-2xl); line-height: 1.2; }
+
+/* --- Fondos y trazos ------------------------------------------------------
+ *
+ * Lo que faltaba para vaciar el bloque de compatibilidad con Tailwind. Las
+ * variantes con opacidad (`bg-slate-900/90`, `border-slate-800/60`) eran las
+ * peores del lote: Tailwind las GENERA a partir de su propio color, así que el
+ * bloque de compatibilidad no podía repintarlas ni con `!important`. Un panel
+ * que se creía del tema salía con el azul de Tailwind y nadie lo veía.
+ * ------------------------------------------------------------------------- */
+.k-fill            { background-color: var(--k-surface); }
+.k-fill-90         { background-color: rgba(var(--k-surface-rgb), 0.9); }
+.k-fill-60         { background-color: rgba(var(--k-surface-rgb), 0.6); }
+.k-fill-deep       { background-color: var(--k-bg); }
+.k-fill-deep-50    { background-color: rgba(var(--k-bg-rgb), 0.5); }
+.k-fill-deep-40    { background-color: rgba(var(--k-bg-rgb), 0.4); }
+.k-fill-raised     { background-color: var(--k-surface-raised); }
+.k-fill-accent     { background-color: var(--k-accent); }
+
+.k-hover-raised:hover      { background-color: var(--k-surface-raised); }
+.k-hover-raised-soft:hover { background-color: var(--k-accent-soft); }
+
+.k-stroke          { border-color: var(--k-border); }
+.k-stroke-80       { border-color: rgba(var(--k-border-rgb), 0.8); }
+.k-stroke-60       { border-color: rgba(var(--k-border-rgb), 0.6); }
+.k-stroke-40       { border-color: rgba(var(--k-border-rgb), 0.4); }
+.k-stroke-strong   { border-color: var(--k-border-strong); }
+
+/* `accent-color` gobierna el relleno de un checkbox o un slider nativos, que
+ * no se pueden pintar de otra forma sin rehacerlos enteros. */
+.k-accent-control  { accent-color: var(--k-accent); }
+
+/* La bolita de un interruptor. Va por token y no en blanco literal para que
+ * un tema claro pueda cambiarla: es una pieza de control, no texto. */
+.k-switch-knob     { background-color: #ffffff; }
+
+/* --- La piel del modo «a mano» --------------------------------------------
+ *
+ * Regla del sistema: si el lienzo se COMPORTA distinto, tiene que VERSE
+ * distinto. Un cursor no es una piel — no se ve hasta que ya estás encima.
+ *
+ * Va todo en CSS y no en atributos del SVG a propósito: `svgParaExportar`
+ * clona el nodo, así que un atributo viajaría al archivo. Una clase también
+ * viaja, pero sin la hoja de estilos no pinta nada, que es justo lo que se
+ * quiere. Es el mismo truco que `.k-fretboard-fit`.
+ * ------------------------------------------------------------------------- */
+/* El envoltorio del mástil. Existe para que la piel del modo viva FUERA del
+ * SVG: `svgParaExportar` clona el nodo del diagrama, así que cuanto menos
+ * tenga encima, menos hay que acordarse de limpiar. */
+.k-lienzo {
+    /* Las MISMAS medidas que tenia el SVG antes de envolverlo. El envoltorio
+     * ocupa su sitio en el flex del padre; sin el `width`/`height` al 100 % el
+     * padre se cine al tamano natural del dibujo y volvemos al mastil diminuto
+     * en medio de un hueco enorme. */
+    flex: 1 1 auto;
+    align-self: stretch;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    border-radius: var(--k-radius-lg);
+}
+
+.k-lienzo--a-mano {
+    /* `box-shadow` y no `outline` por dos razones. Ninguna de las dos ocupa
+     * sitio —el diagrama no se mueve ni un píxel al entrar en el modo— pero
+     * el `outline` sobre un elemento SVG no se aplica de forma fiable: el
+     * navegador se quedaba con el estilo y descartaba el grosor y el color. */
+    box-shadow: 0 0 0 2px var(--k-accent);
+}
+
+.k-rotulo-modo {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    padding: 2px var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: var(--k-tracking-label);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* La nota dice que se arrastra ANTES de que la arrastres. */
+.k-nota-arrastrable { cursor: grab; }
+.k-nota-arrastrable:active { cursor: grabbing; }
+.k-nota-arrastrable:hover > circle:first-of-type {
+    stroke: var(--k-accent);
+    stroke-width: 2;
+}
+
+/* La flecha reacciona a su zona de agarre. La zona ya recibía el ratón; lo
+ * que faltaba era que se notara, para saber a cuál se está apuntando antes de
+ * pulsar el botón derecho. El grosor base viaja en una variable porque lo pone
+ * el estilo del usuario, no el tema. */
+.k-flecha:hover line:not([data-transient]) {
+    stroke-width: calc(var(--k-flecha-grosor, 2px) * 1.5);
+}
+/* `visibility` y no `opacity`: sobre un `<g>` de SVG la opacidad no respondio
+ * ni con un `!important` en linea —el navegador se quedaba en 0— mientras que
+ * el `stroke-width` del hermano si cambiaba. La visibilidad si funciona, y
+ * ademas quita el nodo del arbol de eventos mientras esta oculto, que es lo
+ * que se quiere: el `...` no debe robarle el clic a la flecha. */
+.k-flecha .k-flecha-mas { visibility: hidden; }
+.k-flecha:hover .k-flecha-mas { visibility: visible; }
+
+/* --- Color del texto ------------------------------------------------------
+ *
+ * Cuatro clases para las cuatro cosas que un texto puede ser en esta app. Es
+ * lo que faltaba para poder quitar los `text-slate-*` del JSX: había 96 usos
+ * de la paleta de Tailwind que el bloque de compatibilidad ni siquiera cubría,
+ * así que salían con el color literal de Tailwind y no con el del tema.
+ *
+ * `--k-text-muted` era el más usado con diferencia (40 veces como
+ * `text-slate-400`), que es la pista de que la app habla sobre todo en voz
+ * baja: rótulos, ayudas y unidades alrededor del dato que importa.
+ * ------------------------------------------------------------------------- */
+.k-ink        { color: var(--k-text); }
+.k-ink-muted  { color: var(--k-text-muted); }
+.k-ink-faint  { color: var(--k-text-faint); }
+.k-ink-accent { color: var(--k-highlight); }
+
+/* --- Dónde está el foco ---------------------------------------------------
+ *
+ * No había NINGUNA regla de foco, y el JSX además apagaba el del navegador con
+ * `focus:outline-none` en seis sitios. Quien navega con el teclado no tenía
+ * forma de saber dónde estaba: es la diferencia entre poder usar la app sin
+ * ratón y no poder.
+ *
+ * `:focus-visible` y no `:focus` para que un clic con el ratón no deje el aro
+ * puesto, que es lo que llevó a la gente a apagarlo en su día.
+ * ------------------------------------------------------------------------- */
+:focus-visible {
+    outline: 2px solid var(--k-highlight);
+    outline-offset: 2px;
+    border-radius: var(--k-radius-sm);
+}
+
 /* --- Pestañas ------------------------------------------------------------ */
+/* Control segmentado: el contenedor va HUNDIDO (más oscuro que la barra) y
+ * la pestaña activa se LEVANTA de él. Antes era al revés —contenedor con borde
+ * cobalto y todas las pestañas en lima— y el ojo no sabía dónde pararse. */
 .k-tabs {
     display: flex;
-    gap: 0.25rem;
-    padding: 0.25rem;
+    gap: 2px;
+    padding: 3px;
     border-radius: var(--k-radius-md);
-    background-color: var(--k-surface);
-    border: 1px solid var(--k-accent);
+    background-color: var(--k-bg-deep);
+    border: 1px solid var(--k-divider);
 }
 
 /* En móvil las pestañas ocupan la fila entera y se reparten a partes iguales;
@@ -197,9 +388,11 @@ h1, h2, h3, .k-title, .font-title {
 .k-tabs--stretch .k-tab {
     flex: 1 1 0;
     min-width: 0;
-    padding-left: 0.125rem;
-    padding-right: 0.125rem;
-    font-size: 0.6875rem;
+    /* Sin relleno vertical: la altura la da ya el `line-height` de 44 px. Con
+     * el relleno de `.k-tab` encima medían 60, y las dos filas de pestañas se
+     * comían un cuarto de la pantalla del teléfono antes de llegar al mástil. */
+    padding: 0 0.125rem;
+    font-size: var(--k-text-sm);
     display: block;
     line-height: var(--k-touch);
     /* Ultimo recurso, no plan: con la fila partida de abajo el texto cabe
@@ -234,42 +427,66 @@ h1, h2, h3, .k-title, .font-title {
     padding: 0.5rem 0.625rem;
     min-height: var(--k-touch);
     border-radius: var(--k-radius-sm);
-    font-size: 0.75rem;
+    font-size: var(--k-text-sm);
     font-weight: 700;
     line-height: 1;
     white-space: nowrap;
-    color: var(--k-highlight);
-    opacity: 0.5;
-    transition: background-color .15s, opacity .15s;
+    color: var(--k-text-muted);
+    transition: background-color .15s, color .15s, box-shadow .15s;
     cursor: pointer;
+}
+.k-tab:hover:not(.k-tab--active) {
+    color: var(--k-text);
+    background-color: rgba(var(--k-shadow-rgb), 0.05);
 }
 
 @media (min-width: 768px) {
     .k-tab {
-        min-height: 0;
+        /* En escritorio la pestana se aprieta, pero no por debajo de 28 px:
+           con `min-height: 0` se quedaba en 25 y era el objetivo mas pequeno
+           de toda la app, justo en los seis destinos principales. */
+        min-height: 28px;
         padding: 0.375rem 0.75rem;
     }
 }
 
+/* En papel la pestaña activa es una hoja blanca levantada con la palabra
+ * en tinta y una raya de bolígrafo debajo: el cobalto relleno pesaba
+ * demasiado sobre crema. */
 .k-tab--active {
-    background-color: var(--k-accent);
-    color: var(--k-accent-ink);
-    opacity: 1;
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    box-shadow: var(--k-shadow-panel), inset 0 -2px 0 var(--k-accent);
+}
+
+/* El nombre de un grupo de pestañas. Sólo en escritorio: en móvil no hay
+ * sitio, y el orden de las filas ya agrupa. */
+.k-group-label {
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--k-tracking-label);
+    color: var(--k-text-faint);
+    white-space: nowrap;
 }
 
 /* --- Etiquetas y valores ------------------------------------------------- */
 .k-label {
-    font-size: 0.625rem;
+    font-size: var(--k-text-xs);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--k-tracking-label);
     color: var(--k-text-muted);
 }
 
 .k-value {
     font-variant-numeric: tabular-nums;
     font-weight: 900;
-    color: var(--k-highlight);
+    color: var(--k-text);
+    /* El rotulador: una franja lima por la mitad de abajo del número, como
+     * cuando se subraya a mano. No tapa la letra entera porque no hace falta. */
+    background-image: linear-gradient(transparent 52%, var(--k-marker-trazo) 52%, var(--k-marker-trazo) 92%, transparent 92%);
+    padding: 0 2px;
 }
 
 .k-chip {
@@ -278,10 +495,10 @@ h1, h2, h3, .k-title, .font-title {
     gap: 0.375rem;
     padding: 0.25rem 0.625rem;
     border-radius: var(--k-radius-pill);
-    border: 1px solid var(--k-border);
-    background-color: rgba(var(--k-accent-rgb), 0.1);
-    color: var(--k-highlight);
-    font-size: 0.625rem;
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-accent-soft);
+    color: var(--k-text);
+    font-size: var(--k-text-xs);
     font-weight: 700;
     white-space: nowrap;
 }
@@ -319,7 +536,7 @@ select option {
  * para que se lea como algo que se puede cerrar. */
 .k-sheet {
     background-color: var(--k-surface);
-    border: 1px solid var(--k-border-strong);
+    border: 1px solid var(--k-divider);
     border-top-left-radius: var(--k-radius-xl);
     border-top-right-radius: var(--k-radius-xl);
     box-shadow: var(--k-shadow-float);
@@ -355,10 +572,25 @@ select option {
  * el mástil cabe entero con 5 trastes y con 24.
  * ------------------------------------------------------------------------- */
 .k-fretboard-fit {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    /* Llena el hueco EN VEZ de ceñirse al contenido.
+     *
+     * Antes era `width: auto; height: auto; max-*: 100%`, y un `max` sólo
+     * encoge: nunca agranda. Con cinco trastes en una pantalla de escritorio
+     * el mástil se quedaba diminuto en medio de un hueco enorme, porque su
+     * tamaño natural son los atributos `width`/`height` del SVG.
+     *
+     * Con `viewBox` y `preserveAspectRatio` por defecto —`xMidYMid meet`— el
+     * dibujo se escala por el lado que más aprieta y se centra en el otro.
+     *
+     * `align-self: stretch` gana al `items-center` del padre: sin él la altura
+     * del 100 % no tiene contra qué resolverse y se cae a `auto`, que es
+     * volver al problema. */
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
 }
 
 /* Las dos líneas de un verso: acordes arriba, letra abajo. Se desplazan en
@@ -444,7 +676,7 @@ select option {
 .k-strum-ruler {
     text-align: center;
     font-family: var(--k-font-mono);
-    font-size: 10px;
+    font-size: var(--k-text-xs);
     color: var(--k-text-faint);
     padding-top: 2px;
 }
@@ -521,45 +753,2081 @@ select option {
     box-shadow: var(--k-shadow-panel);
 }
 
+/* --- Los ± del lienzo ------------------------------------------------------
+ * Trastes y posición. Antes eran dos columnas sueltas con botones cobalto a
+ * pleno color, que pesaban tanto como el propio mástil. Ahora son una cápsula
+ * discreta: el número es el dato (lima), los botones son secundarios. */
+.k-stepper {
+    /* Sin `display`: el JSX lo esconde en móvil con `hidden md:flex`, y una
+     * regla de aquí ganaría a esa clase y lo sacaría donde no cabe. */
+    padding: var(--k-space-1);
+    border-radius: var(--k-radius-pill);
+    background-color: rgba(var(--k-bg-rgb), 0.6);
+    border: 1px solid var(--k-divider);
+}
+/* En el teléfono los dos ± van en fila bajo el mástil y no les sobra un
+ * píxel: la cápsula se queda en el escritorio, los botones no encogen. */
+@media (max-width: 767px) {
+    .k-stepper {
+        padding: 0;
+        background-color: transparent;
+        border-color: transparent;
+    }
+    /* Doble clase para ganar al `gap-1`/`px-1` de Tailwind, que se inyecta
+     * después de esta hoja. Son los 36 px que faltaban para que los dos ±
+     * quepan en UNA fila a 359 px en vez de partirse y quitarle alto al
+     * mástil. */
+    .k-stepper.k-stepper { gap: 0; }
+    .k-stepper.k-stepper > div { padding-left: 0; padding-right: 0; }
+    .k-stepper .k-label { letter-spacing: 0; }
+}
+.k-stepper .k-btn--primary {
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    border-radius: var(--k-radius-pill);
+}
+.k-stepper .k-btn--primary:hover:not(:disabled) {
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+}
+
+/* La pista de uso bajo el mástil: una frase al margen, no un aviso. */
+.k-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    color: var(--k-text-faint);
+    font-size: var(--k-text-xs);
+}
+
+/* Las fichas de la portada. La franja de arriba dice a qué grupo pertenece
+ * cada una sin tener que leer el rótulo de la sección. */
+.k-card {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-xl);
+    box-shadow: var(--k-shadow-inset);
+    transition: transform .15s, border-color .15s, background-color .15s;
+}
+.k-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background-color: var(--k-card-tone, var(--k-accent));
+}
+.k-card:hover {
+    background-color: var(--k-surface-raised);
+    border-color: var(--k-border);
+    transform: translateY(-2px);
+}
+.k-card--doc { --k-card-tone: var(--k-highlight); }
+
 /* --- Indicador de actividad ---------------------------------------------- */
 .k-dot {
     width: 0.625rem;
     height: 0.625rem;
     border-radius: var(--k-radius-pill);
-    background-color: var(--k-highlight);
+    background-color: var(--k-marker);
+    box-shadow: 0 0 0 2px var(--k-highlight);
 }
 
 /* ==========================================================================
- * CAPA DE COMPATIBILIDAD CON TAILWIND — EN RETIRADA
+ * TIPOGRAFÍA DE TÍTULO
  * ==========================================================================
- *
- * Tailwind trae su propia paleta (slate, indigo, emerald...) y el JSX todavía
- * la usa en muchos sitios. Esto la repinta con los tokens de Kharo.
- *
- * Es deuda, y se paga sola: cada vez que un componente pasa a usar `.k-*`,
- * su regla de aquí sobra y se borra. El objetivo es que este bloque quede
- * vacío. Mientras exista, cualquier clase de color de Tailwind puede salir
- * con un color que no es el que dice su nombre.
+ * Lo único que sobrevivió de la capa de compatibilidad con Tailwind: no era
+ * compatibilidad, era una regla de tipografía que se había colado ahí.
  * ========================================================================== */
 
-[class*="bg-slate-900"], .bg-slate-900 { background-color: var(--k-surface) !important; }
-[class*="bg-slate-950"], .bg-slate-950 { background-color: var(--k-bg) !important; }
-[class*="bg-slate-800"], .bg-slate-800 { background-color: var(--k-surface-raised) !important; }
-[class*="border-slate-800"], .border-slate-800 { border-color: var(--k-border) !important; }
-[class*="border-slate-700"], .border-slate-700 { border-color: rgba(var(--k-accent-rgb), 0.45) !important; }
-[class*="text-indigo-400"], .text-indigo-400 { color: var(--k-highlight) !important; }
-[class*="text-indigo-300"], .text-indigo-300 { color: var(--k-highlight-soft) !important; }
-[class*="bg-indigo-600"], .bg-indigo-600 { background-color: var(--k-accent) !important; }
-[class*="hover\:bg-indigo-500"]:hover { background-color: var(--k-accent-hover) !important; }
-[class*="text-teal-400"], .text-teal-400 { color: var(--k-highlight) !important; }
-[class*="text-emerald-400"], .text-emerald-400 { color: var(--k-highlight) !important; }
-[class*="bg-emerald-600"], .bg-emerald-600 { background-color: var(--k-accent) !important; }
-[class*="hover\:bg-emerald-500"]:hover { background-color: var(--k-accent-hover) !important; }
-[class*="bg-amber-600"], .bg-amber-600 { background-color: var(--k-surface-raised) !important; border: 1px solid var(--k-accent); }
-[class*="hover\:bg-amber-500"]:hover { background-color: rgba(var(--k-accent-rgb), 0.3) !important; }
-[class*="accent-indigo-500"], .accent-indigo-500 { accent-color: var(--k-accent) !important; }
-[class*="bg-red-950"], .bg-red-950 { background-color: rgba(var(--k-accent-rgb), 0.1) !important; }
-[class*="border-red-900"], .border-red-900 { border-color: rgba(var(--k-highlight-rgb), 0.2) !important; }
-.font-extrabold, h1 { font-family: var(--k-font-title) !important; }
-header h1, .app-title { font-family: var(--k-font-title) !important; }
-.bg-black\/70 { background-color: var(--k-overlay) !important; }
+.font-extrabold, h1 { font-family: var(--k-font-title); }
+header h1, .app-title { font-family: var(--k-font-title); }
+
+/* ==========================================================================
+ * LA CAPA DE COMPATIBILIDAD CON TAILWIND — VACIADA EL 2026-09-07
+ * ==========================================================================
+ *
+ * Aquí vivían diecinueve reglas que repintaban la paleta de Tailwind (slate,
+ * indigo, emerald, amber...) con los tokens de Kharo, a golpe de `!important`.
+ * Eran deuda declarada: mientras existieran, una clase de color podía salir
+ * con un color que no era el que decía su nombre.
+ *
+ * Se han pagado. El JSX ya no usa ni una clase de color de Tailwind: los
+ * textos van por `.k-ink*`, los fondos por `.k-fill*` y los bordes por
+ * `.k-stroke*`, y todos leen `theme.css`.
+ *
+ * LAS PEORES ERAN LAS DE OPACIDAD. `bg-slate-900/90` o `border-slate-800/60`
+ * no se podían repintar desde aquí ni con `!important`, porque Tailwind las
+ * GENERA a partir de su propio color: componía el rgba antes de que este
+ * archivo tuviera nada que decir. Salían con el azul de Tailwind y nadie lo
+ * veía, porque se parecía bastante al del tema.
+ *
+ * Si vuelve a aparecer una clase de color de Tailwind en el JSX, no la
+ * repintes aquí: añade el token que falte a `theme.css` y la clase `.k-*` que
+ * falte arriba. Este bloque se queda vacío a propósito.
+ * ========================================================================== */
+
+/* ==========================================================================
+ * PIEZAS DE LA PRUEBA
+ * ========================================================================== */
+
+/* El papel lleva una trama muy leve: sin ella el crema plano se lee como
+ * «fondo beige» y no como papel. */
+body {
+    background-image: radial-gradient(rgba(var(--k-shadow-rgb), 0.045) 1px, transparent 1px);
+    background-size: 3px 3px;
+}
+
+/* Lo que se subraya con rotulador fuera de `.k-value`. */
+.kp-marker {
+    background-image: linear-gradient(transparent 55%, var(--k-marker-trazo) 55%, var(--k-marker-trazo) 90%, transparent 90%);
+    padding: 0 .08em;
+}
+
+/* El aviso de que esto es una prueba. Vive en la cabecera, en el tercio que
+ * la versión oscura dejaba vacío. */
+.kp-prueba {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    min-height: 32px;
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    border: 1px dashed var(--k-border-strong);
+    color: var(--k-text-muted);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.kp-prueba:hover { color: var(--k-accent); border-color: var(--k-accent); }
+.kp-prueba b {
+    color: var(--k-marker-ink);
+    background-color: var(--k-marker);
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+
+/* --- La portada como disco ------------------------------------------------ */
+.kp-hero {
+    display: grid;
+    gap: var(--k-space-5);
+    align-items: center;
+}
+@media (min-width: 900px) {
+    .kp-hero { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; }
+}
+
+.kp-eyebrow {
+    font-family: var(--k-font-aux);
+    font-size: var(--k-text-xs);
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--k-text-faint);
+}
+
+.kp-titulo {
+    font-family: var(--k-font-title);
+    font-size: clamp(56px, 9vw, 112px);
+    line-height: .9;
+    color: var(--k-text);
+    letter-spacing: -.01em;
+}
+
+/* El mástil que suena. Es piel, no obra: no se exporta nunca. La madera va
+ * en literal porque es una ilustración, no un color de la interfaz. */
+.kp-mastil {
+    position: relative;
+    border-radius: var(--k-radius-xl);
+    background: linear-gradient(180deg, #3B2A1C, #2A1D13);
+    box-shadow: var(--k-shadow-float);
+    overflow: hidden;
+    touch-action: none;
+    cursor: pointer;
+    user-select: none;
+}
+.kp-mastil svg { display: block; width: 100%; height: auto; }
+.kp-cuerda { transform-box: fill-box; transform-origin: center; }
+.kp-cuerda--vibra { animation: kp-vibra .7s cubic-bezier(.2,.6,.3,1); }
+@keyframes kp-vibra {
+    0%   { transform: translateY(0); }
+    8%   { transform: translateY(-3px); }
+    16%  { transform: translateY(3px); }
+    26%  { transform: translateY(-2px); }
+    38%  { transform: translateY(2px); }
+    52%  { transform: translateY(-1px); }
+    68%  { transform: translateY(1px); }
+    100% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kp-cuerda--vibra { animation: none; }
+}
+.kp-mastil__pie {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--k-space-1) var(--k-space-3);
+    margin-top: var(--k-space-2);
+    font-family: var(--k-font-aux);
+    font-size: var(--k-text-xs);
+    color: var(--k-text-faint);
+}
+
+/* --- Los botones de acorde del mástil -------------------------------------- */
+.kp-acordes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: var(--k-space-3);
+}
+.kp-acorde {
+    min-width: 40px;
+    min-height: 32px;
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font-family: var(--k-font-aux);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color .12s, border-color .12s, transform .1s;
+}
+.kp-acorde:hover { border-color: var(--k-text); }
+.kp-acorde:active { transform: scale(.95); }
+/* El elegido lleva el rotulador, como todo lo que es «el dato de ahora». */
+.kp-acorde--activo {
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    border-color: var(--k-text);
+}
+@media (max-width: 639px) {
+    .kp-acorde { min-height: var(--k-touch); min-width: var(--k-touch); }
+}
+
+.kp-rasgueo {
+    min-height: var(--k-touch);
+    padding: 0;
+    font-family: var(--k-font-aux);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-accent);
+    cursor: pointer;
+}
+.kp-rasgueo:hover { text-decoration: underline; }
+
+/* Un dedo nuevo entra con un golpe corto: dice «esto acaba de cambiar». */
+.kp-dedo {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: kp-dedo .22s cubic-bezier(.3,1.6,.5,1);
+}
+@keyframes kp-dedo {
+    from { transform: scale(.4); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kp-dedo { animation: none; }
+}
+
+/* --- Los dos lados del disco ------------------------------------------------- */
+.kp-lado__cabeza {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-4);
+    padding-bottom: var(--k-space-4);
+    border-bottom: 2px solid var(--k-text);
+}
+.kp-lado__nombre {
+    font-family: var(--k-font-title);
+    font-size: 34px;
+    line-height: 1;
+    color: var(--k-text);
+    margin-top: 2px;
+}
+
+/* El vinilo: surcos con un degradado radial que se repite, y la galleta
+ * (la etiqueta del centro) del color del lado. Gira despacio mientras el
+ * puntero está sobre ese lado, como un disco que arranca. */
+.kp-vinilo {
+    flex: none;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle, transparent 0 34%, rgba(255,255,255,0.06) 35%, transparent 36%),
+        repeating-radial-gradient(circle, #1A1B1F 0 2px, #26282E 2px 3px),
+        #16181D;
+    box-shadow: var(--k-shadow-panel), inset 0 0 0 1px rgba(255,255,255,0.05);
+    transition: transform .2s;
+}
+.kp-vinilo__galleta {
+    width: 38%;
+    height: 38%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--k-font-title);
+    font-size: 18px;
+    line-height: 1;
+    position: relative;
+}
+/* El agujero del eje. */
+.kp-vinilo__galleta::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--k-bg);
+    bottom: 5px;
+}
+.kp-lado--a .kp-vinilo__galleta { background: var(--k-accent); color: var(--k-accent-ink); }
+.kp-lado--b .kp-vinilo__galleta { background: var(--k-marker); color: var(--k-marker-ink); }
+
+.kp-lado:hover .kp-vinilo { animation: kp-girar 1.8s linear infinite; }
+@keyframes kp-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .kp-lado:hover .kp-vinilo { animation: none; }
+}
+
+.kp-lado__pistas { list-style: none; margin: 0; padding: 0; }
+
+/* Una pista: número a la izquierda; título, puntos guía y flecha en una fila
+ * como en la contraportada de un disco; y debajo el resumen. El detalle se
+ * abre al pasar por encima en escritorio; en un teléfono no hay «encima», así
+ * que va siempre a la vista. */
+.kp-pista {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: var(--k-space-3);
+    align-items: start;
+    width: 100%;
+    padding: var(--k-space-4) var(--k-space-2);
+    border-bottom: 1px solid var(--k-divider);
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--k-radius-md);
+    transition: background-color .15s;
+}
+.kp-pista:hover, .kp-pista:focus-visible { background-color: var(--k-surface-raised); }
+.kp-pista__num {
+    font-family: var(--k-font-aux);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .04em;
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-accent);
+    padding-top: 8px;
+}
+.kp-lado--b .kp-pista__num { color: var(--k-highlight); }
+.kp-pista__fila {
+    display: flex;
+    align-items: baseline;
+    gap: var(--k-space-2);
+}
+.kp-pista__titulo {
+    font-family: var(--k-font-title);
+    font-size: 26px;
+    line-height: 1.1;
+    color: var(--k-text);
+    white-space: nowrap;
+}
+.kp-pista__puntos {
+    flex: 1;
+    min-width: 12px;
+    border-bottom: 2px dotted var(--k-border);
+    transform: translateY(-5px);
+}
+.kp-pista__flecha {
+    font-size: 20px;
+    color: var(--k-text-faint);
+    transition: transform .15s, color .15s;
+}
+.kp-pista:hover .kp-pista__flecha { transform: translateX(4px); color: var(--k-accent); }
+.kp-pista__resumen {
+    font-size: var(--k-text-md);
+    color: var(--k-text);
+    margin-top: 4px;
+}
+.kp-pista__detalle {
+    font-size: var(--k-text-sm);
+    line-height: 1.5;
+    color: var(--k-text-muted);
+    margin-top: var(--k-space-2);
+}
+@media (hover: hover) and (min-width: 768px) {
+    .kp-pista__detalle {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows .25s ease, margin-top .25s ease;
+        margin-top: 0;
+    }
+    .kp-pista__detalle > span { overflow: hidden; }
+    .kp-pista:hover .kp-pista__detalle,
+    .kp-pista:focus-visible .kp-pista__detalle {
+        grid-template-rows: 1fr;
+        margin-top: var(--k-space-2);
+    }
+}
+
+/* --- El estudio ------------------------------------------------------------- */
+/* El lienzo como papel milimetrado: la cuadrícula dice «aquí se dibuja». */
+.kp-milimetrado {
+    background-color: var(--k-surface);
+    background-image:
+        linear-gradient(rgba(var(--k-accent-rgb), 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--k-accent-rgb), 0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* El raíl de herramientas con su nombre debajo de cada icono, en escritorio:
+ * cinco emojis sueltos no dicen qué abren hasta que pasas por encima. */
+.kp-herramienta__nombre { display: none; }
+@media (min-width: 768px) {
+    .kp-herramienta.kp-herramienta {
+        width: 64px;
+        height: 56px;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .kp-herramienta__nombre {
+        display: block;
+        font-size: var(--k-text-xs);
+        line-height: 1;
+        font-weight: 700;
+    }
+}
+
+/* El interruptor apagado tiene el carril en `--k-surface-raised`, que en
+ * papel es blanco: bolita blanca sobre carril blanco sobre panel casi blanco.
+ * Aquí el carril apagado pasa a gris de trazo (3,7:1), que es un límite que
+ * se ve. Se apunta con `:has` para no tener que tocar el JSX en la prueba. */
+button.k-fill-raised:has(> .k-switch-knob) {
+    background-color: var(--k-border);
+}
+
+/* --- Sobre el proyecto ---------------------------------------------------------
+ * Qué es Kharo, su misión y su visión, en una vista propia. Cada bloque: el
+ * número y el rótulo a la izquierda (se quedan pegados al bajar, en
+ * escritorio), el texto a la derecha, y la frase final con el rotulador. */
+.kp-funda {
+    border-top: 2px solid var(--k-text);
+    padding-top: var(--k-space-5);
+}
+.kp-funda__cabeza {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--k-space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--k-space-4);
+}
+.kp-nota {
+    display: grid;
+    gap: var(--k-space-3) var(--k-space-6);
+    padding: var(--k-space-6) 0;
+    border-bottom: 1px solid var(--k-divider);
+}
+.kp-nota:last-child { border-bottom: 0; }
+@media (min-width: 900px) {
+    .kp-nota { grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); }
+    .kp-nota__lado { position: sticky; top: var(--k-space-5); align-self: start; }
+}
+.kp-nota__num {
+    font-family: var(--k-font-title);
+    font-size: 56px;
+    line-height: 1;
+    color: var(--k-accent);
+}
+.kp-nota__titulo {
+    font-family: var(--k-font-title);
+    font-size: clamp(30px, 4vw, 44px);
+    line-height: 1.02;
+    color: var(--k-text);
+    margin-top: var(--k-space-2);
+}
+.kp-nota__texto {
+    max-width: 62ch;
+}
+.kp-nota__texto p {
+    font-size: var(--k-text-lg);
+    line-height: 1.65;
+    color: var(--k-text);
+}
+.kp-nota__texto p + p { margin-top: var(--k-space-4); }
+/* La primera frase de cada nota entra un punto más grande: es la que tiene
+ * que leerse aunque no se lea nada más. */
+.kp-nota__texto p:first-child {
+    font-size: var(--k-text-xl);
+    line-height: 1.55;
+}
+.kp-nota__remate {
+    font-family: var(--k-font-title);
+    font-size: clamp(24px, 3vw, 30px) !important;
+    line-height: 1.25 !important;
+    margin-top: var(--k-space-5) !important;
+}
+
+/* El acceso a «Sobre el proyecto» en la cabecera: un enlace de texto, no un
+ * botón relleno, para que no compita con las pestañas de las secciones. */
+.kp-sobre {
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-2);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    white-space: nowrap;
+    cursor: pointer;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0 2px;
+    background-position: var(--k-space-2) calc(100% - 10px);
+    background-repeat: no-repeat;
+    transition: color .15s, background-size .2s;
+}
+.kp-sobre:hover { color: var(--k-text); background-size: calc(100% - 16px) 2px; }
+.kp-sobre--activo {
+    color: var(--k-text);
+    background-image: linear-gradient(var(--k-accent), var(--k-accent));
+    background-size: calc(100% - 16px) 2px;
+}
+@media (min-width: 768px) {
+    .kp-sobre { min-height: 36px; background-position: var(--k-space-2) calc(100% - 6px); }
+}
+
+/* --- La navegación del sitio ------------------------------------------------- */
+.kp-nav { display: flex; align-items: center; gap: var(--k-space-1); }
+/* En el teléfono: una fila que se desliza si no cabe, sin barra a la vista. */
+.kp-nav--fila { overflow-x: auto; scrollbar-width: none; }
+.kp-nav--fila::-webkit-scrollbar { display: none; }
+
+/* --- Los rótulos de bloque de la portada -------------------------------------- */
+.kp-bloque-cabeza {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--k-space-1) var(--k-space-4);
+    margin-bottom: var(--k-space-5);
+}
+.kp-bloque-titulo {
+    font-family: var(--k-font-title);
+    font-size: clamp(40px, 5vw, 56px);
+    line-height: 1;
+    color: var(--k-text);
+}
+
+/* --- Las fichas de «Más de Kharo» --------------------------------------------- */
+.kp-ficha {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--k-space-2);
+    min-height: 180px;
+    padding: var(--k-space-5);
+    text-align: left;
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-panel);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+.kp-ficha:hover { transform: translateY(-2px); box-shadow: var(--k-shadow-float); }
+.kp-ficha:hover .kp-pista__flecha { transform: translateX(4px); color: var(--k-accent); }
+/* Lo que todavía no existe se ve como un boceto: borde a trazos y sin
+ * sombra. Se puede abrir igual, para leer qué será. */
+.kp-ficha--obra {
+    background-color: transparent;
+    border: 2px dashed var(--k-border);
+    box-shadow: none;
+}
+.kp-ficha__titulo {
+    font-family: var(--k-font-title);
+    font-size: 32px;
+    line-height: 1;
+    color: var(--k-text);
+}
+.kp-ficha__resumen {
+    font-size: var(--k-text-md);
+    line-height: 1.5;
+    color: var(--k-text-muted);
+    flex: 1;
+}
+.kp-ficha .kp-pista__flecha { align-self: flex-end; }
+.kp-ficha .kp-sticker {
+    position: absolute;
+    top: -14px;
+    right: 16px;
+}
+
+/* --- El sticker «en obra» ----------------------------------------------------- */
+.kp-sticker {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    font-family: var(--k-font-title);
+    font-size: 18px;
+    line-height: 1.1;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    transform: rotate(-4deg);
+    box-shadow: 0 2px 0 rgba(var(--k-shadow-rgb), 0.18), 0 6px 14px rgba(var(--k-shadow-rgb), 0.12);
+}
+.kp-sticker--b {
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    transform: rotate(3deg);
+}
+
+/* --- El interruptor de modo ---------------------------------------------------- */
+.kp-modo {
+    width: var(--k-touch);
+    height: var(--k-touch);
+    display: inline-grid;
+    place-items: center;
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-divider);
+    color: var(--k-text);
+    cursor: pointer;
+    transition: background-color .15s, transform .25s;
+}
+.kp-modo:hover { background-color: var(--k-surface-raised); }
+.kp-modo:active { transform: rotate(-20deg); }
+@media (min-width: 768px) {
+    .kp-modo { width: 36px; height: 36px; }
+}
+
+/* --- Ajustes del modo oscuro que no son sólo color ----------------------------- */
+/* El vinilo es negro: sobre tinta se perdía el canto. Un aro de luz lo saca. */
+:root[data-theme="oscuro"] .kp-vinilo {
+    box-shadow: var(--k-shadow-panel), 0 0 0 1px rgba(242, 237, 227, 0.14);
+}
+/* La trama del papel, en claro sobre oscuro. */
+:root[data-theme="oscuro"] body {
+    background-image: radial-gradient(rgba(242, 237, 227, 0.035) 1px, transparent 1px);
+}
+/* El mástil de la portada ya es madera oscura: con un borde fino no se funde
+ * con el fondo. */
+:root[data-theme="oscuro"] .kp-mastil {
+    box-shadow: var(--k-shadow-float), 0 0 0 1px rgba(242, 237, 227, 0.08);
+}
+
+/* --- Los instrumentos del Taller ---------------------------------------------- */
+.kp-instrumentos-bloque { margin-bottom: var(--k-space-6); }
+.kp-instrumentos-cabeza {
+    display: flex;
+    flex-direction: column;
+    gap: var(--k-space-1);
+    margin-bottom: var(--k-space-4);
+}
+.kp-instrumentos-titulo {
+    font-family: var(--k-font-title);
+    font-size: 26px;
+    line-height: 1.1;
+    color: var(--k-text);
+}
+.kp-instrumentos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--k-space-3);
+}
+@media (min-width: 640px) { .kp-instrumentos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .kp-instrumentos { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+.kp-instrumento {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--k-space-3);
+    text-align: left;
+    border-radius: var(--k-radius-lg);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-panel);
+    cursor: pointer;
+    transition: transform .15s, border-color .15s;
+}
+.kp-instrumento:hover { transform: translateY(-2px); border-color: var(--k-accent); }
+.kp-cejuela-mini {
+    width: 100%;
+    height: auto;
+    margin-bottom: var(--k-space-2);
+    border-radius: var(--k-radius-md);
+}
+.kp-instrumento__nombre {
+    font-family: var(--k-font-title);
+    font-size: 22px;
+    line-height: 1.05;
+    color: var(--k-text);
+}
+.kp-instrumento__cuerdas {
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-accent);
+}
+.kp-instrumento__afinacion {
+    font-size: var(--k-text-xs);
+    font-weight: 600;
+    letter-spacing: .12em;
+    color: var(--k-text-muted);
+    margin-top: 2px;
+}
+.kp-instrumento__extra {
+    font-size: var(--k-text-xs);
+    color: var(--k-text-faint);
+}
+
+/* --- El selector de versión ---------------------------------------------------- */
+.kp-versiones {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--k-radius-pill);
+    border: 1px dashed var(--k-border-strong);
+}
+.kp-version {
+    display: inline-grid;
+    place-items: center;
+    min-width: 40px;
+    min-height: 38px;
+    padding: 0 var(--k-space-2);
+    border-radius: var(--k-radius-pill);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.kp-version:hover { color: var(--k-text); background-color: var(--k-surface-raised); }
+.kp-version--actual {
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+}
+.kp-version--actual:hover { background-color: var(--k-marker); color: var(--k-marker-ink); }
+@media (min-width: 768px) {
+    .kp-version { min-height: 30px; }
+}
+
+
+/* ==========================================================================
+ * KHARO STUDIO — VERSIÓN 0.2 · EL TALLER REORGANIZADO
+ * ==========================================================================
+ *
+ * Se carga DESPUÉS de theme-prueba.css y ui-prueba.css (la 0.1). Aquí va
+ * sólo lo nuevo de la 0.2: los componentes base (Segmentado, Interruptor,
+ * Campo, BotonIcono, MenuAcciones, Dialogo, Seccion, Aviso), la barra de
+ * acción y el inspector del estudio, y la reorganización de Canción y
+ * Ejercicios.
+ *
+ * Mismas reglas que el resto: todo con tokens, nada de colores escritos a
+ * mano, 44 px en móvil para lo que se pulsa, y NADA del diagrama exportado.
+ * ========================================================================== */
+
+/* ==========================================================================
+ * 1. COMPONENTES BASE
+ * ========================================================================== */
+
+/* --- Botón de icono ---------------------------------------------------------
+ * 44 px en móvil siempre; en escritorio baja a 36, que el ratón acierta. */
+.k2-icono {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: var(--k-touch);
+    height: var(--k-touch);
+    border-radius: var(--k-radius-md);
+    color: var(--k-text);
+    cursor: pointer;
+    transition: background-color .15s, color .15s, box-shadow .15s;
+}
+@media (min-width: 768px) {
+    .k2-icono { width: 36px; height: 36px; }
+}
+.k2-icono--suave { background-color: transparent; }
+.k2-icono--suave:hover:not(:disabled) { background-color: rgba(var(--k-shadow-rgb), 0.06); }
+:root[data-theme="oscuro"] .k2-icono--suave:hover:not(:disabled) { background-color: rgba(242, 237, 227, 0.08); }
+.k2-icono--borde { border: 1px solid var(--k-divider); background-color: var(--k-surface-raised); }
+.k2-icono--borde:hover:not(:disabled) { border-color: var(--k-border); }
+.k2-icono--primario { background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k2-icono--primario:hover:not(:disabled) { background-color: var(--k-accent-hover); }
+.k2-icono--activo { background-color: var(--k-accent-soft); box-shadow: inset 0 0 0 1px var(--k-accent); }
+.k2-icono:disabled { color: var(--k-text-disabled); cursor: not-allowed; }
+
+/* --- Etiquetas y ayudas ------------------------------------------------------- */
+.k2-etiqueta {
+    display: block;
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--k-text-muted);
+    margin-bottom: 6px;
+}
+.k2-ayuda {
+    font-size: var(--k-text-xs);
+    line-height: 1.45;
+    color: var(--k-text-faint);
+    margin-top: 6px;
+}
+.k2-campo + .k2-campo,
+.k2-campo + .k2-campo-seg,
+.k2-campo-seg + .k2-campo,
+.k2-campo-seg + .k2-campo-seg,
+.k2-interruptor-fila + .k2-campo,
+.k2-campo + .k2-interruptor-fila,
+.k2-campo-seg + .k2-interruptor-fila,
+.k2-interruptor-fila + .k2-campo-seg { margin-top: var(--k-space-4); }
+.k2-interruptor-fila + .k2-interruptor-fila { margin-top: var(--k-space-2); }
+
+/* Los controles de formulario dentro de un campo ocupan todo el ancho y
+ * cumplen el área táctil. */
+.k2-campo select,
+.k2-campo input[type="text"],
+.k2-campo input[type="number"] {
+    width: 100%;
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    font-size: var(--k-text-md);
+}
+@media (min-width: 768px) {
+    .k2-campo select,
+    .k2-campo input[type="text"],
+    .k2-campo input[type="number"] { min-height: 38px; }
+}
+.k2-campo--linea { display: flex; align-items: center; gap: var(--k-space-3); }
+.k2-campo--linea .k2-etiqueta { margin: 0; flex: none; }
+
+/* --- Segmentado ------------------------------------------------------------------ */
+.k2-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-bg-deep);
+    border: 1px solid var(--k-divider);
+    max-width: 100%;
+}
+.k2-seg--ancho { display: flex; width: 100%; }
+.k2-seg--ancho .k2-seg__op { flex: 1 1 0; }
+.k2-seg__op {
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-sm);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .12s, color .12s, box-shadow .12s;
+}
+@media (min-width: 768px) {
+    .k2-seg__op { min-height: 32px; }
+}
+.k2-seg--sm .k2-seg__op { padding: 0 var(--k-space-2); font-size: var(--k-text-xs); }
+.k2-seg__op:hover:not(.k2-seg__op--activa):not(:disabled) { color: var(--k-text); }
+.k2-seg__op--activa {
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    box-shadow: var(--k-shadow-panel), inset 0 -2px 0 var(--k-accent);
+}
+.k2-seg__op:disabled { color: var(--k-text-disabled); cursor: not-allowed; }
+
+/* --- Interruptor --------------------------------------------------------------------- */
+.k2-interruptor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--k-space-3);
+    width: 100%;
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-1);
+    border-radius: var(--k-radius-sm);
+    text-align: left;
+    cursor: pointer;
+}
+.k2-interruptor:hover:not(:disabled) .k2-interruptor__texto { color: var(--k-text); }
+.k2-interruptor:disabled { cursor: not-allowed; }
+.k2-interruptor:disabled .k2-interruptor__texto { color: var(--k-text-disabled); }
+.k2-interruptor__texto {
+    font-size: var(--k-text-sm);
+    font-weight: 600;
+    color: var(--k-text);
+}
+.k2-interruptor__carril {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 24px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-border);
+    transition: background-color .15s;
+}
+.k2-interruptor__carril--on { background-color: var(--k-accent); }
+.k2-interruptor__bola {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform .15s;
+}
+.k2-interruptor__carril--on .k2-interruptor__bola { transform: translateX(16px); }
+@media (prefers-reduced-motion: reduce) {
+    .k2-interruptor__bola, .k2-interruptor__carril { transition: none; }
+}
+
+/* --- Sección plegable ------------------------------------------------------------------ */
+.k2-seccion { border-bottom: 1px solid var(--k-divider); }
+.k2-seccion:last-child { border-bottom: 0; }
+.k2-seccion__cabeza {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+}
+.k2-seccion__boton {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    min-height: var(--k-touch);
+    padding: var(--k-space-2) 0;
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--k-text);
+    text-align: left;
+    cursor: pointer;
+}
+.k2-seccion__flecha {
+    display: inline-grid;
+    color: var(--k-text-faint);
+    transition: transform .15s;
+}
+.k2-seccion__flecha--abierta { transform: rotate(90deg); }
+.k2-seccion__cuerpo { padding: 0 0 var(--k-space-4); }
+
+/* --- Diálogo ------------------------------------------------------------------------------- */
+.k2-dialogo-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    padding: var(--k-space-4);
+    background-color: var(--k-overlay);
+}
+:root:not([data-theme="oscuro"]) .k2-dialogo-fondo { background-color: rgba(var(--k-shadow-rgb), 0.35); }
+.k2-dialogo {
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: var(--k-space-5);
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+}
+.k2-dialogo__cabeza {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--k-space-3);
+}
+.k2-dialogo__titulo {
+    font-family: var(--k-font-title);
+    font-size: 28px;
+    line-height: 1.1;
+    color: var(--k-text);
+}
+.k2-dialogo__desc {
+    margin-top: var(--k-space-2);
+    font-size: var(--k-text-md);
+    line-height: 1.5;
+    color: var(--k-text-muted);
+}
+.k2-dialogo__cuerpo { margin-top: var(--k-space-4); }
+.k2-dialogo__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--k-space-2);
+    margin-top: var(--k-space-5);
+}
+.k2-borrar-lista {
+    display: grid;
+    gap: var(--k-space-2);
+    font-size: var(--k-text-md);
+    line-height: 1.5;
+    color: var(--k-text);
+}
+.k2-borrar-lista strong { font-weight: 700; }
+
+/* Los menús se quedan donde se abren (MenuContextual ya se mide para no
+ * salirse de la pantalla); en el teléfono, cada opción con su área táctil. */
+@media (max-width: 767px) {
+    [role="menu"] .k-btn { min-height: var(--k-touch); }
+}
+
+.k2-seg--envolver { flex-wrap: wrap; }
+
+/* Lo que sólo existe en un tamaño. */
+.k2-solo-movil { display: block; }
+.k2-solo-escritorio { display: none; }
+.k2-no-movil { display: none !important; }
+@media (min-width: 768px) {
+    .k2-solo-movil { display: none; }
+    .k2-solo-escritorio { display: inline; }
+    .k2-no-movil { display: inline-grid !important; }
+}
+div.k2-solo-escritorio { display: none; }
+@media (min-width: 768px) { div.k2-solo-escritorio { display: flex; } }
+
+/* ==========================================================================
+ * 2. EL ESTUDIO
+ * ========================================================================== */
+.k2-estudio {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--k-bg);
+}
+
+/* --- La barra de acción ------------------------------------------------------
+ * Tres zonas fijas: qué hay · escuchar · hacer. En el teléfono los textos de
+ * los botones se esconden y queda el icono con su nombre accesible. */
+.k2-barra-accion {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-3);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-divider);
+    background-color: var(--k-surface);
+    flex: none;
+}
+@media (min-width: 768px) {
+    .k2-barra-accion { padding: var(--k-space-2) var(--k-space-5); gap: var(--k-space-4); }
+}
+.k2-que-hay {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+.k2-que-hay__rotulo {
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--k-text-faint);
+}
+.k2-que-hay__valor {
+    font-family: var(--k-font-title);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--k-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.k2-barra-accion__grupo {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    flex: none;
+}
+.k2-barra-accion__fin { margin-left: auto; gap: var(--k-space-1); }
+@media (min-width: 768px) { .k2-barra-accion__fin { gap: var(--k-space-2); } }
+.k2-boton-texto {
+    gap: var(--k-space-2);
+    padding: 0 var(--k-space-3);
+    min-height: var(--k-touch);
+    font-size: var(--k-text-sm);
+}
+@media (min-width: 768px) { .k2-boton-texto { min-height: 36px; padding: 0 var(--k-space-4); } }
+
+/* El tempo: etiqueta, deslizador y valor en una fila. */
+.k2-tempo {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+}
+.k2-tempo__rotulo {
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+}
+.k2-tempo__valor {
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--k-text);
+    min-width: 58px;
+}
+.k2-tempo__extra {
+    font-size: var(--k-text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--k-text-faint);
+}
+.k2-rango { accent-color: var(--k-accent); width: 110px; height: var(--k-touch); cursor: pointer; }
+@media (min-width: 768px) { .k2-rango { height: 24px; } }
+.k2-campo .k2-rango { width: 100%; }
+
+/* --- El cuerpo: lienzo + inspector ------------------------------------------- */
+.k2-estudio__cuerpo {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
+}
+.k2-lienzo-zona {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--k-space-2);
+    padding: var(--k-space-3);
+    overflow: hidden;
+}
+@media (min-width: 768px) { .k2-lienzo-zona { padding: var(--k-space-4) var(--k-space-5); } }
+
+/* --- El inspector -------------------------------------------------------------- */
+.k2-inspector {
+    flex: none;
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background-color: var(--k-surface);
+    border-left: 1px solid var(--k-divider);
+}
+.k2-inspector__cabeza {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-1);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-divider);
+}
+.k2-inspector__cuerpo {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--k-space-2) var(--k-space-4) var(--k-space-5);
+}
+.k2-velo { display: none; }
+.k2-cerrar-inspector { display: none; }
+
+/* Por debajo de 1280 px el inspector es un cajón sobre el lienzo. */
+@media (max-width: 1279px) {
+    .k2-inspector {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 41;
+        box-shadow: var(--k-shadow-float);
+        max-width: calc(100vw - 48px);
+    }
+    .k2-velo {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 40;
+        background-color: var(--k-scrim);
+    }
+    .k2-cerrar-inspector { display: inline-grid; }
+}
+/* Y en el teléfono, una hoja que sube desde el dock. */
+@media (max-width: 767px) {
+    .k2-inspector {
+        top: auto;
+        left: 0;
+        width: auto;
+        max-width: none;
+        max-height: 72%;
+        border-left: 0;
+        border-top: 1px solid var(--k-divider);
+        border-top-left-radius: var(--k-radius-xl);
+        border-top-right-radius: var(--k-radius-xl);
+    }
+    /* En la hoja, la fila de pestañas sobra: ya está el dock debajo. */
+    .k2-inspector .k2-pestanas { display: none; }
+    .k2-inspector__cabeza { justify-content: flex-end; border-bottom: 0; padding-top: 0; }
+}
+
+/* --- Las pestañas del inspector ------------------------------------------------------ */
+.k2-pestanas {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-bg-deep);
+    border: 1px solid var(--k-divider);
+}
+.k2-pestana {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 4px 2px;
+    border-radius: var(--k-radius-sm);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .12s, color .12s;
+}
+.k2-pestana:hover:not(.k2-pestana--activa) { color: var(--k-text); }
+.k2-pestana--activa {
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    box-shadow: var(--k-shadow-panel), inset 0 -2px 0 var(--k-accent);
+}
+
+/* --- El dock del teléfono --------------------------------------------------------------- */
+.k2-dock { display: none; }
+@media (max-width: 767px) {
+    .k2-dock {
+        display: flex;
+        flex: none;
+        gap: 2px;
+        padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+        background-color: var(--k-surface);
+        border-top: 1px solid var(--k-divider);
+        z-index: 42;
+    }
+}
+.k2-dock__boton {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 52px;
+    border-radius: var(--k-radius-md);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    cursor: pointer;
+}
+.k2-dock__boton--activo { color: var(--k-text); background-color: var(--k-accent-soft); }
+
+/* --- Piezas del contenido del inspector -------------------------------------------------- */
+.k2-intro {
+    font-size: var(--k-text-sm);
+    line-height: 1.5;
+    color: var(--k-text-muted);
+    padding: var(--k-space-3) 0 var(--k-space-1);
+}
+.k2-bloque { margin-top: var(--k-space-4); }
+.k2-bloque:first-child { margin-top: var(--k-space-2); }
+.k2-ayuda--aviso { color: var(--k-highlight); font-weight: 600; }
+.k2-dos-columnas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--k-space-3);
+}
+.k2-dos-columnas > .k2-campo + .k2-campo { margin-top: 0; }
+.k2-rejilla-botones {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+.k2-rejilla-botones--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.k2-boton-rejilla {
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-1);
+    border-radius: var(--k-radius-sm);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@media (min-width: 768px) { .k2-boton-rejilla { min-height: 36px; } }
+.k2-boton-rejilla:hover { border-color: var(--k-border); }
+.k2-boton-rejilla--on {
+    background-color: var(--k-accent-soft);
+    border-color: var(--k-accent);
+}
+
+/* Listas con una acción principal y su papelera al lado. */
+.k2-lista { display: grid; gap: 4px; }
+.k2-lista__fila { display: flex; align-items: center; gap: var(--k-space-1); }
+.k2-lista__principal {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--k-space-2);
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-sm);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    text-align: left;
+    cursor: pointer;
+}
+@media (min-width: 768px) { .k2-lista__principal { min-height: 38px; } }
+.k2-lista__principal:hover { border-color: var(--k-border); }
+.k2-lista__nombre { font-weight: 700; color: var(--k-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k2-lista__detalle { font-size: var(--k-text-xs); color: var(--k-text-faint); white-space: nowrap; }
+.k2-icono-borrar { min-width: var(--k-touch); min-height: var(--k-touch); }
+@media (min-width: 768px) { .k2-icono-borrar { min-width: 38px; min-height: 38px; } }
+
+.k2-fila-estado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--k-space-2);
+    margin-top: var(--k-space-3);
+    font-size: var(--k-text-xs);
+    color: var(--k-text-faint);
+}
+
+/* Las cuerdas de la afinación, en una rejilla que se adapta a 4 u 8. */
+.k2-cuerdas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: var(--k-space-2);
+}
+.k2-cuerdas .k2-etiqueta { text-align: center; margin-bottom: 4px; }
+.k2-cuerda-input { text-align: center; font-weight: 700; padding: 0 !important; }
+
+/* Un color: la muestra y su código. */
+.k2-color {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-2);
+    border-radius: var(--k-radius-sm);
+    border: 1px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+}
+@media (min-width: 768px) { .k2-color { min-height: 38px; } }
+.k2-color input[type="color"] {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.k2-color__hex {
+    font-family: var(--k-font-mono);
+    font-size: var(--k-text-xs);
+    color: var(--k-text-muted);
+}
+.k2-guardar-estilo { display: grid; gap: var(--k-space-2); }
+.k2-pie-inspector { padding-top: var(--k-space-4); }
+
+/* --- Exportar --------------------------------------------------------------------------- */
+.k2-formatos {
+    display: grid;
+    gap: var(--k-space-2);
+    margin-top: var(--k-space-4);
+}
+.k2-formato {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--k-space-3) var(--k-space-4);
+    min-height: 64px;
+    border-radius: var(--k-radius-lg);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .12s, transform .12s;
+}
+.k2-formato:hover { border-color: var(--k-accent); transform: translateY(-1px); }
+.k2-formato__titulo { font-family: var(--k-font-title); font-size: 22px; color: var(--k-text); }
+.k2-formato__detalle { font-size: var(--k-text-sm); color: var(--k-text-muted); }
+
+/* --- Atajos ------------------------------------------------------------------------------- */
+.k2-atajos { display: grid; gap: 2px; }
+.k2-atajos__fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--k-space-3);
+    padding: var(--k-space-2) 0;
+    border-bottom: 1px solid var(--k-divider);
+    font-size: var(--k-text-sm);
+    color: var(--k-text);
+}
+.k2-atajos kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    font-family: var(--k-font-ui);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* --- El aviso ----------------------------------------------------------------------------- */
+.k2-aviso--rebote { animation: k2-rebote .5s ease 2; }
+@keyframes k2-rebote {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) { .k2-aviso--rebote { animation: none; } }
+/* En el teléfono, por encima del dock y a lo ancho. */
+@media (max-width: 767px) {
+    .k2-aviso { left: 12px !important; right: 12px !important; bottom: 76px !important; }
+}
+
+/* --- Ajustes del teléfono (vistos en la revisión a 375 px) ------------------------
+ * El nombre de lo que hay ya es el título del propio diagrama: en la barra se
+ * cortaba a «Nin…» y robaba sitio a los botones. */
+@media (max-width: 767px) {
+    .k2-que-hay { display: none; }
+    .k2-barra-accion { justify-content: space-between; }
+    .k2-barra-accion__fin { margin-left: 0; }
+    /* La hoja: el asa y la × en la misma franja, sin una fila vacía. */
+    .k2-inspector__cabeza { position: absolute; top: 2px; right: 6px; padding: 0; z-index: 1; }
+    .k2-inspector .k-sheet-handle { margin-top: 10px; margin-bottom: 6px; }
+    .k2-inspector__cuerpo { padding-top: 0; }
+    /* El logo y el selector de versión, con su área táctil. */
+    header button[aria-label="Volver al inicio"] { min-height: var(--k-touch); display: inline-flex; align-items: center; }
+    .kp-version { min-height: var(--k-touch); }
+}
+
+/* --- La pulsación larga en el mástil -------------------------------------------
+ * Sin esto, mantener pulsado el diagrama en un iPhone saca el menú del sistema
+ * (copiar, guardar imagen) encima del nuestro. Va por clase y no en el SVG:
+ * lo que va en el SVG viaja al archivo exportado. */
+.k-lienzo, .k-lienzo svg {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ==========================================================================
+ * 3. CANCIÓN Y EJERCICIOS (los dos «documentos»)
+ * ==========================================================================
+ * La misma forma para los dos, para que se aprenda una vez: una cabecera
+ * fija con lo de siempre, el editor a la izquierda y la hoja (o la ficha) en
+ * vivo a la derecha, con exportar pegado a ella. Por debajo de 1280 px no
+ * caben las dos columnas: un «Editar / Ver la hoja» cambia de una a otra. */
+.k2-doc {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background-color: var(--k-bg);
+}
+.k2-doc__cabeza {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    gap: var(--k-space-2);
+    padding: var(--k-space-3);
+    background-color: var(--k-surface);
+    border-bottom: 1px solid var(--k-divider);
+}
+@media (min-width: 768px) { .k2-doc__cabeza { padding: var(--k-space-3) var(--k-space-5); } }
+.k2-doc__fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--k-space-2) var(--k-space-3);
+}
+.k2-doc__titulo { flex: 1 1 220px; min-width: 0; }
+.k2-doc__titulo input { font-weight: 700; }
+.k2-doc__corto { flex: 0 0 110px; }
+.k2-doc__controles { align-items: center; }
+.k2-doc__controles .k2-campo-seg .k2-etiqueta,
+.k2-oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+.k2-doc__empuje { flex: 1; }
+
+.k2-doc__alternar { padding: var(--k-space-3) var(--k-space-3) 0; }
+@media (min-width: 1280px) { .k2-doc__alternar { display: none; } }
+
+.k2-doc__rejilla {
+    display: grid;
+    gap: var(--k-space-4);
+    padding: var(--k-space-3);
+    max-width: 1520px;
+    margin: 0 auto;
+}
+@media (min-width: 768px) { .k2-doc__rejilla { padding: var(--k-space-4) var(--k-space-5) var(--k-space-6); } }
+@media (min-width: 1280px) {
+    .k2-doc__rejilla { grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); align-items: start; }
+    .k2-doc__hoja { position: sticky; top: 150px; max-height: calc(100vh - 170px); overflow-y: auto; }
+}
+@media (max-width: 1279px) {
+    .k2-doc__rejilla--editar .k2-doc__hoja { display: none; }
+    .k2-doc__rejilla--hoja .k2-doc__editor { display: none; }
+}
+.k2-doc__editor, .k2-doc__hoja { display: grid; gap: var(--k-space-4); align-content: start; min-width: 0; }
+
+/* Una tarjeta del editor, con su paso numerado: 1 acordes, 2 estructura,
+ * 3 ritmo. El número dice el orden en que se arma una canción. */
+.k2-tarjeta {
+    padding: var(--k-space-4);
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-panel);
+    min-width: 0;
+}
+.k2-tarjeta > .k2-seccion { border-bottom: 0; }
+.k2-tarjeta > .k2-seccion .k2-seccion__cuerpo { padding-bottom: 0; }
+.k2-paso {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    margin-bottom: var(--k-space-3);
+    font-family: var(--k-font-title);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--k-text);
+}
+.k2-paso__num {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    font-family: var(--k-font-ui);
+    font-size: var(--k-text-sm);
+    font-weight: 800;
+}
+
+.k2-fila-botones { display: flex; flex-wrap: wrap; gap: var(--k-space-2); align-items: center; }
+
+/* Las secciones: pestañas que envuelven, y el «⋯» de la activa al lado. */
+.k2-secciones { display: flex; align-items: flex-start; gap: var(--k-space-2); margin-bottom: var(--k-space-3); }
+.k2-secciones__lista { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.k2-seccion-tab {
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-bg-deep);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    cursor: pointer;
+}
+@media (min-width: 768px) { .k2-seccion-tab { min-height: 36px; } }
+.k2-seccion-tab:hover { color: var(--k-text); }
+.k2-seccion-tab--activa {
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    box-shadow: var(--k-shadow-panel), inset 0 -2px 0 var(--k-accent);
+}
+.k2-seccion-tab--nueva { border-style: dashed; background-color: transparent; }
+
+/* La tarjeta de una sección, dentro de «La estructura». */
+.k2-seccion-card { padding-top: var(--k-space-2); }
+.k2-seccion-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--k-space-3);
+}
+.k2-seccion-campos > .k2-campo + .k2-campo { margin-top: 0; }
+.k2-seccion-campos__nombre, .k2-seccion-campos__ritmo { grid-column: 1 / -1; }
+@media (min-width: 900px) {
+    .k2-seccion-campos { grid-template-columns: minmax(0, 2fr) 90px 120px minmax(0, 2fr); }
+    .k2-seccion-campos__nombre, .k2-seccion-campos__ritmo { grid-column: auto; }
+}
+.k2-chip-pulsable { cursor: pointer; min-height: 32px; }
+.k2-chip-pulsable[aria-pressed="true"] { background-color: var(--k-accent); color: var(--k-accent-ink); }
+
+/* El «⋯» pequeño de la tarjeta de un acorde. */
+.k2-mini-mas { padding: 0 6px; flex: none; }
+
+/* La hoja en vivo. */
+.k2-hoja-controles__cabeza { display: flex; align-items: center; flex-wrap: wrap; gap: var(--k-space-2); }
+.k2-hoja-controles__cabeza .k2-paso { margin-bottom: 0; margin-right: auto; }
+.k2-hoja-papel { min-width: 0; }
+
+/* El editor de rasgueo, dentro de su diálogo. */
+.k2-rasgueo-cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--k-space-3);
+}
+.k2-rasgueo-cabeza__nombre { flex: 1 1 160px; }
+.k2-rasgueo-cabeza > .k2-campo + .k2-campo,
+.k2-rasgueo-cabeza > * { margin-top: 0 !important; }
+@media (max-width: 767px) {
+    .k-strum-cell { min-width: 40px; height: 44px; font-size: 18px; }
+}
+
+/* --- Documentos en el teléfono -----------------------------------------------------
+ * La cabecera fija se comía casi media pantalla (título, tempo, compás y
+ * controles): en el teléfono se va con el scroll como el resto. Y todo lo que
+ * se pulsa dentro del documento cumple los 44 px, aunque venga de una pieza
+ * antigua con su propio tamaño. */
+@media (max-width: 767px) {
+    .k2-doc__cabeza { position: static; }
+    .k2-doc .k-btn,
+    .k2-doc .k-field,
+    .k2-doc input[type="text"],
+    .k2-doc input[type="number"],
+    .k2-doc select { min-height: var(--k-touch); }
+}
+
+/* --- Los pasos de un ejercicio ------------------------------------------------------- */
+.k2-doc__medio { flex: 0 0 200px; }
+.k2-pasos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--k-space-3);
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.k2-paso-card {
+    display: grid;
+    gap: var(--k-space-2);
+    padding: var(--k-space-3);
+    border-radius: var(--k-radius-lg);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+}
+.k2-paso-card--sonando { border-color: var(--k-highlight); box-shadow: 0 0 0 2px var(--k-highlight); }
+.k2-paso-card__cabeza { display: flex; align-items: center; gap: var(--k-space-2); }
+.k2-paso-card__cabeza .k-field { min-height: 38px; }
+.k2-paso-card__pie { display: flex; align-items: center; gap: var(--k-space-2); flex-wrap: wrap; }
+.k2-paso-card__pie .k2-campo { margin: 0 auto 0 0; }
+.k2-numero-corto { width: 64px !important; text-align: center; }
+
+/* ==========================================================================
+ * 4. SEGUNDA VUELTA (2026-10-04): raíl, carga, «¿Adónde va?», Canción plegable
+ * ========================================================================== */
+
+/* --- El cuerpo: raíl + vista -------------------------------------------------- */
+.k2-cuerpo-app {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
+}
+.k2-cuerpo-app__vista {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- El raíl del Taller ---------------------------------------------------------
+ * Dos bandas, una por cara del disco: Lado A en cobalto pastel y Lado B en lima
+ * tenue, cada una cubriendo su sección entera. El Lado B se estira hasta abajo
+ * para que el raíl no acabe en un hueco sin color. */
+:root {
+    --k2-lado-a: color-mix(in srgb, var(--k-accent) 8%, var(--k-surface));
+    --k2-lado-a-tinta: var(--k-accent);
+    --k2-lado-b: color-mix(in srgb, var(--k-marker) 16%, var(--k-surface));
+    --k2-lado-b-tinta: var(--k-highlight);
+}
+:root[data-theme="oscuro"] {
+    --k2-lado-a: color-mix(in srgb, var(--k-accent) 11%, var(--k-surface));
+    --k2-lado-b: color-mix(in srgb, var(--k-marker) 8%, var(--k-surface));
+}
+.k2-rail { display: none; }
+@media (min-width: 768px) {
+    .k2-rail {
+        display: flex;
+        flex-direction: column;
+        flex: none;
+        width: 92px;
+        overflow-y: auto;
+        background-color: var(--k-surface);
+        border-right: 1px solid var(--k-divider);
+    }
+}
+.k2-rail__lado {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: var(--k-space-3) var(--k-space-2);
+}
+.k2-rail__lado--a { background-color: var(--k2-lado-a); --k2-tinta: var(--k2-lado-a-tinta); }
+.k2-rail__lado--b {
+    flex: 1 0 auto;
+    background-color: var(--k2-lado-b);
+    --k2-tinta: var(--k2-lado-b-tinta);
+    border-top: 1px solid var(--k-divider);
+}
+/* La cabecera de cada banda: la galleta del disco, «Lado A» y qué hay. */
+.k2-rail__cabeza {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: var(--k-space-2);
+    text-align: center;
+}
+.k2-rail__disco {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    margin-bottom: 2px;
+    border-radius: 50%;
+    font-family: var(--k-font-title);
+    font-size: 14px;
+    line-height: 1;
+    background-color: var(--k2-tinta);
+    color: var(--k-surface);
+}
+.k2-rail__lado-texto {
+    font-size: var(--k-text-xs);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--k2-tinta);
+}
+.k2-rail__lado-nombre {
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--k-text-muted);
+}
+.k2-rail__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 58px;
+    padding: 6px 2px;
+    border-radius: var(--k-radius-md);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    cursor: pointer;
+    transition: background-color .12s, color .12s;
+}
+.k2-rail__item:hover { color: var(--k-text); background-color: rgba(var(--k-shadow-rgb), 0.05); }
+:root[data-theme="oscuro"] .k2-rail__item:hover { background-color: rgba(242, 237, 227, 0.06); }
+.k2-rail__item--activo,
+.k2-rail__item--activo:hover {
+    color: var(--k-text);
+    background-color: var(--k-surface-raised);
+    box-shadow: inset 3px 0 0 var(--k2-tinta), 0 1px 2px rgba(var(--k-shadow-rgb), 0.08);
+}
+
+/* --- Vaciar el mástil, encima de Posición ---------------------------------------- */
+.k2-vaciar {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: var(--k-touch);
+    min-height: var(--k-touch);
+    padding: 6px 8px;
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: rgba(var(--k-bg-rgb), 0.6);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    cursor: pointer;
+    transition: background-color .12s, color .12s, border-color .12s;
+}
+.k2-vaciar:hover:not(:disabled) {
+    color: var(--k-danger);
+    border-color: currentColor;
+    background-color: var(--k-surface-raised);
+}
+.k2-vaciar:disabled { opacity: 0.4; cursor: not-allowed; }
+.k2-vaciar--esquina {
+    position: absolute;
+    top: var(--k-space-3);
+    right: var(--k-space-3);
+    z-index: 5;
+    padding: 0;
+    background-color: var(--k-surface);
+    box-shadow: 0 1px 3px rgba(var(--k-shadow-rgb), 0.15);
+}
+.k2-vaciar--esquina span { display: none; }
+.k2-vaciar--esquina:disabled { display: none; }
+
+/* Tríadas usa la misma pieza que Vaciar (en Escalas ocupa su sitio). Encendido,
+ * en cobalto; en la esquina del teléfono se queda con su nombre, que un icono
+ * de tres puntos no se explica solo. */
+.k2-triadas[aria-pressed="true"],
+.k2-triadas[aria-pressed="true"]:hover:not(:disabled) {
+    background-color: var(--k-accent);
+    border-color: var(--k-accent);
+    color: var(--k-accent-ink);
+}
+.k2-triadas:hover:not(:disabled) { color: var(--k-accent); border-color: currentColor; }
+.k2-vaciar--esquina.k2-triadas { flex-direction: row; gap: 6px; padding: 0 12px; }
+.k2-vaciar--esquina.k2-triadas span { display: inline; }
+.k2-vaciar--esquina.k2-triadas:disabled { display: none; }
+
+/* --- Guardar acorde: el panel pegado al botón ------------------------------------ */
+.k2-guardar-fondo { display: none; }
+.k2-guardar {
+    position: fixed;
+    z-index: 65;
+    width: 340px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: var(--k-space-4);
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+    display: flex;
+    flex-direction: column;
+    gap: var(--k-space-4);
+}
+@media (max-width: 767px) {
+    .k2-guardar-fondo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 64;
+        background-color: var(--k-overlay);
+    }
+    :root:not([data-theme="oscuro"]) .k2-guardar-fondo { background-color: rgba(var(--k-shadow-rgb), 0.35); }
+    .k2-guardar {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: auto;
+        max-height: 85vh;
+        border-radius: var(--k-radius-xl) var(--k-radius-xl) 0 0;
+        padding-bottom: calc(var(--k-space-4) + env(safe-area-inset-bottom));
+    }
+}
+.k2-guardar__cabeza {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: calc(var(--k-space-1) * -1) calc(var(--k-space-2) * -1) calc(var(--k-space-2) * -1) 0;
+}
+.k2-guardar__titulo {
+    font-family: var(--k-font-title);
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--k-text);
+}
+.k2-guardar__acorde {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--k-space-3);
+}
+.k2-guardar__mini {
+    flex: none;
+    width: 88px;
+    padding: var(--k-space-1);
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-bg);
+}
+.k2-guardar__nombre { flex: 1; min-width: 0; }
+.k2-guardar__nombre .k2-campo { margin: 0; }
+.k2-guardar__aviso {
+    margin-top: var(--k-space-2);
+    font-size: var(--k-text-xs);
+    line-height: 1.4;
+    color: var(--k-text-muted);
+}
+.k2-guardar__cancion {
+    padding-top: var(--k-space-3);
+    border-top: 1px solid var(--k-divider);
+}
+.k2-guardar__opcional { font-weight: 400; color: var(--k-text-faint); text-transform: none; letter-spacing: 0; }
+.k2-guardar__select { width: 100%; margin: var(--k-space-1) 0 var(--k-space-2); }
+.k2-guardar__una { margin: var(--k-space-1) 0 var(--k-space-2); font-size: var(--k-text-sm); font-weight: 700; color: var(--k-text); }
+.k2-fichas { display: flex; flex-wrap: wrap; gap: 6px; }
+.k2-ficha {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 4px 12px;
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    color: var(--k-text);
+    cursor: pointer;
+}
+.k2-ficha small { font-size: 10px; font-weight: 600; color: var(--k-text-faint); }
+.k2-ficha:hover { border-color: var(--k-border); }
+.k2-ficha--elegida,
+.k2-ficha--elegida:hover { border-color: var(--k-accent); background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k2-ficha--elegida small { color: inherit; opacity: 0.75; }
+@media (max-width: 767px) { .k2-ficha { min-height: var(--k-touch); } }
+.k2-guardar__boton {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--k-space-2);
+    padding: 10px var(--k-space-4);
+    font-size: var(--k-text-sm);
+}
+
+/* --- La pantalla de carga ------------------------------------------------------- */
+.k2-carga {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--k-space-4);
+    background-color: var(--k-bg);
+    animation: k2-carga-sale 1s ease forwards;
+}
+@keyframes k2-carga-sale {
+    0%, 70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+.k2-carga__mastil {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: min(260px, 60vw);
+    height: 92px;
+    padding: 12px 0;
+    border-radius: var(--k-radius-lg);
+    background: linear-gradient(180deg, #3B2A1C, #2A1D13);
+    box-shadow: var(--k-shadow-float);
+}
+.k2-carga__cuerda {
+    display: block;
+    width: 100%;
+    background-color: #D8C08A;
+    transform-origin: center;
+    animation: k2-cuerda 0.6s ease-in-out infinite alternate;
+}
+.k2-carga__cuerda:nth-child(-n+2) { background-color: #ECECEC; }
+@keyframes k2-cuerda {
+    from { transform: scaleX(0.15); opacity: .4; }
+    to   { transform: scaleX(1); opacity: 1; }
+}
+.k2-carga__texto {
+    font-family: var(--k-font-title);
+    font-size: 22px;
+    color: var(--k-text);
+}
+@media (prefers-reduced-motion: reduce) {
+    .k2-carga__cuerda { animation: none; }
+}
+
+/* --- «¿Adónde va?» ----------------------------------------------------------------- */
+.k2-destinos {
+    margin-top: var(--k-space-4);
+    max-height: 46vh;
+    overflow-y: auto;
+    border: 0;
+    padding: 0;
+}
+.k2-destinos__grupo + .k2-destinos__grupo { margin-top: var(--k-space-3); }
+.k2-destinos__titulo {
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--k-text-faint);
+    margin: 0 0 4px;
+}
+.k2-destino {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-3);
+    min-height: var(--k-touch);
+    padding: 6px var(--k-space-3);
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    cursor: pointer;
+}
+.k2-destino + .k2-destino { margin-top: 4px; }
+.k2-destino:hover { border-color: var(--k-border); }
+.k2-destino--elegido { border-color: var(--k-accent); background-color: var(--k-accent-soft); }
+.k2-destino input { accent-color: var(--k-accent); width: 18px; height: 18px; flex: none; }
+.k2-destino__texto { display: flex; flex-direction: column; min-width: 0; font-size: var(--k-text-sm); font-weight: 700; color: var(--k-text); }
+.k2-destino__texto small { font-size: var(--k-text-xs); font-weight: 400; color: var(--k-text-faint); }
+
+/* --- Canción y Ejercicios: tarjetas plegables -------------------------------------- */
+.k2-tarjeta--plegable { padding: var(--k-space-1) var(--k-space-4); }
+.k2-tarjeta--plegable > .k2-seccion > .k2-seccion__cabeza .k2-seccion__boton { min-height: 56px; }
+.k2-seccion__boton .k2-paso { margin: 0; gap: var(--k-space-2); }
+.k2-seccion__boton .k2-paso .k-chip { font-family: var(--k-font-ui); }
+.k2-tarjeta--plegable > .k2-seccion > .k2-seccion__cuerpo { padding-bottom: var(--k-space-4); }
+
+/* --- La columna del editor, angosta: la hoja manda -------------------------------- */
+@media (min-width: 1280px) {
+    .k2-doc__rejilla {
+        grid-template-columns: minmax(380px, 460px) minmax(0, 1fr);
+        max-width: none;
+    }
+}
+/* En una columna de 460 px los cuatro campos de la sección no caben en fila:
+ * se quedan en dos, como en el teléfono. */
+@media (min-width: 900px) {
+    .k2-seccion-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .k2-seccion-campos__nombre, .k2-seccion-campos__ritmo { grid-column: 1 / -1; }
+}
+
+/* Los chips de acorde de la letra: en el teléfono, con su área táctil. */
+@media (max-width: 767px) {
+    .k2-chip-pulsable { min-height: var(--k-touch); padding: 0 var(--k-space-3); }
+}
+
+/* La tira «Elige tríada»: en el teléfono cada ficha con su área táctil. */
+@media (max-width: 767px) {
+    .k-strip [role="radio"],
+    .k-strip .k-btn { min-height: var(--k-touch); }
+}

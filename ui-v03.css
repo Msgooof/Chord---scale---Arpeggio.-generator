@@ -1,0 +1,840 @@
+/* ==========================================================================
+ * ui-v03.css — lo que añade la prueba 0.3: la Biblioteca y las Tablaturas.
+ *
+ * Lo carga sólo v03.html, DESPUÉS de ui.css. No redefine nada de ui.css:
+ * todo va con prefijo `k3-`, salvo el pie del raíl, que se apoya en las
+ * clases de siempre. Si la 0.3 se aprueba, este archivo se pega al final de
+ * ui.css tal cual, como se hizo con ui-v02.css.
+ * ========================================================================== */
+
+:root {
+    --k3-aviso: #B45309;
+    --k3-aviso-suave: rgba(180, 83, 9, 0.12);
+}
+:root[data-theme="oscuro"] {
+    --k3-aviso: #F59E0B;
+    --k3-aviso-suave: rgba(245, 158, 11, 0.16);
+}
+
+/* --- El pie del raíl: la Biblioteca ------------------------------------------
+ * Abajo del todo, dentro de la banda del Lado B (que ya se estira hasta el
+ * final), con una raya encima para que se lea como algo aparte de los lados. */
+.k3-rail__pie {
+    margin-top: auto;
+    padding-top: var(--k-space-2);
+    border-top: 1px solid var(--k-divider);
+}
+.k3-rail__biblioteca { width: 100%; }
+
+/* ==========================================================================
+ * LA BIBLIOTECA
+ * ========================================================================== */
+.k3-bib {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background-color: var(--k-bg);
+}
+.k3-bib__cabeza {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    gap: var(--k-space-3);
+    padding: var(--k-space-3);
+    background-color: var(--k-surface);
+    border-bottom: 1px solid var(--k-divider);
+}
+@media (min-width: 768px) { .k3-bib__cabeza { padding: var(--k-space-4) var(--k-space-5) var(--k-space-3); } }
+.k3-bib__fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--k-space-2) var(--k-space-3);
+}
+.k3-bib__titulo {
+    font-family: var(--k-font-title);
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--k-text);
+}
+.k3-bib__total { font-size: var(--k-text-sm); color: var(--k-text-muted); }
+
+.k3-bib__buscar {
+    flex: 1 1 240px;
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text-muted);
+}
+.k3-bib__buscar:focus-within { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+.k3-bib__buscar input {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    border: 0;
+    background: transparent;
+    color: var(--k-text);
+    font-size: var(--k-text-md);
+    outline: none;
+}
+.k3-bib__orden select { min-height: var(--k-touch); padding: 0 var(--k-space-3); border-radius: var(--k-radius-md); }
+
+.k3-bib__filtros {
+    display: flex;
+    gap: var(--k-space-2);
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+}
+.k3-filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    min-height: 36px;
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text-muted);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+@media (max-width: 767px) { .k3-filtro { min-height: var(--k-touch); } }
+.k3-filtro:hover { color: var(--k-text); border-color: var(--k-border); }
+.k3-filtro--activo, .k3-filtro--activo:hover {
+    background-color: var(--k-text);
+    border-color: var(--k-text);
+    color: var(--k-bg);
+}
+.k3-filtro__n {
+    font-weight: 600;
+    font-size: var(--k-text-xs);
+    opacity: 0.75;
+}
+.k3-filtro--etiqueta { font-weight: 600; }
+.k3-bib__sep { flex: none; width: 1px; align-self: stretch; margin: 4px 2px; background-color: var(--k-divider); }
+
+/* La barra de lo elegido: aparece pegada bajo la cabecera. */
+.k3-bib__seleccion {
+    position: sticky;
+    top: 0;
+    z-index: 19;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--k-space-2);
+    padding: var(--k-space-2) var(--k-space-3);
+    background-color: var(--k-accent-soft);
+    border-bottom: 1px solid var(--k-divider);
+    color: var(--k-text);
+}
+@media (min-width: 768px) { .k3-bib__seleccion { padding: var(--k-space-2) var(--k-space-5); } }
+
+.k3-bib__cuerpo {
+    display: grid;
+    gap: var(--k-space-5);
+    padding: var(--k-space-4) var(--k-space-3) var(--k-space-6);
+    max-width: 1520px;
+    margin: 0 auto;
+    width: 100%;
+}
+@media (min-width: 768px) { .k3-bib__cuerpo { padding: var(--k-space-5) var(--k-space-5) var(--k-space-6); } }
+.k3-bib__seccion { display: grid; gap: var(--k-space-3); min-width: 0; }
+.k3-bib__subtitulo {
+    font-size: var(--k-text-xs);
+    font-weight: 800;
+    letter-spacing: var(--k-tracking-label);
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k3-bib__rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--k-space-3);
+}
+@media (max-width: 479px) { .k3-bib__rejilla, .k3-bib__rejilla--recientes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--k-space-2); } }
+.k3-bib__rejilla--recientes { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.k3-bib__lista { display: grid; gap: 6px; }
+.k3-bib__vacio {
+    display: grid;
+    justify-items: start;
+    gap: var(--k-space-3);
+    padding: var(--k-space-6) var(--k-space-4);
+    border-radius: var(--k-radius-xl);
+    border: 1px dashed var(--k-border);
+    color: var(--k-text-muted);
+}
+
+/* --- Una pieza ------------------------------------------------------------------ */
+.k3-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-panel);
+    transition: border-color .12s, box-shadow .12s;
+}
+.k3-item:hover { border-color: var(--k-border); }
+.k3-item--elegido, .k3-item--elegido:hover {
+    border-color: var(--k-accent);
+    box-shadow: 0 0 0 2px var(--k-accent-soft), var(--k-shadow-panel);
+}
+.k3-item__mini {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--k-radius-xl) var(--k-radius-xl) 0 0;
+    overflow: hidden;
+}
+.k3-mini {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 150px;
+    padding: var(--k-space-2);
+    background-color: #fff;
+    border-bottom: 1px solid var(--k-divider);
+    overflow: hidden;
+}
+:root[data-theme="oscuro"] .k3-mini { background-color: var(--k-surface-raised); }
+.k3-mini svg { max-width: 100%; max-height: 100%; width: auto; height: 100%; }
+.k3-mini--tab { padding: var(--k-space-2) 0 var(--k-space-2) var(--k-space-2); place-items: center start; background-color: #fff; }
+.k3-mini--tab svg, .k3-mini-tab { width: 100%; height: 100%; }
+.k3-mini--cancion { background-color: var(--k-bg-deep); place-items: center; }
+.k3-mini__acordes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0 var(--k-space-2); }
+.k3-mini__acorde {
+    padding: 4px 10px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    font-family: var(--k-font-title);
+    font-size: 18px;
+    color: var(--k-text);
+}
+.k3-mini__acorde--mas { font-family: var(--k-font-ui); font-size: var(--k-text-sm); font-weight: 700; color: var(--k-text-muted); }
+.k3-mini__vacio { font-size: var(--k-text-sm); color: var(--k-text-faint); font-style: italic; }
+.k3-mini__mas {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 2px 8px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    font-size: var(--k-text-xs);
+    font-weight: 800;
+}
+
+.k3-item__cuerpo { display: grid; gap: 4px; padding: var(--k-space-3); padding-right: 84px; min-width: 0; }
+.k3-item--rejilla .k3-item__cuerpo { padding-right: var(--k-space-3); }
+.k3-item__tipo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--k-text-xs);
+    font-weight: 800;
+    letter-spacing: var(--k-tracking-label);
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k3-item__abierto {
+    padding: 1px 6px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.k3-item__titulo { margin: 0; font-size: var(--k-text-lg); font-weight: 700; line-height: 1.25; min-width: 0; }
+.k3-item__abrir {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--k-text);
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.k3-item__abrir:hover { color: var(--k-accent); text-decoration: underline; text-underline-offset: 3px; }
+.k3-item__renombrar { width: 100%; min-height: 36px; padding: 0 var(--k-space-2); font-weight: 700; }
+.k3-item__resumen {
+    margin: 0;
+    font-size: var(--k-text-sm);
+    color: var(--k-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.k3-item__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 2px; }
+.k3-item__fecha { font-size: var(--k-text-xs); color: var(--k-text-faint); margin-left: auto; }
+.k3-etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-accent-soft);
+    color: var(--k-text);
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+}
+.k3-etiqueta--quitar button {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-right: -4px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--k-text-muted);
+    cursor: pointer;
+}
+.k3-etiqueta--quitar button:hover { background-color: rgba(var(--k-shadow-rgb), 0.1); color: var(--k-text); }
+.k3-etiqueta--sugerida {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px dashed var(--k-border);
+    background: none;
+    cursor: pointer;
+}
+.k3-etiquetas-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--k-space-3); }
+
+.k3-item__acciones {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--k-radius-lg);
+    background-color: rgba(var(--k-surface-rgb), 0.92);
+}
+.k3-item--lista .k3-item__acciones { top: 50%; transform: translateY(-50%); }
+
+/* La casilla: se ve al pasar por encima, al tener el foco dentro o cuando ya
+ * hay algo elegido. En pantallas táctiles, siempre. */
+.k3-item__elegir {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--k-radius-md);
+    background-color: rgba(var(--k-surface-rgb), 0.92);
+    opacity: 0;
+    transition: opacity .12s;
+    cursor: pointer;
+}
+.k3-item__elegir input { width: 18px; height: 18px; accent-color: var(--k-accent); cursor: pointer; }
+.k3-item:hover .k3-item__elegir,
+.k3-item:focus-within .k3-item__elegir,
+.k3-item__elegir--visible,
+.k3-item--elegido .k3-item__elegir { opacity: 1; }
+@media (hover: none) { .k3-item__elegir { opacity: 1; width: 44px; height: 44px; } }
+
+.k3-item--lista { flex-direction: row; align-items: center; }
+.k3-item--lista .k3-item__elegir { position: static; opacity: 1; flex: none; margin-left: var(--k-space-2); }
+.k3-item--lista .k3-item__cuerpo {
+    flex: 1;
+    grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    align-items: center;
+    gap: var(--k-space-3);
+    padding-top: var(--k-space-2);
+    padding-bottom: var(--k-space-2);
+}
+.k3-item--lista .k3-item__pie { margin: 0; flex-wrap: nowrap; }
+@media (max-width: 767px) {
+    .k3-item--lista .k3-item__cuerpo { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
+.k3-usos { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.k3-usos__enlace {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    width: 100%;
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-2);
+    border-radius: var(--k-radius-md);
+    border: 0;
+    background: none;
+    color: var(--k-text);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.k3-usos__enlace:hover { background-color: var(--k-accent-soft); }
+.k3-usos__enlace .k-chip { margin-left: auto; }
+
+/* --- La imprenta ------------------------------------------------------------------
+ * Fuera de la pantalla, pero pintada: si fuera `display:none` el navegador no
+ * mediría el texto y la hoja de canción saldría mal paginada. */
+.k3-imprenta {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 840px;
+    pointer-events: none;
+}
+.k3-imprenta .k-sheet-page { box-shadow: none; border-radius: 0; }
+
+@media print {
+    @page { size: A4; margin: 0; }
+    html.k3-imprimiendo body > *:not(.k3-imprenta) { display: none !important; }
+    html.k3-imprimiendo, html.k3-imprimiendo body { background: #fff !important; height: auto !important; overflow: visible !important; }
+    html.k3-imprimiendo .k3-imprenta { position: static; left: auto; width: 210mm; }
+    html.k3-imprimiendo .k3-imprenta .space-y-4 > * + * { margin-top: 0 !important; }
+    html.k3-imprimiendo .k3-imprenta .k-sheet-page {
+        width: 210mm;
+        height: 297mm;
+        break-after: page;
+        page-break-after: always;
+    }
+}
+
+/* ==========================================================================
+ * TABLATURAS
+ * ========================================================================== */
+.k3-tab__rejilla {
+    display: grid;
+    gap: var(--k-space-4);
+    padding: var(--k-space-3);
+    max-width: 1640px;
+    margin: 0 auto;
+}
+@media (min-width: 768px) { .k3-tab__rejilla { padding: var(--k-space-4) var(--k-space-5) var(--k-space-6); } }
+/* La hoja manda: es donde se escribe. En el teléfono va primero y la paleta
+ * debajo; en escritorio la paleta es una columna angosta a la izquierda. */
+.k3-tab__hoja { order: -1; display: grid; gap: var(--k-space-3); align-content: start; min-width: 0; }
+.k3-tab__paleta { display: grid; gap: var(--k-space-3); align-content: start; min-width: 0; }
+@media (min-width: 1024px) {
+    .k3-tab__rejilla { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); align-items: start; }
+    .k3-tab__hoja { order: 0; }
+    .k3-tab__paleta { position: sticky; top: 150px; max-height: calc(100vh - 170px); overflow-y: auto; padding-right: 4px; }
+}
+.k3-tab__barra {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--k-space-2) var(--k-space-3);
+    padding: var(--k-space-2) var(--k-space-3);
+}
+.k3-tab__estado {
+    flex: 1 1 260px;
+    margin: 0;
+    font-size: var(--k-text-sm);
+    font-weight: 600;
+    color: var(--k-text);
+    font-variant-numeric: tabular-nums;
+}
+.k3-chip-aviso { background-color: var(--k3-aviso-suave) !important; color: var(--k3-aviso) !important; }
+.k3-chip-peligro { background-color: rgba(196, 33, 62, 0.12) !important; color: var(--k-danger) !important; }
+.k3-tab__lienzo {
+    border-radius: 8px;
+    outline: none;
+}
+.k3-tab__lienzo:focus-visible { box-shadow: 0 0 0 3px var(--k-accent); }
+.k3-tab__lienzo:not(:focus-within) [data-no-exportar] { opacity: 0.55; }
+.k3-tab-hoja--editable { cursor: text; }
+
+/* --- La paleta -------------------------------------------------------------------- */
+.k3-paleta__fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: var(--k-space-3);
+}
+.k3-paleta__boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: var(--k-touch);
+    min-height: var(--k-touch);
+    padding: 0 12px;
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .1s, border-color .1s, color .1s;
+}
+@media (min-width: 1024px) { .k3-paleta__boton { min-height: 38px; min-width: 38px; } }
+.k3-paleta__boton:hover { border-color: var(--k-border); }
+.k3-paleta__boton--activo, .k3-paleta__boton--activo:hover {
+    background-color: var(--k-accent);
+    border-color: var(--k-accent);
+    color: var(--k-accent-ink);
+}
+.k3-paleta__boton--ancho { flex: 1 1 100%; }
+
+.k3-trastes {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: var(--k-space-3);
+}
+.k3-trastes__boton {
+    min-height: var(--k-touch);
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font-size: var(--k-text-md);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+.k3-trastes__boton:hover { border-color: var(--k-border); }
+.k3-trastes__boton:active { background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k3-flechas .k3-paleta__boton { flex: 1; }
+
+.k3-datos { display: grid; gap: var(--k-space-3); }
+.k3-atajos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px var(--k-space-3);
+    margin: 0;
+    font-size: var(--k-text-sm);
+}
+.k3-atajos dt {
+    font-family: var(--k-font-mono);
+    font-weight: 700;
+    color: var(--k-text);
+    white-space: nowrap;
+}
+.k3-atajos dd { margin: 0; color: var(--k-text-muted); }
+
+/* En el teléfono, todo lo que se toca mide 44 px. */
+@media (max-width: 767px) {
+    .k3-item__abrir { min-height: var(--k-touch); }
+    .k3-bib__buscar input { min-height: var(--k-touch); }
+    .k3-bib .k2-seg__op { min-width: var(--k-touch); }
+}
+
+/* La cita de los sonidos (CC BY 3.0). */
+.k3-credito { margin-top: var(--k-space-2); }
+.k3-credito a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.k3-credito a:hover { color: var(--k-accent); }
+
+/* --- La portada: el mástil en vertical, como un diagrama del Taller ------------ */
+.k3-mastil-portada {
+    width: 100%;
+    max-width: 380px;
+    justify-self: center;
+    margin: 0 auto;
+}
+.k3-mastil-vertical svg { display: block; width: 100%; height: auto; }
+.k3-mastil-portada .kp-acordes { justify-content: center; }
+/* Las cuerdas en vertical vibran de lado a lado. */
+.k3-cuerda-v--vibra { animation: k3-vibra-x .7s cubic-bezier(.2,.6,.3,1); }
+@keyframes k3-vibra-x {
+    0%   { transform: translateX(0); }
+    8%   { transform: translateX(-3px); }
+    16%  { transform: translateX(3px); }
+    26%  { transform: translateX(-2px); }
+    38%  { transform: translateX(2px); }
+    52%  { transform: translateX(-1px); }
+    68%  { transform: translateX(1px); }
+    100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .k3-cuerda-v--vibra { animation: none; }
+}
+
+/* --- Portada (cuarta vuelta): diagrama más pequeño y los acordes a su derecha --- */
+.k3-mastil-portada {
+    display: grid;
+    grid-template-columns: minmax(0, 300px) auto;
+    align-items: center;
+    justify-content: center;
+    gap: var(--k-space-4);
+    max-width: none;
+}
+.k3-mastil-portada__lado { display: grid; gap: var(--k-space-3); justify-items: stretch; }
+.k3-acordes-columna {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin: 0;
+}
+.k3-acordes-columna .kp-acorde { min-width: 76px; }
+.k3-rasgueo-portada { justify-self: start; white-space: nowrap; }
+/* En el teléfono no cabe la columna: los acordes bajan en filas bajo el
+ * diagrama y el rasgueo, debajo de ellos. */
+@media (max-width: 599px) {
+    .k3-mastil-portada { grid-template-columns: minmax(0, 300px); }
+    .k3-mastil-portada__lado { justify-items: center; }
+    .k3-acordes-columna { display: flex; flex-wrap: wrap; justify-content: center; }
+    .k3-acordes-columna .kp-acorde { min-width: 52px; min-height: var(--k-touch); }
+    .k3-rasgueo-portada { justify-self: center; }
+}
+
+/* --- La tira que se desliza (Canción, acordes en fila) ------------------------- */
+.k3-tira { position: relative; min-width: 0; max-width: 100%; }
+.k3-tira__caja {
+    display: flex;
+    gap: var(--k-space-2);
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--k-border) transparent;
+}
+.k3-tira__caja > * { flex: none; scroll-snap-align: start; }
+.k3-tira__caja::-webkit-scrollbar { height: 8px; }
+.k3-tira__caja::-webkit-scrollbar-thumb { background: var(--k-border); border-radius: 99px; }
+.k3-tira__caja:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; border-radius: var(--k-radius-md); }
+.k3-tira__flecha {
+    position: absolute;
+    top: calc(50% - 4px);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: var(--k-touch);
+    height: var(--k-touch);
+    transform: translateY(-50%);
+    border-radius: 50%;
+    border: 1px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    box-shadow: var(--k-shadow-float);
+    cursor: pointer;
+}
+.k3-tira__flecha:hover { border-color: var(--k-accent); color: var(--k-accent); }
+.k3-tira__flecha--izq { left: -6px; }
+.k3-tira__flecha--der { right: -6px; }
+
+/* --- Lo que está sonando, abajo a la izquierda --------------------------------- */
+.k3-sonando {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    max-width: min(420px, calc(100vw - 32px));
+    padding: var(--k-space-2) var(--k-space-2) var(--k-space-2) var(--k-space-3);
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-border);
+    box-shadow: var(--k-shadow-float);
+    color: var(--k-text);
+}
+@media (min-width: 768px) { .k3-sonando { left: 108px; } }
+.k3-sonando__texto { display: grid; gap: 1px; min-width: 0; flex: 1; font-size: var(--k-text-sm); }
+.k3-sonando__texto strong { font-size: var(--k-text-xs); letter-spacing: var(--k-tracking-label); text-transform: uppercase; color: var(--k-text-muted); }
+.k3-sonando__texto span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.k3-sonando__ondas { display: flex; align-items: flex-end; gap: 2px; height: 18px; flex: none; }
+.k3-sonando__ondas i { width: 3px; background-color: var(--k-accent); border-radius: 2px; animation: k3-onda .9s ease-in-out infinite; }
+.k3-sonando__ondas i:nth-child(2) { animation-delay: .15s; }
+.k3-sonando__ondas i:nth-child(3) { animation-delay: .3s; }
+.k3-sonando__ondas--quietas i { animation: none; height: 6px; }
+@keyframes k3-onda { 0%, 100% { height: 5px; } 50% { height: 18px; } }
+@media (prefers-reduced-motion: reduce) { .k3-sonando__ondas i { animation: none; height: 10px; } }
+
+/* --- La navegación del sitio: producto | información -------------------------- */
+.kp-nav__grupo { display: flex; align-items: center; gap: var(--k-space-1); flex: none; }
+.kp-nav__raya {
+    flex: none;
+    width: 1px;
+    height: 20px;
+    margin: 0 var(--k-space-3);
+    background-color: var(--k-divider);
+}
+/* Las partes del producto mandan: texto pleno. La información va un paso
+ * por detrás: más fina, más pequeña y en gris hasta que se pasa por encima. */
+.kp-sobre:not(.kp-sobre--info) { color: var(--k-text); }
+.kp-sobre--info {
+    font-weight: 500;
+    font-size: var(--k-text-xs, 13px);
+    color: var(--k-text-muted);
+}
+.kp-sobre--info.kp-sobre--activo { color: var(--k-text); font-weight: 600; }
+
+/* --- El volumen (clic derecho en «Reproducir») -------------------------------- */
+.k3-volumen {
+    width: 240px;
+    padding: var(--k-space-3);
+    display: grid;
+    gap: var(--k-space-2);
+}
+.k3-volumen__cabeza { display: flex; align-items: baseline; justify-content: space-between; }
+.k3-volumen__valor {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: var(--k-text-sm);
+    color: var(--k-text);
+}
+.k3-volumen__fila { display: flex; align-items: center; gap: var(--k-space-2); }
+.k3-volumen__icono { flex: none; width: 36px; height: 36px; padding: 0; }
+.k3-volumen__desliz {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    border-radius: 999px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: linear-gradient(to right, var(--k-accent) var(--k3-lleno, 80%), var(--k-divider) var(--k3-lleno, 80%));
+    cursor: pointer;
+}
+.k3-volumen__desliz::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--k-text);
+    border: 3px solid var(--k-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+.k3-volumen__desliz::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--k-text);
+    border: 3px solid var(--k-accent);
+}
+.k3-volumen__desliz:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 4px; }
+
+/* --- Cómo se hizo: la carta ------------------------------------------------- */
+.k3-carta { padding-top: var(--k-space-6); }
+.k3-carta__texto { max-width: 64ch; }
+/* Sólo el primer párrafo de la carta entra grande, no el del cierre. */
+.k3-carta__texto + .k3-carta__cita + .k3-carta__texto p:first-child {
+    font-size: var(--k-text-lg);
+    line-height: 1.65;
+}
+.k3-carta__cita {
+    position: relative;
+    margin: var(--k-space-7, 48px) 0;
+    padding: var(--k-space-5) 0 var(--k-space-5) var(--k-space-6);
+    border-left: 4px solid var(--k-accent);
+}
+.k3-carta__comillas {
+    position: absolute;
+    top: -0.32em;
+    left: var(--k-space-4);
+    font-family: var(--k-font-title);
+    font-size: 120px;
+    line-height: 1;
+    color: var(--k-accent);
+    opacity: .25;
+    pointer-events: none;
+}
+.k3-carta__cita p {
+    position: relative;
+    font-family: var(--k-font-title);
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    color: var(--k-text);
+    max-width: 22ch;
+}
+
+.k3-firma {
+    display: flex;
+    gap: var(--k-space-5);
+    align-items: flex-start;
+    margin-top: var(--k-space-7, 48px);
+    padding: var(--k-space-6);
+    border: 1px solid var(--k-border);
+    border-radius: 16px;
+    background-color: var(--k-surface, var(--k-bg));
+}
+.k3-firma__sello {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    font-family: var(--k-font-title);
+    font-size: 30px;
+    transform: rotate(-4deg);
+}
+.k3-firma__datos { min-width: 0; }
+.k3-firma__nombre {
+    font-family: var(--k-font-title);
+    font-size: clamp(28px, 3.4vw, 36px);
+    line-height: 1.05;
+    color: var(--k-text);
+}
+.k3-firma__rol {
+    margin-top: var(--k-space-1, 4px);
+    font-size: var(--k-text-sm);
+    letter-spacing: var(--k-tracking-label);
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k3-firma__invitacion {
+    margin-top: var(--k-space-4);
+    font-size: var(--k-text-md);
+    color: var(--k-text);
+}
+.k3-firma__enlaces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--k-space-2);
+    margin-top: var(--k-space-3);
+}
+.k3-firma__enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--k-touch, 44px);
+    max-width: 100%;
+    padding: 0 14px;
+    border: 1px solid var(--k-border);
+    border-radius: 999px;
+    color: var(--k-text);
+    font-size: var(--k-text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: border-color .15s, color .15s, background-color .15s;
+}
+.k3-firma__enlace:hover,
+.k3-firma__enlace:focus-visible {
+    border-color: var(--k-accent);
+    color: var(--k-accent);
+}
+@media (max-width: 599px) {
+    .k3-firma { flex-direction: column; padding: var(--k-space-5); }
+    .k3-carta__cita { padding-left: var(--k-space-5); }
+}

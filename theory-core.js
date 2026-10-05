@@ -463,15 +463,24 @@
                 ? snapshot.tuningMidi[s]
                 : getStringBaseMIDI(snapshot.tuning, s, snapshot.instrument);
 
+            /* Cuál de los dos suena cuando hay punto Y cejilla en la misma
+             * cuerda: el que esté MÁS CERCA del puente. La cuerda vibra desde
+             * el punto pisado más alto, así que una nota POR DEBAJO de la
+             * cejilla no suena — suena la cejilla.
+             *
+             * Antes ganaba siempre el punto. Con el punto por encima eso es
+             * correcto, que es el caso normal; por debajo, no. Y es alcanzable,
+             * porque crear una cejilla no borra las notas que hubiera
+             * («Cejilla es INMUNE», dice el comentario de `handleMouseUp`). */
             const dot = dots.find(d => d.s === s);
-            if (dot) {
-                notas.push(fretToMidi(baseMidi, startingFret, dot.f));
-                continue;
-            }
-
             const barre = barres.find(b => s >= b.fromString && s <= b.toString);
-            if (barre) {
-                notas.push(fretToMidi(baseMidi, startingFret, barre.fret));
+            const pisado = dot && barre ? Math.max(dot.f, barre.fret)
+                : dot ? dot.f
+                : barre ? barre.fret
+                : null;
+
+            if (pisado !== null) {
+                notas.push(fretToMidi(baseMidi, startingFret, pisado));
                 continue;
             }
 
@@ -571,6 +580,42 @@
     // Dos posiciones del mástil son la misma si coinciden cuerda y traste.
     function samePosition(a, b) {
         return !!a && !!b && a.s === b.s && a.f === b.f;
+    }
+
+    /* --- REVISAR EL RECORRIDO CONTRA EL MÁSTIL QUE LO SOSTIENE -------------
+     *
+     * El recorrido es una LISTA de posiciones, y nada garantizaba que esas
+     * posiciones siguieran existiendo. Cuando el mapa de notas cambia por
+     * debajo —se marca una cuerda al aire, se encoge la ventana, se cambia de
+     * instrumento, se carga un preset, se cambia la escala, se vacía el
+     * mástil— la lista se queda apuntando a sitios que ya no hay, y salen
+     * flechas hacia el vacío, cuentas falsas en el panel («12 notas, a mano»
+     * con seis dibujadas) y notas que suenan sin verse.
+     *
+     * Esto es lo que lo revisa. NO reordena: sólo quita lo que ya no está.
+     *
+     * Devuelve `{ recorrido, quitadas }`. Sólo habla de VALIDEZ: qué hacer
+     * cuando quedan menos de dos posiciones lo decide quien llama, porque no
+     * es lo mismo que el mástil se lleve las notas por delante —ahí lo suyo es
+     * volver al automático— que cortar el recorrido a propósito desde el menú,
+     * donde una lista corta es lo que se ha pedido.
+     *
+     * Las REPETICIONES se conservan. Una nota pedal o una vuelta atrás repiten
+     * posición a propósito, y confundirlas con basura sería romper justo lo que
+     * el modo a mano existe para poder escribir.
+     *
+     * Devuelve el MISMO array cuando no sobra nada, para que quien llame pueda
+     * comparar por identidad y ahorrarse un render.
+     * ---------------------------------------------------------------------- */
+    function sanearRecorrido(recorrido, notasValidas) {
+        if (!recorrido) return { recorrido: null, quitadas: 0 };
+
+        const validas = notasValidas || [];
+        const limpio = recorrido.filter(p => validas.some(n => samePosition(n, p)));
+        const quitadas = recorrido.length - limpio.length;
+
+        if (quitadas === 0) return { recorrido: recorrido, quitadas: 0 };
+        return { recorrido: limpio, quitadas: quitadas };
     }
 
     /* --- Los acordes de una tonalidad -------------------------------------
@@ -1026,6 +1071,7 @@
         chordVoicingToMidi,
         buildNotePath,
         samePosition,
+        sanearRecorrido,
         diatonicChords,
         diatonicTriadPositions,
         presetArpegioParaTriada,

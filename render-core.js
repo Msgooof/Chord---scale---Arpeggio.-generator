@@ -1,3 +1,6 @@
+/* VERSIÓN DE PRUEBA (2026-10-03) de render-core.js, la carga sólo
+ * prueba.html. Única diferencia: la clave `fretboardSkin` del estilo. Si la
+ * prueba se aprueba, este archivo sustituye a render-core.js. */
 /* ==========================================================================
  * KHARO STUDIO — NÚCLEO DE GEOMETRÍA Y COMPOSICIÓN
  * ==========================================================================
@@ -140,6 +143,13 @@
         fretboardRadius: 16,
         baseFingerColor: "#2563eb",
 
+        /* La PIEL DEL DIAPASÓN, que es obra (viaja al archivo exportado):
+         *   "plano"   la rejilla de líneas de siempre, en `gridColor`
+         *   "madera"  palisandro, trastes de metal, cejuela de hueso,
+         *             incrustaciones de nácar y cuerdas entorchadas
+         * Por defecto "plano": nadie ve cambiar su diagrama sin pedirlo. */
+        fretboardSkin: "plano",
+
         // El color de las flechas del recorrido.
         pathColor: "#334155",
 
@@ -174,6 +184,8 @@
         fretboardRadius: { min: 0, max: 40, def: 16 }
     };
 
+    const PIELES_DIAPASON = ["plano", "madera"];
+
     function esHex(valor) {
         return typeof valor === "string" && /^#[0-9a-fA-F]{6}$/.test(valor);
     }
@@ -207,6 +219,12 @@
 
             if (LIMITES_ESTILO[clave]) {
                 salida[clave] = numeroSano(b[clave], LIMITES_ESTILO[clave]);
+                return;
+            }
+            if (clave === "fretboardSkin") {
+                // Lista cerrada: sin esto caería en la rama de los colores y
+                // `esHex("madera")` lo devolvería a "plano" en cada guardado.
+                salida[clave] = PIELES_DIAPASON.includes(b[clave]) ? b[clave] : porDefecto;
                 return;
             }
             if (clave === "fontFamily") {
