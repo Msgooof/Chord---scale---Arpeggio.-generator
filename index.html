@@ -56,6 +56,12 @@
     <link rel="stylesheet" href="ui.css">
     <!-- 0.3: sólo lo que añade esta prueba (Biblioteca y Tablaturas). -->
     <link rel="stylesheet" href="ui-v03.css">
+    <!-- 0.4: las características de la portada contadas como Apple. -->
+    <link rel="stylesheet" href="ui-v04.css">
+    <!-- 0.5: la barra del Taller (wireframe 2 + botón partido). -->
+    <link rel="stylesheet" href="ui-v05.css">
+    <!-- 0.6: la pedalera en el panel del Taller (wireframes-pedalera.html). -->
+    <link rel="stylesheet" href="ui-v06.css">
     <style>
         /* Lo único que queda aquí es la animación del halo de nota pulsada:
            pertenece a la interacción con el DIAGRAMA, no a la piel de la app,
@@ -74,6 +80,21 @@
         }
         .audio-pulse-ring {
             animation: audioPulse 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        /* 0.5: la onda de cada nota que suena. Dos anillos que se abren y
+           se apagan; el segundo sale un poco después, como el eco. */
+        @keyframes k5Onda {
+            0%   { r: 9px;  opacity: .4; stroke-width: 2.5px; }
+            100% { r: 34px; opacity: 0;   stroke-width: .5px; }
+        }
+        .k5-onda__anillo {
+            r: 9px;
+            opacity: 0;
+            animation: k5Onda .8s cubic-bezier(.15, .7, .35, 1) forwards;
+        }
+        .k5-onda__anillo--eco { animation-delay: .18s; stroke-opacity: .6; }
+        @media (prefers-reduced-motion: reduce) {
+            .k5-onda__anillo { animation-duration: .01s; }
         }
     </style>
 </head>
@@ -1517,6 +1538,284 @@
             );
         }
 
+        /* --- 0.4: LAS CARACTERÍSTICAS, CONTADAS COMO APPLE --------------------
+         *
+         * Una idea por pantalla: un rótulo pequeño con el modo, un titular
+         * enorme, la foto a todo lo ancho y, debajo, un párrafo gris que
+         * arranca con su frase clave en negro. Antes, un carrusel con lo
+         * esencial; después, cada modo con su propia sección.
+         *
+         * Las FOTOS las pone Carlos. Cada una es { src, alt, pista }: mientras
+         * `src` esté vacío se dibuja un hueco a trazos con la pista de qué
+         * va ahí y la medida recomendada. Al rellenar `src` sale la foto.
+         * ------------------------------------------------------------------ */
+        const MEDIDAS_FOTO = {
+            ancha: { proporcion: "16 / 9", medida: "2400 × 1350 px" },
+            cuadrada: { proporcion: "1 / 1", medida: "1400 × 1400 px" },
+            tarjeta: { proporcion: "4 / 5", medida: "1000 × 1250 px" }
+        };
+
+        const CARACTERISTICAS_V04 = {
+            chord: {
+                carrusel: "Dibuja la digitación y el nombre aparece solo.",
+                titular: ["Pon los dedos.", "El nombre llega solo"],
+                clave: "Dibuja una digitación y la app te dice qué acorde es.",
+                texto: "Pon las notas en el mástil, arrastra para hacer cejilla —un dedo que pisa varias cuerdas— y marca qué cuerdas van al aire. Guárdalo en la biblioteca de acordes y lo tendrás para tus canciones. Si no tiene nombre, quizás acabas de inventar algo.",
+                fotoCarrusel: { src: "", alt: "", pista: "Una digitación de acorde en el mástil" },
+                fotos: [
+                    { src: "", alt: "", pista: "El mástil con una digitación y el nombre detectado encima" }
+                ]
+            },
+            scale: {
+                carrusel: "12 escalas en cualquier tónica, por todo el mástil.",
+                titular: ["Todo el mástil,", "en el orden en que se toca"],
+                clave: "Doce escalas en cualquier tónica.",
+                texto: "Marca en qué orden se tocan las notas, con tope por cuerda para que salga tocable. Debajo están las tríadas que salen de la tonalidad y de dónde viene cada una.",
+                cifras: [
+                    { valor: "12", texto: "escalas" },
+                    { valor: "12", texto: "tónicas para elegir" }
+                ],
+                fotoCarrusel: { src: "", alt: "", pista: "Una escala con su recorrido numerado" },
+                fotos: [
+                    { src: "", alt: "", pista: "Escala por todo el mástil con el orden de las notas" }
+                ]
+            },
+            arpeggio: {
+                carrusel: "9 arpegios, por juegos de cuerdas o por posiciones.",
+                titular: ["Un acorde sin prisa"],
+                clave: "Un arpegio suelta las notas del acorde de una en una.",
+                texto: "Aquí hay nueve, agrupados como se practican: por juegos de cuerdas, con sus inversiones y su tapping, o por posiciones a lo largo del mástil. Con sweep, las flechas siguen la púa.",
+                cifras: [
+                    { valor: "9", texto: "arpegios" },
+                    { valor: "2", texto: "maneras de recorrerlos" }
+                ],
+                fotoCarrusel: { src: "", alt: "", pista: "Un arpegio con las flechas del sweep" },
+                fotos: [
+                    { src: "", alt: "", pista: "Arpegio por juegos de cuerdas", forma: "cuadrada" },
+                    { src: "", alt: "", pista: "El mismo arpegio por posiciones", forma: "cuadrada" }
+                ]
+            },
+            free: {
+                carrusel: "Todas las notas que quieras, donde quieras.",
+                titular: ["El mástil en blanco"],
+                clave: "Como Acordes, pero sin la regla de una nota por cuerda.",
+                texto: "Coloca todas las que necesites, en el orden que quieras, y traza a mano las flechas del recorrido. ¿Necesitas un mapa? Dibuja una escala de fondo como guía.",
+                fotoCarrusel: { src: "", alt: "", pista: "Un dibujo libre con varias notas por cuerda" },
+                fotos: [
+                    { src: "", alt: "", pista: "Recorrido trazado a mano sobre una escala de fondo" }
+                ]
+            },
+            song: {
+                carrusel: "Acordes sobre la letra y una hoja A4 para el ensayo.",
+                titular: ["Del acorde suelto", "a la hoja del ensayo"],
+                clave: "Encadena tus acordes y dale a cada uno su duración.",
+                texto: "Escribe el rasgueo en una rejilla y arrastra los acordes hasta su lugar en la letra. Escúchala entera antes de tocarla y sácala en A4 como PNG, SVG o PDF.",
+                cifras: [
+                    { valor: "A4", texto: "lista para imprimir" },
+                    { valor: "3", texto: "formatos: PNG, SVG y PDF" }
+                ],
+                fotoCarrusel: { src: "", alt: "", pista: "La hoja de una canción con acordes sobre la letra" },
+                fotos: [
+                    { src: "", alt: "", pista: "La rejilla del rasgueo", forma: "cuadrada" },
+                    { src: "", alt: "", pista: "La hoja A4 terminada", forma: "cuadrada" }
+                ]
+            },
+            exercise: {
+                carrusel: "Fichas de técnica a la velocidad que elijas.",
+                titular: ["Semanas después,", "tal cual lo dejaste"],
+                clave: "Cada paso guarda su digitación, su recorrido y su instrumento.",
+                texto: "Ponle la velocidad que tus dedos aguanten hoy y súbela cuando te la pidan. Las fichas se crean con un atajo desde Escalas, Arpegios y Libre.",
+                fotoCarrusel: { src: "", alt: "", pista: "Una ficha de ejercicio con sus pasos" },
+                fotos: [
+                    { src: "", alt: "", pista: "Una ficha de técnica abierta, con sus pasos" }
+                ]
+            },
+            tab: {
+                carrusel: "Pentagrama y TAB a la vez, con sus técnicas.",
+                titular: ["Escribe la TAB.", "El pentagrama sale solo"],
+                clave: "Pon el traste en la cuerda y la nota aparece en el pentagrama.",
+                texto: "Figuras, silencios y compás de verdad. Suena a su tempo y sale en A4.",
+                tecnicas: ["Hammer-on", "Pull-off", "Tapping", "Slide", "Bend", "Vibrato", "Palm mute", "Sweep", "Púa abajo", "Púa arriba"],
+                fotoCarrusel: { src: "", alt: "", pista: "Pentagrama y TAB, uno sobre otro" },
+                fotos: [
+                    { src: "", alt: "", pista: "Una tablatura con técnicas escritas, a todo lo ancho" }
+                ]
+            }
+        };
+
+        function FotoV04({ foto, forma = "ancha", etiqueta }) {
+            const m = MEDIDAS_FOTO[foto.forma || forma];
+            if (foto.src) {
+                return (
+                    <figure class="kv-foto" style={{ aspectRatio: m.proporcion }}>
+                        <img src={foto.src} alt={foto.alt} loading="lazy" />
+                    </figure>
+                );
+            }
+            return (
+                <figure class="kv-foto kv-foto--hueco" style={{ aspectRatio: m.proporcion }} aria-hidden="true">
+                    <span class="kv-foto__etiqueta">{etiqueta}</span>
+                    <span class="kv-foto__pista">{foto.pista}</span>
+                    <span class="kv-foto__medida">{m.medida}</span>
+                </figure>
+            );
+        }
+
+        function CaracteristicasTaller({ onEntrar, onIr, lados }) {
+            const raizRef = React.useRef(null);
+            const carruselRef = React.useRef(null);
+            const [borde, setBorde] = React.useState({ inicio: true, fin: false });
+
+            // Cada bloque entra subiendo un poco cuando asoma en pantalla.
+            // Sin IntersectionObserver (o con movimiento reducido, que lo
+            // resuelve el CSS) todo se ve desde el principio.
+            React.useEffect(() => {
+                const raiz = raizRef.current;
+                if (!raiz) return;
+                const nodos = raiz.querySelectorAll(".kv-aparece");
+                if (!("IntersectionObserver" in window)) {
+                    nodos.forEach(n => n.classList.add("is-visible"));
+                    return;
+                }
+                const obs = new IntersectionObserver(entradas => {
+                    entradas.forEach(e => {
+                        if (e.isIntersecting) {
+                            e.target.classList.add("is-visible");
+                            obs.unobserve(e.target);
+                        }
+                    });
+                }, { rootMargin: "0px 0px -12% 0px", threshold: 0.08 });
+                nodos.forEach(n => obs.observe(n));
+                return () => obs.disconnect();
+            }, []);
+
+            const medirCarrusel = () => {
+                const c = carruselRef.current;
+                if (!c) return;
+                const inicio = c.scrollLeft <= 4;
+                const fin = c.scrollLeft + c.clientWidth >= c.scrollWidth - 4;
+                setBorde(prev => (prev.inicio === inicio && prev.fin === fin) ? prev : { inicio, fin });
+            };
+            React.useEffect(() => {
+                medirCarrusel();
+                window.addEventListener("resize", medirCarrusel);
+                return () => window.removeEventListener("resize", medirCarrusel);
+            }, []);
+            const moverCarrusel = dir => {
+                const c = carruselRef.current;
+                if (!c) return;
+                const tarjeta = c.querySelector(".kv-tarjeta");
+                const paso = tarjeta ? tarjeta.getBoundingClientRect().width + 20 : c.clientWidth * 0.8;
+                c.scrollBy({ left: dir * paso, behavior: "smooth" });
+            };
+
+            const secciones = SECCIONES_LANDING.filter(s => CARACTERISTICAS_V04[s.id]);
+
+            return (
+                <div ref={raizRef} class="kv">
+                    <header class="kv-intro kv-aparece">
+                        <p class="kv-ojo">El Taller</p>
+                        <h2 class="kv-titular kv-titular--intro">Lo esencial del Taller</h2>
+                        <p class="kv-entradilla">
+                            La app de diagramas. Funciona sin conexión y no te cobra nada.
+                        </p>
+                    </header>
+
+                    <div class="kv-carrusel-marco kv-aparece">
+                        <ul ref={carruselRef} class="kv-carrusel" onScroll={medirCarrusel}>
+                            {secciones.map(s => {
+                                const c = CARACTERISTICAS_V04[s.id];
+                                return (
+                                    <li key={s.id} class="kv-tarjeta">
+                                        <button class="kv-tarjeta__boton" onClick={() => onEntrar(s.id)}>
+                                            <span class="kv-tarjeta__texto">
+                                                <span class="kv-tarjeta__modo">{s.titulo}</span>
+                                                <span class="kv-tarjeta__frase">{c.carrusel}</span>
+                                            </span>
+                                            <FotoV04 foto={c.fotoCarrusel} forma="tarjeta" etiqueta={`Foto · ${s.titulo} · carrusel`} />
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                        <div class="kv-carrusel-mandos">
+                            <button class="kv-mando" onClick={() => moverCarrusel(-1)} disabled={borde.inicio} aria-label="Anterior">‹</button>
+                            <button class="kv-mando" onClick={() => moverCarrusel(1)} disabled={borde.fin} aria-label="Siguiente">›</button>
+                        </div>
+                    </div>
+
+                    <div class="kv-instrumentos kv-aparece">
+                        <InstrumentosDelTaller onIr={onIr} />
+                    </div>
+
+                    {lados.map(lado => {
+                        const pistas = secciones.filter(s => {
+                            const t = MODE_TABS.find(m => m.id === s.id);
+                            return t && t.grupo === lado.id;
+                        });
+                        return (
+                            <div key={lado.id} class={`kv-lado kv-lado--${lado.letra.toLowerCase()}`}>
+                                <header class="kv-capitulo kv-aparece">
+                                    <p class="kv-ojo">Lado {lado.letra} · {lado.nombre}</p>
+                                    <h2 class="kv-titular kv-titular--capitulo">{lado.titular}</h2>
+                                    <p class="kv-entradilla">{lado.pie}</p>
+                                </header>
+
+                                {pistas.map(s => {
+                                    const c = CARACTERISTICAS_V04[s.id];
+                                    const varias = c.fotos.length > 1;
+                                    return (
+                                        <section key={s.id} class="kv-rasgo" aria-labelledby={`kv-${s.id}`}>
+                                            <div class="kv-rasgo__cabeza kv-aparece">
+                                                <p class="kv-ojo kv-ojo--modo">{s.titulo}</p>
+                                                <h3 id={`kv-${s.id}`} class="kv-titular">
+                                                    {c.titular.map((linea, i) => (
+                                                        <React.Fragment key={i}>{i > 0 && <br />}{linea}</React.Fragment>
+                                                    ))}
+                                                </h3>
+                                            </div>
+
+                                            <div class={`kv-rasgo__fotos kv-aparece ${varias ? "kv-rasgo__fotos--par" : ""}`}>
+                                                {c.fotos.map((f, i) => (
+                                                    <FotoV04 key={i} foto={f} etiqueta={`Foto · ${s.titulo}${varias ? ` · ${i + 1}` : ""}`} />
+                                                ))}
+                                            </div>
+
+                                            <div class={`kv-rasgo__cuerpo kv-aparece ${c.cifras ? "kv-rasgo__cuerpo--cifras" : ""}`}>
+                                                <div>
+                                                    <p class="kv-texto">
+                                                        <strong>{c.clave}</strong> {c.texto}
+                                                    </p>
+                                                    {c.tecnicas && (
+                                                        <ul class="kv-tecnicas" aria-label="Técnicas">
+                                                            {c.tecnicas.map(t => <li key={t}>{t}</li>)}
+                                                        </ul>
+                                                    )}
+                                                    <button class="kv-enlace" onClick={() => onEntrar(s.id)}>
+                                                        Abrir {s.titulo} <span aria-hidden="true">›</span>
+                                                    </button>
+                                                </div>
+                                                {c.cifras && (
+                                                    <dl class="kv-cifras">
+                                                        {c.cifras.map(x => (
+                                                            <div key={x.texto} class="kv-cifra">
+                                                                <dt class="kv-cifra__valor">{x.valor}</dt>
+                                                                <dd class="kv-cifra__texto">{x.texto}</dd>
+                                                            </div>
+                                                        ))}
+                                                    </dl>
+                                                )}
+                                            </div>
+                                        </section>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        }
+
         function Landing({ onEntrar, onIr }) {
             /* La portada como un disco: dos lados, con las secciones como
              * pistas numeradas. Lado A son los diagramas, que se dibujan en el
@@ -1528,12 +1827,14 @@
                     id: "diagrama",
                     letra: "A",
                     nombre: "Diagramas",
+                    titular: "Primero, el mástil",
                     pie: "Se dibujan en el mástil, se escuchan y se exportan como PNG o SVG."
                 },
                 {
                     id: "documento",
                     letra: "B",
                     nombre: "Documentos",
+                    titular: "Después, el papel",
                     pie: "Se montan con lo que ya has dibujado y salen en una hoja A4."
                 }
             ];
@@ -1556,61 +1857,9 @@
                             <MastilVivo />
                         </section>
 
-                        {/* El Taller: la app, presentada como un disco de dos
-                            lados. Lo de debajo ya es el resto de Kharo. */}
-                        <div class="kp-bloque-cabeza">
-                            <h2 class="kp-bloque-titulo">El Taller</h2>
-                            <p class="k-text-md" style={{ color: 'var(--k-text-muted)' }}>
-                                La app de diagramas. Funciona sin conexión y no te cobra nada.
-                            </p>
-                        </div>
-                        <InstrumentosDelTaller onIr={onIr} />
-                        <div class="grid gap-12 lg:grid-cols-2 lg:gap-14 mb-16 md:mb-24">
-                            {lados.map(lado => {
-                                const pistas = SECCIONES_LANDING.filter(s => {
-                                    const t = MODE_TABS.find(m => m.id === s.id);
-                                    return t && t.grupo === lado.id;
-                                });
-                                return (
-                                    <section key={lado.id} class={`kp-lado kp-lado--${lado.letra.toLowerCase()}`}>
-                                        {/* La galleta del disco: la letra del lado en
-                                            el centro de un vinilo que gira al pasar
-                                            por encima del lado. */}
-                                        <header class="kp-lado__cabeza">
-                                            <div class="kp-vinilo" aria-hidden="true">
-                                                <span class="kp-vinilo__galleta">{lado.letra}</span>
-                                            </div>
-                                            <div class="min-w-0">
-                                                <p class="kp-eyebrow">Lado {lado.letra} · {pistas.length} pistas</p>
-                                                <h2 class="kp-lado__nombre">{lado.nombre}</h2>
-                                                <p class="k-text-sm mt-1" style={{ color: 'var(--k-text-faint)' }}>{lado.pie}</p>
-                                            </div>
-                                        </header>
-
-                                        <ol class="kp-lado__pistas">
-                                            {pistas.map((s, n) => (
-                                                <li key={s.id}>
-                                                    <button onClick={() => onEntrar(s.id)} class="kp-pista">
-                                                        <span class="kp-pista__num">{lado.letra}{n + 1}</span>
-                                                        <span class="block min-w-0">
-                                                            <span class="kp-pista__fila">
-                                                                <span class="kp-pista__titulo">
-                                                                    <span aria-hidden="true" class="mr-2 text-xl align-middle">{s.icono}</span>{s.titulo}
-                                                                </span>
-                                                                <span class="kp-pista__puntos" aria-hidden="true"></span>
-                                                                <span class="kp-pista__flecha" aria-hidden="true">→</span>
-                                                            </span>
-                                                            <span class="kp-pista__resumen block">{s.resumen}</span>
-                                                            <span class="kp-pista__detalle"><span>{s.detalle}</span></span>
-                                                        </span>
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ol>
-                                    </section>
-                                );
-                            })}
-                        </div>
+                        {/* 0.4: el Taller contado como una página de producto
+                            de Apple. Ver CaracteristicasTaller. */}
+                        <CaracteristicasTaller onEntrar={onEntrar} onIr={onIr} lados={lados} />
 
                         <div class="kp-bloque-cabeza">
                             <h2 class="kp-bloque-titulo">Más de Kharo</h2>
@@ -2165,6 +2414,61 @@
             return r;
         }
 
+        /* --- 0.5: LAS TRES VELOCIDADES ----------------------------------------
+         * El tempo deja de ser un deslizador: son tres gestos que se
+         * reconocen de oído. En Acordes, «Lento» separa tanto las cuerdas que
+         * se oye nota por nota; en Escalas, Arpegios y Libre manda el bpm.
+         * `rasgueo` vacío = la separación sale del bpm, como siempre. */
+        /* El término italiano y el bpm van juntos: el bpm cae dentro del
+         * margen que se le da a cada término en la tabla de tempos habitual
+         * (Adagio 55–76, Moderato 86–97, Presto 168–200). */
+        const VELOCIDADES = [
+            { id: "lento", label: "Lento", termino: "Adagio", ayuda: "nota por nota", bpm: 66, rasgueo: 0.4 },
+            { id: "medio", label: "Medio", termino: "Moderato", ayuda: "un rasgueo normal", bpm: 96 },
+            { id: "rapido", label: "Rápido", termino: "Presto", ayuda: "rasgueo seco", bpm: 176 }
+        ];
+
+        /* --- 0.5: BOTÓN PARTIDO -------------------------------------------------
+         * La parte grande hace lo de siempre (guardar); la flecha abre lo
+         * demás que responde a «¿y ahora qué hago con esto?»: exportar.
+         * `refPrincipal` es para quien necesite anclarse al botón (el globo
+         * de «Guardar acorde» sale debajo de él). */
+        function BotonPartido({ etiqueta, icono, onClick, refPrincipal, activo, etiquetaMenu, opciones, extraPrincipal }) {
+            const [pos, setPos] = React.useState(null);
+            const flechaRef = React.useRef(null);
+            const abrir = () => {
+                const r = flechaRef.current.getBoundingClientRect();
+                setPos({ x: r.right - 212, y: r.bottom + 4 });
+            };
+            const cerrar = () => {
+                setPos(null);
+                if (flechaRef.current) flechaRef.current.focus();
+            };
+            return (
+                <div class={`k5-partido ${activo ? "k5-partido--activo" : ""}`}>
+                    <button ref={refPrincipal} type="button" onClick={onClick} class="k-btn k-btn--primary k-btn--touch k2-boton-texto k5-partido__principal" aria-label={etiqueta} {...(extraPrincipal || {})}>
+                        <Icono nombre={icono} />
+                        <span class="k2-solo-escritorio">{etiqueta}</span>
+                    </button>
+                    <button
+                        ref={flechaRef}
+                        type="button"
+                        aria-label={etiquetaMenu}
+                        title={etiquetaMenu}
+                        aria-haspopup="menu"
+                        aria-expanded={!!pos}
+                        onClick={() => pos ? cerrar() : abrir()}
+                        class="k-btn k-btn--primary k-btn--touch k5-partido__flecha"
+                    >
+                        <Icono nombre="abajo" tam={16} />
+                    </button>
+                    {pos && (
+                        <MenuContextualAccesible x={pos.x} y={pos.y} titulo={etiquetaMenu} opciones={opciones} onCerrar={cerrar} />
+                    )}
+                </div>
+            );
+        }
+
         function MenuAcciones({ etiqueta, titulo, opciones, variante }) {
             const [pos, setPos] = React.useState(null);
             const botonRef = React.useRef(null);
@@ -2323,6 +2627,220 @@
                         </button>
                     ))}
                 </div>
+            );
+        }
+
+        /* --- 0.6: LA PEDALERA -------------------------------------------------
+         * El panel de ajustes deja de ser pestañas y pasa a ser una pedalera.
+         * Cada pieza de aquí es un control de los de siempre con cara de
+         * aparato: la perilla es un slider, el selector rotativo es un grupo
+         * de opciones, la pantalla es un ◀ valor ▶, el pisador es un botón.
+         * Ninguna sabe nada del diagrama: reciben valor y onCambio. */
+
+        // El siguiente (o el anterior) de una lista, dando la vuelta.
+        const ciclar = (lista, actual, paso) => {
+            const i = lista.indexOf(actual);
+            return lista[((i < 0 ? 0 : i) + paso + lista.length) % lista.length];
+        };
+
+        function Pedal({ id, nombre, sub, led, ancho, ampli, children, pisador }) {
+            return (
+                <section id={`k6-pedal-${id}`} class={`k6-pedal${ancho ? " k6-pedal--ancho" : ""}${ampli ? " k6-pedal--ampli" : ""}`} aria-labelledby={`k6-pedal-${id}-nombre`}>
+                    <header class="k6-pedal__cabeza">
+                        <div>
+                            <h3 id={`k6-pedal-${id}-nombre`} class="k6-pedal__nombre">{nombre}</h3>
+                            {sub && <p class="k6-pedal__sub">{sub}</p>}
+                        </div>
+                        {led !== undefined && <span class={`k6-led${led ? " k6-led--on" : ""}`} aria-hidden="true" />}
+                    </header>
+                    <div class="k6-pedal__panel">{children}</div>
+                    {pisador}
+                </section>
+            );
+        }
+
+        /* La perilla continua. Se gira arrastrando en vertical (como en
+         * cualquier plugin de audio), con la rueda o con las flechas. 270°
+         * de recorrido, de las siete a las cinco. */
+        function Perilla({ etiqueta, valor, min, max, paso, formato, onCambio }) {
+            const ref = React.useRef(null);
+            const arrastre = React.useRef(null);
+            const vivo = React.useRef({ valor, onCambio });
+            vivo.current = { valor, onCambio };
+            const fijar = (v) => {
+                const n = parseFloat((Math.round(Math.min(max, Math.max(min, v)) / paso) * paso).toFixed(4));
+                if (n !== vivo.current.valor) vivo.current.onCambio(n);
+            };
+            // La rueda va a mano: React la registra pasiva y no deja frenar el scroll.
+            React.useEffect(() => {
+                const el = ref.current;
+                if (!el) return;
+                const alRodar = (e) => { e.preventDefault(); fijar(vivo.current.valor + (e.deltaY < 0 ? paso : -paso)); };
+                el.addEventListener("wheel", alRodar, { passive: false });
+                return () => el.removeEventListener("wheel", alRodar);
+            }, [min, max, paso]);
+            const texto = formato ? formato(valor) : String(valor);
+            const giro = -135 + ((valor - min) / (max - min)) * 270;
+            return (
+                <div class="k6-perilla">
+                    <div
+                        ref={ref}
+                        role="slider"
+                        tabIndex={0}
+                        aria-label={etiqueta}
+                        aria-valuemin={min}
+                        aria-valuemax={max}
+                        aria-valuenow={valor}
+                        aria-valuetext={texto}
+                        class="k6-perilla__boton"
+                        style={{ "--k6-giro": `${giro}deg` }}
+                        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); arrastre.current = { y: e.clientY, v: valor }; }}
+                        onPointerMove={(e) => { if (arrastre.current) fijar(arrastre.current.v + ((arrastre.current.y - e.clientY) / 140) * (max - min)); }}
+                        onPointerUp={() => { arrastre.current = null; }}
+                        onPointerCancel={() => { arrastre.current = null; }}
+                        onKeyDown={(e) => {
+                            const d = { ArrowUp: paso, ArrowRight: paso, ArrowDown: -paso, ArrowLeft: -paso }[e.key];
+                            if (d) { e.preventDefault(); fijar(valor + d); }
+                            else if (e.key === "Home") { e.preventDefault(); fijar(min); }
+                            else if (e.key === "End") { e.preventDefault(); fijar(max); }
+                        }}
+                    />
+                    <span class="k6-perilla__valor">{texto}</span>
+                    <span class="k6-rotulo">{etiqueta}</span>
+                </div>
+            );
+        }
+
+        /* El selector rotativo: una perilla con sus posiciones escritas
+         * alrededor, como el de las pastillas de una guitarra. Se toca la
+         * palabra o la perilla (que avanza una posición). */
+        function SelectorRotativo({ etiqueta, opciones, valor, onCambio, sinRotulo }) {
+            const n = opciones.length;
+            const abanico = n <= 2 ? 90 : n === 3 ? 120 : 180;
+            const angulo = (i) => (n === 1 ? 0 : -abanico / 2 + (abanico / (n - 1)) * i);
+            const actual = Math.max(0, opciones.findIndex(o => o.id === valor));
+            const refs = React.useRef([]);
+            const mover = (e, i) => {
+                const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+                if (!d) return;
+                e.preventDefault();
+                const j = (i + d + n) % n;
+                onCambio(opciones[j].id);
+                refs.current[j] && refs.current[j].focus();
+            };
+            return (
+                <div class="k6-selector">
+                    <div class="k6-selector__dial" role="radiogroup" aria-label={etiqueta}>
+                        {opciones.map((o, i) => {
+                            const a = angulo(i) * Math.PI / 180;
+                            return (
+                                <button
+                                    key={o.id}
+                                    ref={(el) => { refs.current[i] = el; }}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={i === actual}
+                                    tabIndex={i === actual ? 0 : -1}
+                                    title={o.ayuda}
+                                    class={`k6-selector__pos${i === actual ? " k6-selector__pos--on" : ""}`}
+                                    style={{ left: `calc(50% + ${Math.sin(a) * 50}px)`, top: `calc(62% - ${Math.cos(a) * 44}px)` }}
+                                    onClick={() => onCambio(o.id)}
+                                    onKeyDown={(e) => mover(e, i)}
+                                >
+                                    {o.label}
+                                </button>
+                            );
+                        })}
+                        <span
+                            class="k6-selector__perilla"
+                            style={{ "--k6-giro": `${angulo(actual)}deg` }}
+                            aria-hidden="true"
+                            onClick={() => onCambio(opciones[(actual + 1) % n].id)}
+                        />
+                    </div>
+                    {!sinRotulo && <span class="k6-rotulo">{etiqueta}</span>}
+                </div>
+            );
+        }
+
+        /* La pantalla de un pedal: ◀ valor ▶. */
+        function Pantalla({ etiqueta, valor, titulo, onAnterior, onSiguiente, children }) {
+            return (
+                <div class="k6-pantalla-bloque">
+                    <div class="k6-pantalla" role="group" aria-label={etiqueta}>
+                        {onAnterior && <button type="button" class="k6-pantalla__flecha" aria-label={`${etiqueta}: anterior`} onClick={onAnterior}>◀</button>}
+                        <span class="k6-pantalla__valor" title={titulo || (typeof valor === "string" ? valor : undefined)} aria-live="polite">{children || valor}</span>
+                        {onSiguiente && <button type="button" class="k6-pantalla__flecha" aria-label={`${etiqueta}: siguiente`} onClick={onSiguiente}>▶</button>}
+                    </div>
+                    <span class="k6-rotulo">{etiqueta}</span>
+                </div>
+            );
+        }
+
+        /* La palanca: un interruptor de dos posiciones. Con `opciones` cada
+         * posición tiene nombre (Izquierda · Derecha); sin ellas es sí / no. */
+        function Palanca({ etiqueta, valor, onCambio, opciones }) {
+            if (opciones) {
+                const arriba = valor === opciones[1].id;
+                const actual = arriba ? opciones[1] : opciones[0];
+                const otra = arriba ? opciones[0] : opciones[1];
+                return (
+                    <button type="button" class="k6-palanca" aria-label={`${etiqueta}: ${actual.label}. Cambiar a ${otra.label}`} onClick={() => onCambio(otra.id)}>
+                        <span class={`k6-palanca__brazo${arriba ? " k6-palanca__brazo--arriba" : ""}`} aria-hidden="true" />
+                        <span class="k6-rotulo">{etiqueta}</span>
+                        <span class="k6-palanca__valor">{actual.label}</span>
+                    </button>
+                );
+            }
+            return (
+                <button type="button" role="switch" aria-checked={!!valor} class="k6-palanca" onClick={() => onCambio(!valor)}>
+                    <span class={`k6-palanca__brazo${valor ? " k6-palanca__brazo--arriba k6-palanca__brazo--on" : ""}`} aria-hidden="true" />
+                    <span class="k6-rotulo">{etiqueta}</span>
+                </button>
+            );
+        }
+
+        /* Un color como perilla: la muestra redonda abre el selector del
+         * sistema. El input va encima, transparente, para que sea él quien
+         * recibe el foco y el clic. */
+        function PerillaColor({ etiqueta, valor, onCambio }) {
+            return (
+                <label class="k6-color">
+                    <span class="k6-color__muestra" style={{ background: valor }}>
+                        <input type="color" value={valor} onChange={(e) => onCambio(e.target.value)} aria-label={etiqueta} />
+                    </span>
+                    <span class="k6-rotulo">{etiqueta}</span>
+                </label>
+            );
+        }
+
+        /* Una banda del EQ: una columna del color de su grado. */
+        function BandaEQ({ grado, nombre, valor, onCambio }) {
+            return (
+                <label class="k6-banda" title={nombre}>
+                    <span class="k6-banda__barra" style={{ background: valor }}>
+                        <input type="color" value={valor} onChange={(e) => onCambio(e.target.value)} aria-label={`Color de ${nombre}`} />
+                    </span>
+                    <span class="k6-banda__grado" aria-hidden="true">{grado}</span>
+                </label>
+            );
+        }
+
+        /* El pisador: el botón grande de abajo. Con `activo` es un
+         * interruptor (aria-pressed); sin él, una acción. */
+        function Pisador({ etiqueta, activo, onPisar, desactivado, ayuda }) {
+            return (
+                <button
+                    type="button"
+                    class={`k6-pisador${activo ? " k6-pisador--on" : ""}`}
+                    aria-pressed={activo === undefined ? undefined : !!activo}
+                    disabled={desactivado}
+                    title={ayuda}
+                    onClick={onPisar}
+                >
+                    <span class="k6-pisador__boton" aria-hidden="true" />
+                    {etiqueta}
+                </button>
             );
         }
 
@@ -8956,7 +9474,9 @@
             /* Tempo en NEGRAS. Antes esto guardaba milisegundos entre notas,
              * así que subir el control retrasaba la música: al revés de lo que
              * dice cualquier metrónomo. Las secuencias suenan en corcheas. */
-            const [tempoBpm, setTempoBpm] = useState(100);
+            const [velocidad, setVelocidad] = useState("medio");
+            const velocidadActual = VELOCIDADES.find(v => v.id === velocidad) || VELOCIDADES[1];
+            const tempoBpm = velocidadActual.bpm;
 
             // Segundos por corchea, que es el paso de las secuencias.
             const segundosPorCorchea = 30 / tempoBpm;
@@ -8981,11 +9501,38 @@
              * por cuerda a 45 bpm (dos tercios de segundo el acorde entero en
              * seis cuerdas), 50 a 100 bpm, 21 a 240. */
             const LIMITE_RASGUEO = { min: 0.015, max: 0.11 };
-            const separacionRasgueo = Math.max(
+            const separacionRasgueo = velocidadActual.rasgueo || Math.max(
                 LIMITE_RASGUEO.min,
                 Math.min(LIMITE_RASGUEO.max, segundosPorCorchea / 6)
             );
-            const [notePulse, setNotePulse] = useState(null); // { s: stringIndex, f: fretNum } para destello
+            /* 0.5: cada nota que suena lanza una onda { id, s, f } que se
+             * borra sola al acabar. Es una lista, no un único destello: en
+             * un rasgueo las notas se solapan y cada una lleva la suya. */
+            const [ondas, setOndas] = useState([]);
+            const ondaIdRef = useRef(0);
+            const DURACION_ONDA = 1100;
+            const colorDeNota = (s, f) => {
+                const e = escenaDelEstudio();
+                // Al aire: con nota, el color de su grado; sin ella, el del
+                // círculo «O», que se pinta con el color del texto.
+                if (f === 0) {
+                    const aire = (e.alAire || []).find(n => n.s === s);
+                    if (aire && aire.nota) return getIntervalColor(aire.nota.grado);
+                    if (aire) return textStyleColor;
+                }
+                const enMapa = e.mapa && e.mapa.notas.find(n => n.s === s && n.f === f);
+                if (enMapa) return getIntervalColor(enMapa.grado);
+                const enAcorde = e.acorde && e.acorde.notas.find(n => n.s === s && n.f === f);
+                if (enAcorde && enAcorde.grado) return getIntervalColor(enAcorde.grado);
+                return baseFingerStyleColor;
+            };
+            const lanzarOnda = (s, f) => {
+                const id = ++ondaIdRef.current;
+                let color;
+                try { color = colorDeNota(s, f); } catch (e) { color = getIntervalColor("1"); }
+                setOndas(prev => [...prev, { id, s, f, color }]);
+                setTimeout(() => setOndas(prev => prev.filter(o => o.id !== id)), DURACION_ONDA);
+            };
 
             // --- ESTADO DE LEYENDA DE INTERVALOS ---
             const [showLegend, setShowLegend] = useState(true);
@@ -9086,6 +9633,37 @@
             const [stylePresets, setStylePresets] = useState(() => estiloGuardadoRef.current.presets);
             const [nombrePreset, setNombrePreset] = useState("");
 
+            /* 0.6: los seis canales del ampli. Cada canal apunta a un preset
+             * por su id, y el mapa vive en su propia clave: el formato de
+             * `kharo.style.v1` no cambia, así que Prime sigue leyendo sus
+             * estilos como siempre. La primera vez, los canales se llenan con
+             * los primeros seis presets que ya hubiera. */
+            const NUM_CANALES = 6;
+            const CLAVE_CANALES = "kharo.v06.canales";
+            const [canales, setCanales] = useState(() => {
+                try {
+                    const g = JSON.parse(localStorage.getItem(CLAVE_CANALES));
+                    if (Array.isArray(g) && g.length === NUM_CANALES) return g;
+                } catch (e) {}
+                const ids = estiloGuardadoRef.current.presets.slice(0, NUM_CANALES).map(p => p.id);
+                while (ids.length < NUM_CANALES) ids.push(null);
+                return ids;
+            });
+            const firmaEstilo = (s) => JSON.stringify(normalizeStyle(s));
+            // Arranca en el canal cuyo preset es el estilo de ahora, si lo hay.
+            const [canalActivo, setCanalActivo] = useState(() => {
+                const ahora = firmaEstilo(estiloGuardadoRef.current.activo);
+                const i = canales.findIndex(id => {
+                    const p = estiloGuardadoRef.current.presets.find(x => x.id === id);
+                    return p && firmaEstilo(p.style) === ahora;
+                });
+                return i < 0 ? 0 : i;
+            });
+            const [nombreCanal, setNombreCanal] = useState(null); // null = no se está guardando
+            useEffect(() => {
+                try { localStorage.setItem(CLAVE_CANALES, JSON.stringify(canales)); } catch (e) {}
+            }, [canales]);
+
             const patchStyle = (parche) => setStyle(prev => normalizeStyle({ ...prev, ...parche }));
 
             const bgStyleColor = style.backgroundColor;
@@ -9166,6 +9744,55 @@
                 if (!preset) return;
                 setStylePresets(prev => prev.filter(p => p.id !== id));
                 showToast(`Estilo «${preset.name}» borrado`);
+            };
+
+            /* --- 0.6: LOS CANALES DEL AMPLI ------------------------------------ */
+            // Un canal cuyo preset se borró (desde Prime, por ejemplo) cuenta como vacío.
+            const presetDeCanal = (n) => stylePresets.find(p => p.id === canales[n]) || null;
+
+            /* Cambiar de canal pone su estilo entero. Lo que hubiera sin
+             * guardar se puede recuperar con Deshacer: así no hace falta
+             * preguntar nada antes de girar. */
+            const cambiarCanal = (paso) => {
+                const antes = style;
+                const canalAntes = canalActivo;
+                const n = (canalActivo + paso + NUM_CANALES) % NUM_CANALES;
+                setCanalActivo(n);
+                setNombreCanal(null);
+                const p = presetDeCanal(n);
+                if (!p) return;
+                setStyle(normalizeStyle(p.style));
+                showToast(`Canal ${n + 1} · ${p.name}`, { texto: "Deshacer", alPulsar: () => { setStyle(antes); setCanalActivo(canalAntes); } });
+            };
+
+            // Guardar en un canal lleno lo sobrescribe; en uno vacío crea un preset nuevo.
+            const guardarEnCanal = (n, nombre) => {
+                const limpio = (nombre || "").trim();
+                if (!limpio) { showToast("Ponle nombre al canal"); return false; }
+                const p = presetDeCanal(n);
+                if (p) {
+                    setStylePresets(prev => prev.map(x => x.id === p.id ? { ...x, name: limpio, style } : x));
+                } else {
+                    if (stylePresets.length >= MAX_PRESETS) {
+                        showToast(`Ya tienes ${MAX_PRESETS} estilos guardados: borra alguno en la versión principal`);
+                        return false;
+                    }
+                    const id = "est-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+                    setStylePresets(prev => [...prev, { id, name: limpio, style }]);
+                    setCanales(prev => prev.map((c, i) => i === n ? id : c));
+                }
+                showToast(`Guardado en el canal ${n + 1}: «${limpio}»`);
+                return true;
+            };
+
+            /* Vaciar un canal sólo lo suelta: el estilo sigue guardado y la
+             * versión principal lo sigue viendo en «Tus estilos». */
+            const vaciarCanal = (n) => {
+                const p = presetDeCanal(n);
+                if (!p) return;
+                const antes = canales;
+                setCanales(prev => prev.map((c, i) => i === n ? null : c));
+                showToast(`Canal ${n + 1} vacío`, { texto: "Deshacer", alPulsar: () => setCanales(antes) });
             };
 
 
@@ -11009,8 +11636,7 @@
                 synthInstance.playNote(absMidi);
 
                 // Disparar destello visual
-                setNotePulse({ s: stringIndex, f: fretNum });
-                setTimeout(() => setNotePulse(null), 400);
+                lanzarOnda(stringIndex, fretNum);
             };
 
             // --- NUEVA LÓGICA DE RATÓN / GESTO ARRASTRAR PARA CEJILLAS ---
@@ -12516,13 +13142,12 @@
                     synthInstance.playNote(item.midi, 1.1, delay);
 
                     setTimeout(() => {
-                        setNotePulse({ s: item.s, f: item.f });
+                        lanzarOnda(item.s, item.f);
                     }, delay * 1000);
                 });
 
                 setTimeout(() => {
                     setIsPlayingSequence(false);
-                    setNotePulse(null);
                 }, notesToPlay.length * paso * 1000 + 400);
             };
 
@@ -12943,17 +13568,12 @@
                 // El halo del audio y la cejilla que se está arrastrando.
                 sobreAfinacion: (g) => (
                     <React.Fragment>
-                        {notePulse && yDeTraste(notePulse.f) !== null && (
-                            <circle
-                                data-transient="1"
-                                cx={g.paddingLeft + notePulse.s * g.stringSpacing}
-                                cy={yDeTraste(notePulse.f)}
-                                fill="none"
-                                stroke={getIntervalColor("1")}
-                                strokeWidth="1.5"
-                                class="audio-pulse-ring"
-                            />
-                        )}
+                        {ondas.map(o => yDeTraste(o.f) !== null && (
+                            <g key={o.id} data-transient="1" class="k5-onda" style={{ pointerEvents: "none" }}>
+                                <circle cx={g.paddingLeft + o.s * g.stringSpacing} cy={yDeTraste(o.f)} fill="none" stroke={o.color} class="k5-onda__anillo" />
+                                <circle cx={g.paddingLeft + o.s * g.stringSpacing} cy={yDeTraste(o.f)} fill="none" stroke={o.color} class="k5-onda__anillo k5-onda__anillo--eco" />
+                            </g>
+                        ))}
                         {appMode === "chord" && dragStart && dragCurrent && dragStart.f === dragCurrent.f && dragStart.s !== dragCurrent.s && yDeTraste(dragStart.f) !== null && (
                             <g data-transient="1">
                                 <rect
@@ -13252,31 +13872,6 @@
              * el ⋯. Las piezas se declaran una vez y se colocan en los dos
              * sitios: duplicar el JSX es garantizar que se desincronicen.
              * --------------------------------------------------------------- */
-            const piezaTempo = (clase) => (
-                <div class={`flex items-center gap-1.5 ${clase || ""}`}>
-                    <span class="k-label k-text-xs">Tempo:</span>
-                    <input
-                        type="range"
-                        min="30"
-                        max="240"
-                        value={tempoBpm}
-                        onChange={(e) => setTempoBpm(parseInt(e.target.value))}
-                        class="w-20 sm:w-16 h-1 rounded-lg cursor-pointer"
-                        style={{accentColor:'var(--k-highlight)', backgroundColor:'var(--k-surface-raised)'}}
-                        title="Pulsos por minuto (negras). Las escalas y arpegios suenan en corcheas"
-                    />
-                    <span class="k-mono k-value k-text-xs w-12 text-right">{tempoBpm} bpm</span>
-                    {/* Lo que el tempo hace REALMENTE en modo Acorde: separar las
-                       cuerdas del rasgueo. Decir sólo «bpm» ahí era prometer un
-                       metrónomo donde lo que hay es un gesto de la mano. */}
-                    {appMode === "chord" && (
-                        <span class="k-mono k-text-xs w-14 text-right" style={{ color: 'var(--k-text-faint)' }}>
-                            {Math.round(separacionRasgueo * 1000)} ms/cuerda
-                        </span>
-                    )}
-                </div>
-            );
-
             const piezaModosVista = (clase) => {
                 if (!modoEditable) return null;
                 /* «Grados» sólo en Acordes: se cuentan respecto a la fundamental
@@ -13801,6 +14396,22 @@
             const [menuVolumen, setMenuVolumen] = useState(null);
             const pulsoVolumenRef = useRef({ t: null, x: 0, y: 0 });
             const abrirMenuVolumen = (x, y) => setMenuVolumen({ x, y });
+            const [menuVelocidad, setMenuVelocidad] = useState(false);
+            const pulsoVelocidadRef = useRef({ t: null, x: 0, y: 0 });
+            const abrirMenuVelocidad = () => setMenuVelocidad(true);
+            const velocidadesRef = useRef(null);
+            // Al abrir, el foco va a la velocidad elegida; Esc cierra.
+            useEffect(() => {
+                if (!menuVelocidad) return;
+                const caja = velocidadesRef.current;
+                const elegido = caja && caja.querySelector('[aria-checked="true"]');
+                if (elegido) elegido.focus();
+                const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); setMenuVelocidad(false); } };
+                window.addEventListener("keydown", tecla, true);
+                return () => window.removeEventListener("keydown", tecla, true);
+            }, [menuVelocidad]);
+            // En Acordes se dice qué se oye; en lo demás, el bpm.
+            const pistaVelocidad = (v) => `${v.termino} · ${appMode === "chord" ? v.ayuda : `${v.bpm} bpm`}`;
 
             const mismaDigitacion = (a, b) => a.instrument === b.instrument
                 && JSON.stringify(chordVoicingToMidi(a)) === JSON.stringify(chordVoicingToMidi(b));
@@ -13953,36 +14564,6 @@
             };
 
             /* --- AYUDANTES DEL ESTUDIO (0.2) ------------------------------- */
-            const queHay = appMode === "chord"
-                ? { rotulo: "Acorde", valor: detectedChord || "Sin notas" }
-                : appMode === "scale"
-                    ? { rotulo: "Escala", valor: `${NOTE_NAMES[scaleRoot]} ${scaleType === "custom" ? "personalizada" : ((SCALE_PRESETS.find(p => p.id === scaleType) || {}).name || "")}` }
-                    : appMode === "arpeggio"
-                        ? { rotulo: "Arpegio", valor: `${NOTE_NAMES[arpeggioRoot]} ${((ARPEGGIO_PRESETS.find(p => p.id === arpeggioType) || {}).name || "")}` }
-                        : { rotulo: "Libre", valor: `${dotsLibre.length} ${dotsLibre.length === 1 ? "nota" : "notas"} · ${recorridoActual().length} en el recorrido` };
-
-            const controlTempo = (sufijo) => (
-                <React.Fragment>
-                    <label htmlFor={`k2-tempo-${sufijo}`} class="k2-tempo__rotulo">Tempo</label>
-                    <input
-                        id={`k2-tempo-${sufijo}`}
-                        type="range"
-                        min="30"
-                        max="240"
-                        value={tempoBpm}
-                        onChange={(e) => setTempoBpm(parseInt(e.target.value))}
-                        aria-valuetext={`${tempoBpm} bpm`}
-                        class="k2-rango"
-                    />
-                    <span class="k2-tempo__valor">{tempoBpm} bpm</span>
-                    {appMode === "chord" && (
-                        <span class="k2-tempo__extra" title="En Acordes el tempo separa las cuerdas del rasgueo">
-                            {Math.round(separacionRasgueo * 1000)} ms/cuerda
-                        </span>
-                    )}
-                </React.Fragment>
-            );
-
             const pulsarDeshacer = (rehacer) => {
                 const hecho = rehacer ? historial.rehacer() : historial.deshacer();
                 showToast(hecho
@@ -14015,6 +14596,8 @@
                     try { localStorage.setItem("kharo.v02.inspector", nuevo ? "1" : "0"); } catch (e) {}
                 }
             };
+            /* 0.6: en el teléfono el dock ya no cambia de pestaña: abre la hoja
+             * y la lleva hasta el pedal que se tocó. */
             const abrirPestana = (id) => {
                 if (inspectorAbierto && pestanaInspector === id && window.innerWidth < 1280) {
                     setInspectorAbierto(false);
@@ -14022,7 +14605,282 @@
                 }
                 setPestanaInspector(id);
                 setInspectorAbierto(true);
+                // Si la hoja se acaba de abrir, el pedal tarda un par de cuadros en existir.
+                const yaAbierto = inspectorAbierto;
+                let intentos = 0;
+                const ir = () => {
+                    const el = document.getElementById(`k6-pedal-${id}`);
+                    if (el) el.scrollIntoView({ behavior: yaAbierto ? "smooth" : "auto", block: "start" });
+                    else if (++intentos < 10) requestAnimationFrame(ir);
+                };
+                setTimeout(ir, yaAbierto ? 0 : 120);
             };
+
+            /* --- 0.6: LA PEDALERA ----------------------------------------------
+             * Lo que antes eran las pestañas Vista, Instrumento y Estilo, en
+             * pedales. Los mismos estados y los mismos setters: nada de aquí
+             * cambia cómo se dibuja la obra. «Qué tocar» ya no está en el
+             * panel: en esta versión la escala y el arpegio se quedan como
+             * estén guardados. */
+            // El recorrido existe en todo lo que no es Acordes (Libre incluido);
+            // la leyenda de grados, sólo en Escalas y Arpegios.
+            const conRecorrido = appMode !== "chord";
+            const conLeyenda = appMode === "scale" || appMode === "arpeggio";
+            const PEDALES = [
+                { id: "afinador", label: "Afinador", icono: "instrumento" },
+                { id: "etiqueta", label: "Etiqueta", icono: "etiqueta" },
+                ...(conRecorrido ? [{ id: "recorrido", label: "Recorrido", icono: "adelante" }] : []),
+                { id: "eq", label: "EQ", icono: "estilo" },
+                { id: "ampli", label: "Ampli", icono: "altavoz" }
+            ];
+
+
+            const nombreInstrumento = (iid) => `${INSTRUMENTS[iid].name.replace(/\s*\(\d+c\)\s*$/, "")} · ${INSTRUMENTS[iid].strings}`;
+            // En la pantalla, la afinación sin las notas: ya están justo encima.
+            const nombreAfinacion = (n) => n === "Personalizada" ? "Propia" : n.replace(/\s*\([^)]*\)\s*$/, "") || n;
+
+            const girarAfinacion = (paso) => {
+                const presets = TUNING_PRESETS[instrument] || [];
+                const nombres = [...presets.map(p => p.name), "Personalizada"];
+                const sig = ciclar(nombres, selectedTuningName, paso);
+                const found = presets.find(p => p.name === sig);
+                if (found) handleTuningPresetChange(found.notes, found.name, found.midi ?? null);
+                else setSelectedTuningName("Personalizada");
+            };
+
+            const opcionesEtiqueta = appMode === "chord"
+                ? [
+                    { id: "diagram", label: "Dedos", ayuda: "El número del dedo que pisa" },
+                    { id: "note", label: "Notas", ayuda: "El nombre de la nota" },
+                    { id: "degree", label: "Grados", ayuda: "El grado respecto a la fundamental del acorde" }
+                ]
+                : [
+                    { id: "note", label: "Notas", ayuda: "El nombre de la nota" },
+                    { id: "degree", label: "Grados", ayuda: "El grado respecto a la tónica" }
+                ];
+            const valorEtiqueta = appMode === "chord" ? chordDisplayMode : scaleDisplayMode;
+            const cambiarEtiqueta = appMode === "chord" ? setChordDisplayMode : setScaleDisplayMode;
+
+            const ordenRecorrido = editandoPath || pathManual ? "amano" : pathCriterio;
+            const cambiarOrden = (v) => {
+                if (v === "amano") { setEditandoPath(true); return; }
+                setEditandoPath(false);
+                setPathCriterio(v);
+                setPathManual(null);
+            };
+
+            const GRADOS_EQ = [
+                ["1", "la tónica (1)"], ["2", "las segundas (b2, 2)"], ["3", "las terceras (b3, 3)"],
+                ["4", "las cuartas (4, #4)"], ["5", "las quintas (b5, 5, #5)"], ["6", "las sextas (b6, 6)"], ["7", "las séptimas (b7, 7)"]
+            ];
+
+            const presetCanal = presetDeCanal(canalActivo);
+            const canalEditado = !!presetCanal && firmaEstilo(presetCanal.style) !== firmaEstilo(style);
+            const confirmarCanal = () => { if (guardarEnCanal(canalActivo, nombreCanal)) setNombreCanal(null); };
+
+            const piezaPedalera = () => (
+                <div class="k6-pedalera">
+                    <div class="k6-rack">
+                        {/* ============ AFINADOR ============ */}
+                        <Pedal
+                            id="afinador"
+                            nombre="Afinador"
+                        >
+                            <div class="k6-cuerdas" role="group" aria-label="Afinación, cuerda por cuerda, de la más grave a la más aguda">
+                                {tuning.slice(0, numStrings).map((nota, idx) => (
+                                    <input
+                                        key={idx}
+                                        type="text"
+                                        maxLength={3}
+                                        value={nota}
+                                        aria-label={`Cuerda ${numStrings - idx}${idx === 0 ? ", la más grave" : idx === numStrings - 1 ? ", la más aguda" : ""}`}
+                                        onChange={(e) => changeTuningNote(idx, e.target.value)}
+                                        class="k6-cuerdas__nota"
+                                    />
+                                ))}
+                            </div>
+                            <Pantalla
+                                etiqueta="Afinación"
+                                valor={nombreAfinacion(selectedTuningName)}
+                                titulo={selectedTuningName}
+                                onAnterior={() => girarAfinacion(-1)}
+                                onSiguiente={() => girarAfinacion(1)}
+                            />
+                            <Pantalla
+                                etiqueta="Instrumento"
+                                valor={nombreInstrumento(instrument)}
+                                onAnterior={() => setInstrument(ciclar(INSTRUMENT_ORDER, instrument, -1))}
+                                onSiguiente={() => setInstrument(ciclar(INSTRUMENT_ORDER, instrument, 1))}
+                            />
+                            <Pantalla
+                                etiqueta="Sonido"
+                                valor={(TIMBRES.find(t => t.id === timbre) || TIMBRES[0]).label}
+                                onAnterior={() => setTimbre(ciclar(TIMBRES.map(t => t.id), timbre, -1))}
+                                onSiguiente={() => setTimbre(ciclar(TIMBRES.map(t => t.id), timbre, 1))}
+                            />
+                        </Pedal>
+
+                        {/* ============ ETIQUETA ============ */}
+                        <Pedal
+                            id="etiqueta"
+                            nombre="Etiqueta"
+                        >
+                            {/* En Libre cada nota lleva siempre su nombre: no hay selector. */}
+                            {appMode !== "free" && (
+                                <SelectorRotativo etiqueta="Dentro de cada nota" sinRotulo opciones={opcionesEtiqueta} valor={valorEtiqueta} onCambio={cambiarEtiqueta} />
+                            )}
+                            <Palanca
+                                etiqueta="Números de traste"
+                                valor={fretNumPosition}
+                                onCambio={setFretNumPosition}
+                                opciones={[{ id: "left", label: "Izquierda" }, { id: "right", label: "Derecha" }]}
+                            />
+                        </Pedal>
+
+                        {/* ============ RECORRIDO (todo menos Acordes) ============ */}
+                        {conRecorrido && (
+                            <Pedal
+                                id="recorrido"
+                                nombre="Recorrido"
+                                led={showPath}
+                                ancho
+                                pisador={<Pisador etiqueta="Flechas" activo={showPath} onPisar={() => setShowPath(!showPath)} ayuda="Manda en las flechas y en lo que suena" />}
+                            >
+                                {showPath ? (
+                                    <React.Fragment>
+                                        <div class="k6-fila">
+                                            <SelectorRotativo
+                                                etiqueta="Orden"
+                                                valor={ordenRecorrido}
+                                                onCambio={cambiarOrden}
+                                                opciones={[
+                                                    { id: "digitacion", label: "Digitación", ayuda: "Cuerda por cuerda, de la más grave a la más aguda" },
+                                                    { id: "altura", label: "Altura", ayuda: "De la nota más grave a la más aguda" },
+                                                    { id: "amano", label: "A mano", ayuda: "Tocas las notas en el orden que quieras" }
+                                                ]}
+                                            />
+                                            {!pathManual && (
+                                                <SelectorRotativo
+                                                    etiqueta="Notas por cuerda"
+                                                    valor={pathNotasPorCuerda}
+                                                    onCambio={(v) => { setPathNotasPorCuerda(v); setPathManual(null); }}
+                                                    opciones={[
+                                                        { id: 1, label: "1" }, { id: 2, label: "2" }, { id: 3, label: "3" },
+                                                        { id: 0, label: "Todas", ayuda: "Sin tope: todas las notas que haya en la cuerda" }
+                                                    ]}
+                                                />
+                                            )}
+                                        </div>
+                                        {editandoPath && (
+                                            <p class="k6-nota k6-nota--aviso">
+                                                {appMode === "free"
+                                                    ? "Toca una nota y se añade al final, aunque ya estuviera: así se escriben notas pedal y vueltas atrás. Arrastra de una a otra para que vayan seguidas. Esc para terminar."
+                                                    : "Toca las notas en el orden que quieras; tocar una que ya está la saca. Arrastra de una a otra para que vayan seguidas. Esc para terminar."}
+                                            </p>
+                                        )}
+                                        <div class="k6-fila k6-fila--abajo">
+                                            <Palanca etiqueta="Ida y vuelta" valor={pathRetorno} onCambio={(v) => { setPathRetorno(v); setPathManual(null); }} />
+                                            <Palanca etiqueta="Barrido" valor={arpSweep} onCambio={setArpSweep} />
+                                            <PerillaColor etiqueta="Flechas" valor={style.pathColor} onCambio={setPathColor} />
+                                        </div>
+                                        <div class="k6-estado">
+                                            <span>{pathManual ? `${pathManual.length} notas, a mano` : `${recorridoActual().length} notas, automático`}</span>
+                                            {pathManual && (
+                                                <button type="button" onClick={reiniciarConDeshacer} class="k6-boton-chico">Volver al automático</button>
+                                            )}
+                                        </div>
+                                    </React.Fragment>
+                                ) : null}
+                            </Pedal>
+                        )}
+
+                        {/* ============ EQ DE GRADOS ============ */}
+                        <Pedal
+                            id="eq"
+                            nombre="EQ de grados"
+                            led={conLeyenda ? showLegend : undefined}
+                            ancho
+                            pisador={conLeyenda && (
+                                <Pisador etiqueta="Leyenda" activo={showLegend} onPisar={() => setShowLegend(!showLegend)} ayuda="Qué color tiene cada grado, al lado del mástil" />
+                            )}
+                        >
+                            <div class="k6-eq">
+                                {GRADOS_EQ.map(([g, nombre]) => (
+                                    <BandaEQ key={g} grado={g} nombre={nombre} valor={intervalColors[g]} onCambio={(v) => setIntervalColors({ ...intervalColors, [g]: v })} />
+                                ))}
+                            </div>
+                            <div class="k6-fila k6-fila--abajo">
+                                <PerillaColor etiqueta="Dedos" valor={baseFingerStyleColor} onCambio={setBaseFingerStyleColor} />
+                                <PerillaColor etiqueta="Texto" valor={style.dotTextColor} onCambio={setDotTextColor} />
+                            </div>
+                        </Pedal>
+
+                        {/* ============ AMPLI ============ */}
+                        <Pedal id="ampli" nombre="Ampli" ancho ampli>
+                            <div class="k6-canal">
+                                {nombreCanal !== null ? (
+                                    <form class="k6-pantalla k6-pantalla--escribe" onSubmit={(e) => { e.preventDefault(); confirmarCanal(); }}>
+                                        <span class="k6-canal__n">CH {canalActivo + 1}</span>
+                                        <input
+                                            type="text"
+                                            autoFocus
+                                            value={nombreCanal}
+                                            onChange={(e) => setNombreCanal(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setNombreCanal(null); } }}
+                                            placeholder="Nombre del canal"
+                                            aria-label={`Nombre del canal ${canalActivo + 1}`}
+                                            maxLength={24}
+                                        />
+                                        <button type="submit" class="k6-pantalla__flecha" aria-label="Guardar">✓</button>
+                                        <button type="button" class="k6-pantalla__flecha" aria-label="Cancelar" onClick={() => setNombreCanal(null)}>✕</button>
+                                    </form>
+                                ) : (
+                                    <Pantalla
+                                        etiqueta="Canal"
+                                        onAnterior={() => cambiarCanal(-1)}
+                                        onSiguiente={() => cambiarCanal(1)}
+                                        titulo={presetCanal ? presetCanal.name : "Canal vacío"}
+                                    >
+                                        <span class="k6-canal__n">CH {canalActivo + 1}</span>
+                                        {presetCanal ? `${presetCanal.name}${canalEditado ? " *" : ""}` : "vacío"}
+                                    </Pantalla>
+                                )}
+                                <div class="k6-canal__acciones">
+                                    <button type="button" class="k6-boton-chico" onClick={() => setNombreCanal(presetCanal ? presetCanal.name : "")}>
+                                        {presetCanal ? "Guardar aquí" : "Guardar en este canal"}
+                                    </button>
+                                    {presetCanal && (
+                                        <button type="button" class="k6-boton-chico" onClick={() => vaciarCanal(canalActivo)}>Vaciar</button>
+                                    )}
+                                    <button type="button" class="k6-boton-chico" onClick={restablecerEstiloConDeshacer} title="Restablecer el estilo de fábrica">Fábrica</button>
+                                </div>
+                            </div>
+                            <div class="k6-fila k6-fila--perillas">
+                                <PerillaColor etiqueta="Fondo" valor={bgStyleColor} onCambio={setBgStyleColor} />
+                                <PerillaColor etiqueta="Cuerdas" valor={gridStyleColor} onCambio={setGridStyleColor} />
+                                <PerillaColor etiqueta="Texto" valor={textStyleColor} onCambio={setTextStyleColor} />
+                                <Perilla etiqueta="Notas" valor={dotRadiusStyle} min={8} max={13} paso={1} formato={(v) => `${v} px`} onCambio={setDotRadiusStyle} />
+                                <Perilla etiqueta="Línea" valor={lineWidthStyle} min={1} max={4} paso={0.5} formato={(v) => `${String(v).replace(".", ",")} px`} onCambio={setLineWidthStyle} />
+                            </div>
+                            <div class="k6-fila k6-fila--abajo">
+                                <Palanca
+                                    etiqueta="Diapasón"
+                                    valor={style.fretboardSkin}
+                                    onCambio={(v) => patchStyle({ fretboardSkin: v })}
+                                    opciones={[{ id: "plano", label: "Plano" }, { id: "madera", label: "Madera" }]}
+                                />
+                                <Pantalla
+                                    etiqueta="Letra"
+                                    valor={(FONTS_LIST.find(f => f.id === fontFamilyStyle) || FONTS_LIST[0]).name.replace(/\s*\(.*\)$/, "")}
+                                    onAnterior={() => setFontFamilyStyle(ciclar(FONTS_LIST.map(f => f.id), fontFamilyStyle, -1))}
+                                    onSiguiente={() => setFontFamilyStyle(ciclar(FONTS_LIST.map(f => f.id), fontFamilyStyle, 1))}
+                                />
+                            </div>
+                        </Pedal>
+                    </div>
+                    <CreditoSonidos corto />
+                </div>
+            );
             const cerrarSiMovil = () => { if (window.innerWidth < 768) setInspectorAbierto(false); };
             const abrirExportar = () => { setNombreArchivoExport(""); setDialogoEstudio("exportar"); };
 
@@ -14072,10 +14930,15 @@
                 </button>
             );
 
-            const accionesDelEstudio = [
-                modoEditable && { label: "Vaciar el mástil", hacer: vaciarConDeshacer },
-                { label: "Atajos de teclado", hacer: () => setDialogoEstudio("atajos") }
-            ].filter(Boolean);
+            /* 0.5: lo que cuelga de la flecha del botón partido. Vaciar ya
+             * vive junto al mástil y los atajos tienen su propio botón, así
+             * que el «⋯» desaparece. */
+            const separador = { borderTop: '1px solid var(--k-divider)', borderRadius: 0, marginTop: 4, paddingTop: 8 };
+            const salidasDelEstudio = [
+                { label: "Exportar PNG", hacer: exportPNG },
+                { label: "Exportar SVG", hacer: exportSVG },
+                { label: "Más formatos…", hacer: () => abrirExportar(), estilo: separador }
+            ];
 
             /* Los atajos de una tecla. Ninguno mientras se escribe en un campo
              * ni con un diálogo abierto; Ctrl+Z sigue en su propio efecto. */
@@ -14328,67 +15191,49 @@
                     {appView === "studio" && (
                     <div class="k2-estudio">
 
-                        {/* --- BARRA DE ACCIÓN --- */}
-                        <div class="k2-barra-accion" role="toolbar" aria-label="Acciones del diagrama">
-                            <div class="k2-que-hay">
-                                <span class="k2-que-hay__rotulo">{queHay.rotulo}</span>
-                                <strong class="k2-que-hay__valor">{queHay.valor}</strong>
-                            </div>
-
+                        {/* --- BARRA DE ACCIÓN (0.5) ---
+                            Sólo el documento: deshacer a un lado y, al otro,
+                            qué hago con él. El nombre ya lo dice el diagrama y
+                            el sonido bajó al mástil (la píldora). */}
+                        <div class="k2-barra-accion k5-barra" role="toolbar" aria-label="Acciones del diagrama">
                             <div class="k2-barra-accion__grupo">
-                                <button
-                                    type="button"
-                                    /* `aria-disabled` y no `disabled`: un botón
-                                       desactivado no recibe el clic derecho, y el
-                                       volumen se quiere bajar justo mientras suena. */
-                                    onClick={() => { if (!isPlayingSequence) triggerStrumOrSequence(); }}
-                                    onContextMenu={(e) => { e.preventDefault(); abrirMenuVolumen(e.clientX, e.clientY); }}
-                                    {...crearPulsacionLarga(pulsoVolumenRef, abrirMenuVolumen)}
-                                    aria-disabled={isPlayingSequence}
-                                    class="k-btn k-btn--primary k-btn--touch k2-boton-texto"
-                                    aria-label={appMode === "chord" ? "Rasguear el acorde" : "Reproducir el recorrido"}
-                                    title="Clic derecho: volumen"
-                                >
-                                    <Icono nombre="altavoz" />
-                                    <span class="k2-solo-escritorio">{appMode === "chord" ? "Rasguear" : "Reproducir"}</span>
-                                </button>
-                                <div class="k2-tempo k2-solo-escritorio">{controlTempo("barra")}</div>
-                                {menuVolumen && (
-                                    <MenuVolumen
-                                        x={menuVolumen.x}
-                                        y={menuVolumen.y}
-                                        onProbar={() => { if (!isPlayingSequence) triggerStrumOrSequence(); }}
-                                        onCerrar={() => setMenuVolumen(null)}
-                                    />
-                                )}
+                                <BotonIcono icono="deshacer" etiqueta="Deshacer (Ctrl+Z)" onClick={() => pulsarDeshacer(false)} disabled={!historial.hayQueDeshacer} />
+                                <BotonIcono icono="rehacer" etiqueta="Rehacer (Ctrl+Shift+Z)" onClick={() => pulsarDeshacer(true)} disabled={!historial.hayQueRehacer} />
                             </div>
 
                             <div class="k2-barra-accion__grupo k2-barra-accion__fin">
-                                <BotonIcono icono="deshacer" etiqueta="Deshacer (Ctrl+Z)" onClick={() => pulsarDeshacer(false)} disabled={!historial.hayQueDeshacer} />
-                                <BotonIcono icono="rehacer" etiqueta="Rehacer (Ctrl+Shift+Z)" onClick={() => pulsarDeshacer(true)} disabled={!historial.hayQueRehacer} />
                                 {appMode === "chord" ? (
-                                    <button ref={botonGuardarRef} type="button" onClick={() => guardando ? setGuardando(null) : abrirGuardarAcorde()} aria-haspopup="dialog" aria-expanded={!!guardando} class={`k-btn k-btn--touch k2-boton-texto ${guardando ? "k-btn--primary" : "k-btn--outline"}`} aria-label="Guardar el acorde">
-                                        <Icono nombre="guardar" />
-                                        <span class="k2-solo-escritorio">Guardar acorde</span>
-                                    </button>
+                                    <BotonPartido
+                                        etiqueta="Guardar acorde"
+                                        icono="guardar"
+                                        refPrincipal={botonGuardarRef}
+                                        activo={!!guardando}
+                                        onClick={() => guardando ? setGuardando(null) : abrirGuardarAcorde()}
+                                        extraPrincipal={{ "aria-haspopup": "dialog", "aria-expanded": !!guardando }}
+                                        etiquetaMenu="Exportar"
+                                        opciones={salidasDelEstudio}
+                                    />
                                 ) : (
-                                    <button type="button" onClick={abrirMandarPaso} class="k-btn k-btn--outline k-btn--touch k2-boton-texto" aria-label="Mandar a Ejercicios">
-                                        <Icono nombre="ejercicios" />
-                                        <span class="k2-solo-escritorio">Mandar a Ejercicios</span>
-                                    </button>
+                                    <BotonPartido
+                                        etiqueta="Mandar a Ejercicios"
+                                        icono="ejercicios"
+                                        onClick={abrirMandarPaso}
+                                        etiquetaMenu="Exportar"
+                                        opciones={salidasDelEstudio}
+                                    />
                                 )}
-                                <MenuAcciones etiqueta="Más acciones" titulo="Más acciones" opciones={accionesDelEstudio} />
-                                <BotonIcono
-                                    icono="panel"
-                                    etiqueta={inspectorAbierto ? "Ocultar el panel" : "Mostrar el panel"}
+                                <span class="k5-sep k2-no-movil" aria-hidden="true"></span>
+                                <button
+                                    type="button"
                                     onClick={() => alternarInspector()}
-                                    activo={inspectorAbierto}
-                                    className="k2-no-movil"
-                                />
-                                <button type="button" onClick={() => abrirExportar()} class="k-btn k-btn--primary k-btn--touch k2-boton-texto" aria-label="Exportar el diagrama">
-                                    <Icono nombre="exportar" />
-                                    <span class="k2-solo-escritorio">Exportar</span>
+                                    aria-pressed={inspectorAbierto}
+                                    class={`k-btn k-btn--touch k2-boton-texto k2-no-movil k5-panel ${inspectorAbierto ? "k5-panel--activo" : "k-btn--ghost"}`}
+                                    title={inspectorAbierto ? "Ocultar el panel" : "Mostrar el panel"}
+                                >
+                                    <Icono nombre="panel" />
+                                    <span>Panel</span>
                                 </button>
+                                <BotonIcono icono="teclado" etiqueta="Atajos de teclado (?)" onClick={() => setDialogoEstudio("atajos")} className="k2-no-movil" />
                             </div>
                         </div>
 
@@ -14442,6 +15287,79 @@
                                     </div>
                                 </div>
 
+                                {/* --- 0.5: LA PÍLDORA DEL SONIDO ---
+                                    Escuchar, tempo y volumen juntos y pegados
+                                    al mástil: lo que oyes, junto a lo que ves.
+                                    El volumen deja de depender del clic
+                                    derecho, que en el teléfono no existe. */}
+                                <div class="k5-pildora" role="group" aria-label="Sonido" style={{ position: "relative" }}>
+                                    <button
+                                        type="button"
+                                        /* `aria-disabled` y no `disabled`: un botón
+                                           desactivado no recibe el clic derecho, y la
+                                           velocidad se quiere cambiar justo mientras suena. */
+                                        onClick={() => { if (!isPlayingSequence) triggerStrumOrSequence(); }}
+                                        onContextMenu={(e) => { e.preventDefault(); abrirMenuVelocidad(); }}
+                                        {...crearPulsacionLarga(pulsoVelocidadRef, abrirMenuVelocidad)}
+                                        aria-disabled={isPlayingSequence}
+                                        aria-expanded={menuVelocidad}
+                                        class={`k-btn k5-pildora__tocar k5-vel--${velocidad}`}
+                                        aria-label={`${appMode === "chord" ? "Rasguear el acorde" : "Reproducir el recorrido"}, velocidad ${velocidadActual.label.toLowerCase()} (P). Clic derecho para cambiar la velocidad`}
+                                        title={`${appMode === "chord" ? "Rasguear" : "Reproducir"} · ${velocidadActual.label}, ${velocidadActual.termino} (P). Clic derecho: velocidad`}
+                                    >
+                                        <Icono nombre="reproducir" tam={16} />
+                                        <span class="k2-solo-escritorio">{appMode === "chord" ? "Rasguear" : "Reproducir"}</span>
+                                    </button>
+                                    {menuVelocidad && (
+                                        <React.Fragment>
+                                            <div
+                                                class="fixed inset-0 z-40"
+                                                onClick={() => setMenuVelocidad(false)}
+                                                onContextMenu={(e) => { e.preventDefault(); setMenuVelocidad(false); }}
+                                            />
+                                            <div ref={velocidadesRef} class="k5-velocidades" role="radiogroup" aria-label="Velocidad">
+                                                {VELOCIDADES.map(v => (
+                                                    <button
+                                                        key={v.id}
+                                                        type="button"
+                                                        role="radio"
+                                                        aria-checked={v.id === velocidad}
+                                                        aria-label={`${v.label}: ${pistaVelocidad(v)}`}
+                                                        data-pista={pistaVelocidad(v)}
+                                                        onClick={() => { setVelocidad(v.id); setMenuVelocidad(false); }}
+                                                        class={`k5-velocidad k5-vel--${v.id} ${v.id === velocidad ? "k5-velocidad--elegida" : ""}`}
+                                                    >
+                                                        {v.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </React.Fragment>
+                                    )}
+                                    <span class="k5-pildora__sep" aria-hidden="true"></span>
+                                    <button
+                                        type="button"
+                                        class="k2-icono k2-icono--suave"
+                                        aria-label="Volumen"
+                                        title="Volumen"
+                                        aria-haspopup="dialog"
+                                        aria-expanded={!!menuVolumen}
+                                        onClick={(e) => {
+                                            const r = e.currentTarget.getBoundingClientRect();
+                                            abrirMenuVolumen(r.left, r.top - 140);
+                                        }}
+                                    >
+                                        <Icono nombre="altavoz" />
+                                    </button>
+                                    {menuVolumen && (
+                                        <MenuVolumen
+                                            x={menuVolumen.x}
+                                            y={menuVolumen.y}
+                                            onProbar={() => { if (!isPlayingSequence) triggerStrumOrSequence(); }}
+                                            onCerrar={() => setMenuVolumen(null)}
+                                        />
+                                    )}
+                                </div>
+
                                 <p class="k-hint select-none text-center px-3 py-1">
                                     <span aria-hidden="true" style={{ color: 'var(--k-accent)' }}>●</span>
                                     {pistaDelLienzo()}
@@ -14456,523 +15374,25 @@
 
                             {/* --- EL INSPECTOR --- */}
                             {inspectorAbierto && (
-                                <aside class="k2-inspector" aria-label="Ajustes del diagrama">
+                                <aside class="k2-inspector k6-inspector" aria-label="Pedalera: ajustes del diagrama">
                                     <div class="k-sheet-handle md:hidden"></div>
-                                    <div class="k2-inspector__cabeza">
-                                        <PestanasInspector pestanas={PESTANAS_INSPECTOR} activa={pestanaInspector} onCambio={setPestanaInspector} />
+                                    <div class="k2-inspector__cabeza k6-inspector__cabeza">
+                                        <h2 class="k6-inspector__titulo">Pedalera</h2>
                                         <BotonIcono icono="cerrar" etiqueta="Cerrar el panel" onClick={() => alternarInspector(false)} className="k2-cerrar-inspector" />
                                     </div>
 
-                                    <div class="k2-inspector__cuerpo" role="tabpanel" id={`k2-panel-${pestanaInspector}`} aria-labelledby={`k2-tab-${pestanaInspector}`}>
-
-                                        {/* ============ QUÉ TOCAR ============ */}
-                                        {pestanaInspector === "tocar" && (
-                                            <React.Fragment>
-                                                {/* En el teléfono el tempo no cabe en la barra:
-                                                    vive aquí arriba, que es lo primero que se abre. */}
-                                                <div class="k2-solo-movil k2-bloque">
-                                                    <div class="k2-tempo">{controlTempo("panel")}</div>
-                                                </div>
-
-                                                {appMode === "chord" && (
-                                                    <React.Fragment>
-                                                        <Seccion id="acorde-nombre" titulo="El acorde">
-                                                            <Campo etiqueta="Nombre del acorde" ayuda={autoUpdateTitle ? "Se pone solo con lo que detecta en el mástil. Escríbelo tú para fijarlo." : undefined}>
-                                                                {(id, ayuda) => (
-                                                                    <input
-                                                                        id={id}
-                                                                        type="text"
-                                                                        value={chordName}
-                                                                        aria-describedby={ayuda}
-                                                                        onChange={(e) => { setChordName(e.target.value); setAutoUpdateTitle(false); }}
-                                                                        placeholder="Ej.: Cmaj7"
-                                                                    />
-                                                                )}
-                                                            </Campo>
-                                                            <Interruptor etiqueta="Nombrarlo solo" valor={autoUpdateTitle} onCambio={setAutoUpdateTitle} />
-                                                        </Seccion>
-                                                        <Seccion id="acordes-rapidos" titulo="Acordes rápidos">
-                                                            <div class="k2-rejilla-botones">
-                                                                {PRESETS.map(p => (
-                                                                    <button key={p.name} type="button" onClick={() => { loadPreset(p); cerrarSiMovil(); }} class="k2-boton-rejilla">
-                                                                        {p.name}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </Seccion>
-                                                        <Seccion id="acordes-tuyos" titulo={`Tu biblioteca · ${chordLibrary.length}`}>
-                                                            {chordLibrary.length === 0 ? (
-                                                                <p class="k2-ayuda">Aquí van a vivir tus acordes. Arma uno en el mástil y toca «Guardar acorde».</p>
-                                                            ) : (
-                                                                <ul class="k2-lista">
-                                                                    {chordLibrary.map(c => (
-                                                                        <li key={c.id} class="k2-lista__fila">
-                                                                            <button type="button" onClick={() => { loadPreset(c); cerrarSiMovil(); }} class="k2-lista__principal">
-                                                                                <span class="k2-lista__nombre">{c.name}</span>
-                                                                                <span class="k2-lista__detalle">{getInstrument(c.instrument).name}</span>
-                                                                            </button>
-                                                                            <BotonBorrar onClick={() => removeChordFromLibrary(c.id)} title={`Quitar «${c.name}» de la biblioteca`} className="k2-icono-borrar" />
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            )}
-                                                        </Seccion>
-                                                    </React.Fragment>
-                                                )}
-
-                                                {appMode === "scale" && (
-                                                    <React.Fragment>
-                                                        <Seccion id="escala" titulo="La escala">
-                                                            <div class="k2-dos-columnas">
-                                                                <Campo etiqueta="Tónica">
-                                                                    {(id) => (
-                                                                        <select id={id} value={scaleRoot} onChange={(e) => setScaleRoot(parseInt(e.target.value))}>
-                                                                            {NOTE_NAMES.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                                                                        </select>
-                                                                    )}
-                                                                </Campo>
-                                                                <Campo etiqueta="Escala">
-                                                                    {(id) => (
-                                                                        <select id={id} value={scaleType} onChange={(e) => setScaleType(e.target.value)}>
-                                                                            {SCALE_PRESETS.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
-                                                                            <option value="custom">Personalizada</option>
-                                                                        </select>
-                                                                    )}
-                                                                </Campo>
-                                                            </div>
-                                                            {scaleType === "custom" && (
-                                                                <div class="k2-bloque">
-                                                                    <span class="k2-etiqueta" id="k2-formula">Fórmula: los intervalos que suenan</span>
-                                                                    <div class="k2-rejilla-botones k2-rejilla-botones--4" role="group" aria-labelledby="k2-formula">
-                                                                        {INTERVAL_DEGREES.map((deg, idx) => (
-                                                                            <button
-                                                                                key={deg}
-                                                                                type="button"
-                                                                                onClick={() => toggleCustomInterval(idx)}
-                                                                                aria-pressed={!!customScaleIntervals[idx]}
-                                                                                class={`k2-boton-rejilla ${customScaleIntervals[idx] ? "k2-boton-rejilla--on" : ""}`}
-                                                                            >
-                                                                                {deg}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </Seccion>
-                                                        <Seccion id="triadas" titulo="Tríadas de la tonalidad">
-                                                            <Interruptor
-                                                                etiqueta="Mostrar las tríadas"
-                                                                valor={scaleTriads}
-                                                                desactivado={!hayTriadasEnLaEscala}
-                                                                onCambio={activarTriadas}
-                                                                ayuda={!hayTriadasEnLaEscala
-                                                                    ? "Esta escala no llega a siete notas: no hay terceras que apilar."
-                                                                    : scaleTriads
-                                                                        ? "Elige la tríada en la tira de encima del mástil. «Mandar a Ejercicios» se la lleva con su escala alrededor."
-                                                                        : "Los siete acordes que salen de la escala, para ver dónde se pisan."}
-                                                            />
-                                                        </Seccion>
-                                                    </React.Fragment>
-                                                )}
-
-                                                {appMode === "arpeggio" && (
-                                                    <React.Fragment>
-                                                        <Seccion id="arpegio" titulo="El arpegio">
-                                                            <div class="k2-dos-columnas">
-                                                                <Campo etiqueta="Tónica">
-                                                                    {(id) => (
-                                                                        <select id={id} value={arpeggioRoot} onChange={(e) => setArpeggioRoot(parseInt(e.target.value))}>
-                                                                            {NOTE_NAMES.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                                                                        </select>
-                                                                    )}
-                                                                </Campo>
-                                                                <Campo etiqueta="Arpegio">
-                                                                    {(id) => (
-                                                                        <select id={id} value={arpeggioType} onChange={(e) => setArpeggioType(e.target.value)}>
-                                                                            {ARPEGGIO_PRESETS.map(ap => <option key={ap.id} value={ap.id}>{ap.name}</option>)}
-                                                                        </select>
-                                                                    )}
-                                                                </Campo>
-                                                            </div>
-                                                        </Seccion>
-                                                        <Seccion id="agrupacion" titulo="Cómo agruparlo">
-                                                            <Segmentado
-                                                                etiqueta="Agrupación"
-                                                                ancho
-                                                                valor={arpGrouping}
-                                                                onCambio={setArpGrouping}
-                                                                opciones={[
-                                                                    { id: "mapa", label: "Mapa", ayuda: "Todas las notas del arpegio por el mástil" },
-                                                                    { id: "cuerdas", label: "Por cuerdas", ayuda: "Una nota por cuerda, en un juego de tres cuerdas" },
-                                                                    { id: "posiciones", label: "Posiciones", ayuda: "Ventanas que empiezan donde aparece la tónica" }
-                                                                ]}
-                                                            />
-                                                            {arpGrouping === "cuerdas" && (
-                                                                <React.Fragment>
-                                                                    <div class="k2-bloque">
-                                                                        <Segmentado
-                                                                            etiqueta="Cuerdas"
-                                                                            envolver
-                                                                            valor={arpStringSet}
-                                                                            onCambio={setArpStringSet}
-                                                                            opciones={window.KharoTheory.stringSets(numStrings).map((juego, i) => ({
-                                                                                id: i,
-                                                                                label: window.KharoTheory.stringSetName(juego, numStrings),
-                                                                                ayuda: `La tríada en las cuerdas ${window.KharoTheory.stringSetName(juego, numStrings)}`
-                                                                            }))}
-                                                                        />
-                                                                    </div>
-                                                                    <div class="k2-bloque">
-                                                                        <Segmentado
-                                                                            etiqueta="Inversión"
-                                                                            valor={arpInversion}
-                                                                            onCambio={setArpInversion}
-                                                                            opciones={[0, 1, 2].map(i => ({
-                                                                                id: i,
-                                                                                label: nombreDeInversion(i),
-                                                                                ayuda: ["Con la fundamental en la cuerda más grave", "Con la tercera abajo", "Con la quinta abajo"][i]
-                                                                            }))}
-                                                                        />
-                                                                    </div>
-                                                                    <div class="k2-bloque">
-                                                                        <Segmentado
-                                                                            etiqueta="Tapping: una nota más, en la cuerda aguda"
-                                                                            valor={arpTapping}
-                                                                            onCambio={cambiarTapping}
-                                                                            opciones={[
-                                                                                { id: "none", label: "Sin tapping" },
-                                                                                { id: "octava", label: "8.ª" },
-                                                                                { id: "novena", label: "9.ª" }
-                                                                            ]}
-                                                                        />
-                                                                    </div>
-                                                                    <p class="k2-ayuda">Una nota por cuerda. Es lo que hace la forma tocable de una pasada.</p>
-                                                                    {arpeggioRecortado && (
-                                                                        <p class="k2-ayuda k2-ayuda--aviso">Por cuerdas se dibuja la tríada: la séptima no cabe en tres cuerdas con una nota cada una.</p>
-                                                                    )}
-                                                                </React.Fragment>
-                                                            )}
-                                                            {arpGrouping === "posiciones" && (
-                                                                <div class="k2-bloque">
-                                                                    <span class="k2-etiqueta">Ir a la posición</span>
-                                                                    <div class="k2-rejilla-botones">
-                                                                        {window.KharoTheory.neckPositions(
-                                                                            Array.from({ length: numStrings }, (_, i) => stringBaseMIDI(i)),
-                                                                            arpeggioRoot, 5, 17
-                                                                        ).map((pos, i) => (
-                                                                            <button
-                                                                                key={i}
-                                                                                type="button"
-                                                                                onClick={() => { setStartingFret(clampStartingFret(pos.inicio + 1)); setNumFrets(clampNumFrets(pos.trastes)); }}
-                                                                                class="k2-boton-rejilla"
-                                                                            >
-                                                                                {pos.nombre}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                    <p class="k2-ayuda">Cada ventana empieza donde aparece la tónica.</p>
-                                                                </div>
-                                                            )}
-                                                        </Seccion>
-                                                    </React.Fragment>
-                                                )}
-
-                                                {appMode === "free" && (
-                                                    <React.Fragment>
-                                                        <p class="k2-intro">El mástil está en blanco. Toca donde quieras, con tantas notas por cuerda como necesites, y las flechas irán marcando el orden.</p>
-                                                        <Seccion id="guia" titulo="Escala de guía">
-                                                            <Interruptor
-                                                                etiqueta="Dibujar una escala de fondo"
-                                                                valor={guiaEscala}
-                                                                onCambio={setGuiaEscala}
-                                                                ayuda="Sólo es una referencia: se dibuja apagada, no se puede pulsar y no entra ni en el recorrido ni en lo que suena."
-                                                            />
-                                                            {guiaEscala && (
-                                                                <div class="k2-dos-columnas k2-bloque">
-                                                                    <Campo etiqueta="Tónica">
-                                                                        {(id) => (
-                                                                            <select id={id} value={scaleRoot} onChange={(e) => setScaleRoot(parseInt(e.target.value))}>
-                                                                                {NOTE_NAMES.map((n, i) => <option key={i} value={i}>{n}</option>)}
-                                                                            </select>
-                                                                        )}
-                                                                    </Campo>
-                                                                    <Campo etiqueta="Escala">
-                                                                        {(id) => (
-                                                                            <select id={id} value={scaleType} onChange={(e) => setScaleType(e.target.value)}>
-                                                                                {SCALE_PRESETS.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
-                                                                            </select>
-                                                                        )}
-                                                                    </Campo>
-                                                                </div>
-                                                            )}
-                                                        </Seccion>
-                                                    </React.Fragment>
-                                                )}
-                                            </React.Fragment>
-                                        )}
-
-                                        {/* ============ VISTA ============ */}
-                                        {pestanaInspector === "vista" && (
-                                            <React.Fragment>
-                                                <Seccion id="vista-notas" titulo="Las notas muestran">
-                                                    {appMode === "chord" && (
-                                                        <Segmentado
-                                                            etiqueta="Dentro de cada nota"
-                                                            ancho
-                                                            valor={chordDisplayMode}
-                                                            onCambio={setChordDisplayMode}
-                                                            opciones={[
-                                                                { id: "diagram", label: "Dedos", ayuda: "El número del dedo que pisa" },
-                                                                { id: "note", label: "Notas", ayuda: "El nombre de la nota" },
-                                                                { id: "degree", label: "Grados", ayuda: "El grado respecto a la fundamental del acorde" }
-                                                            ]}
-                                                        />
-                                                    )}
-                                                    {(appMode === "scale" || appMode === "arpeggio") && (
-                                                        <Segmentado
-                                                            etiqueta="Dentro de cada nota"
-                                                            ancho
-                                                            valor={scaleDisplayMode}
-                                                            onCambio={setScaleDisplayMode}
-                                                            opciones={[
-                                                                { id: "note", label: "Notas", ayuda: "El nombre de la nota" },
-                                                                { id: "degree", label: "Grados", ayuda: "El grado respecto a la tónica" }
-                                                            ]}
-                                                        />
-                                                    )}
-                                                    {appMode === "free" && (
-                                                        <p class="k2-ayuda">En Libre cada nota lleva siempre su nombre: no hay tónica respecto a la que contar grados.</p>
-                                                    )}
-                                                    {(appMode === "scale" || appMode === "arpeggio") && (
-                                                        <div class="k2-bloque">
-                                                            <Interruptor etiqueta="Leyenda de grados" valor={showLegend} onCambio={setShowLegend} ayuda="Qué color tiene cada grado, al lado del mástil." />
-                                                        </div>
-                                                    )}
-                                                </Seccion>
-
-                                                {appMode !== "chord" && (
-                                                    <Seccion id="vista-recorrido" titulo="Recorrido">
-                                                        <Interruptor etiqueta="Flechas del recorrido" valor={showPath} onCambio={setShowPath} ayuda="En qué orden se tocan las notas. Manda en las flechas y en lo que suena." />
-                                                        {showPath && (
-                                                            <React.Fragment>
-                                                                <div class="k2-bloque">
-                                                                    <Segmentado
-                                                                        etiqueta="Orden"
-                                                                        ancho
-                                                                        valor={editandoPath || pathManual ? "amano" : pathCriterio}
-                                                                        onCambio={(v) => {
-                                                                            if (v === "amano") { setEditandoPath(true); return; }
-                                                                            setEditandoPath(false);
-                                                                            setPathCriterio(v);
-                                                                            setPathManual(null);
-                                                                        }}
-                                                                        opciones={[
-                                                                            { id: "digitacion", label: "Digitación", ayuda: "Cuerda por cuerda, de la más grave a la más aguda" },
-                                                                            { id: "altura", label: "Altura", ayuda: "De la nota más grave a la más aguda" },
-                                                                            { id: "amano", label: "A mano", ayuda: "Tocas las notas en el orden que quieras" }
-                                                                        ]}
-                                                                    />
-                                                                    {editandoPath && (
-                                                                        <p class="k2-ayuda k2-ayuda--aviso">
-                                                                            {appMode === "free"
-                                                                                ? "Toca una nota y se añade al final, aunque ya estuviera: así se escriben notas pedal y vueltas atrás. Arrastra de una a otra para que vayan seguidas. Esc para terminar."
-                                                                                : "Toca las notas en el orden que quieras; tocar una que ya está la saca. Arrastra de una a otra para que vayan seguidas. Esc para terminar."}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                                {!pathManual && (
-                                                                    <div class="k2-bloque">
-                                                                        <Segmentado
-                                                                            etiqueta="Notas por cuerda"
-                                                                            ancho
-                                                                            valor={pathNotasPorCuerda}
-                                                                            onCambio={(v) => { setPathNotasPorCuerda(v); setPathManual(null); }}
-                                                                            opciones={[
-                                                                                { id: 1, label: "1" }, { id: 2, label: "2" }, { id: 3, label: "3" },
-                                                                                { id: 0, label: "Todas", ayuda: "Sin tope: todas las notas que haya en la cuerda" }
-                                                                            ]}
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                                <div class="k2-bloque">
-                                                                    <Interruptor etiqueta="Ida y vuelta" valor={pathRetorno} onCambio={(v) => { setPathRetorno(v); setPathManual(null); }} ayuda="Sube y vuelve a bajar por el mismo camino, que es como se estudia." />
-                                                                    <Interruptor etiqueta="Barrido (sweep)" valor={arpSweep} onCambio={setArpSweep} ayuda="Cruzar de cuerda es parte del mismo movimiento de púa: las flechas se dibujan enteras." />
-                                                                </div>
-                                                                <div class="k2-fila-estado">
-                                                                    <span>{pathManual ? `${pathManual.length} notas, a mano` : `${recorridoActual().length} notas, automático`}</span>
-                                                                    {pathManual && (
-                                                                        <button type="button" onClick={reiniciarConDeshacer} class="k-btn k-btn--outline k-btn--touch k-text-sm px-3 py-2">
-                                                                            Volver al automático
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </React.Fragment>
-                                                        )}
-                                                    </Seccion>
-                                                )}
-
-                                                <Seccion id="vista-numeros" titulo="Números de traste">
-                                                    <Segmentado
-                                                        etiqueta="A qué lado del mástil"
-                                                        ancho
-                                                        valor={fretNumPosition}
-                                                        onCambio={setFretNumPosition}
-                                                        opciones={[{ id: "left", label: "Izquierda" }, { id: "right", label: "Derecha" }]}
-                                                    />
-                                                </Seccion>
-                                            </React.Fragment>
-                                        )}
-
-                                        {/* ============ INSTRUMENTO ============ */}
-                                        {pestanaInspector === "instrumento" && (
-                                            <React.Fragment>
-                                                <div class="k2-bloque">
-                                                    <Campo etiqueta="Instrumento" ayuda="Si cambia el número de cuerdas, el mástil se vacía (con Deshacer).">
-                                                        {(id, ayuda) => (
-                                                            <select id={id} aria-describedby={ayuda} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
-                                                                {INSTRUMENT_ORDER.map(iid => (
-                                                                    <option key={iid} value={iid}>{`${INSTRUMENTS[iid].name.replace(/\s*\(\d+c\)\s*$/, "")} de ${INSTRUMENTS[iid].strings} cuerdas`}</option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                    </Campo>
-                                                </div>
-                                                <SelectorTimbre valor={timbre} onCambio={setTimbre} />
-                                                <Seccion id="afinacion" titulo="Afinación">
-                                                    <Campo etiqueta="Afinación de fábrica">
-                                                        {(id) => (
-                                                            <select
-                                                                id={id}
-                                                                value={selectedTuningName}
-                                                                onChange={(e) => {
-                                                                    const pName = e.target.value;
-                                                                    const found = TUNING_PRESETS[instrument] && TUNING_PRESETS[instrument].find(p => p.name === pName);
-                                                                    if (found) handleTuningPresetChange(found.notes, found.name, found.midi ?? null);
-                                                                    else setSelectedTuningName("Personalizada");
-                                                                }}
-                                                            >
-                                                                {(TUNING_PRESETS[instrument] || []).map(pr => <option key={pr.name} value={pr.name}>{pr.name}</option>)}
-                                                                <option value="Personalizada">Afinación propia</option>
-                                                            </select>
-                                                        )}
-                                                    </Campo>
-                                                    <div class="k2-bloque">
-                                                        <span class="k2-etiqueta">Cuerda por cuerda, de la más grave a la más aguda</span>
-                                                        <div class="k2-cuerdas">
-                                                            {tuning.slice(0, numStrings).map((nota, idx) => (
-                                                                <Campo key={idx} etiqueta={`${numStrings - idx}.ª`}>
-                                                                    {(id) => (
-                                                                        <input
-                                                                            id={id}
-                                                                            type="text"
-                                                                            maxLength={3}
-                                                                            value={nota}
-                                                                            aria-label={`Cuerda ${numStrings - idx}${idx === 0 ? ", la más grave" : idx === numStrings - 1 ? ", la más aguda" : ""}`}
-                                                                            onChange={(e) => changeTuningNote(idx, e.target.value)}
-                                                                            class="k2-cuerda-input"
-                                                                        />
-                                                                    )}
-                                                                </Campo>
-                                                            ))}
-                                                        </div>
-                                                        <p class="k2-ayuda">Escribe la nota de cualquier cuerda (C, F#, Bb…) para afinarla a tu manera.</p>
-                                                    </div>
-                                                </Seccion>
-                                            </React.Fragment>
-                                        )}
-
-                                        {/* ============ ESTILO ============ */}
-                                        {pestanaInspector === "estilo" && (
-                                            <React.Fragment>
-                                                <p class="k2-intro">El estilo es parte del diagrama: sale así en lo que exportes.</p>
-                                                <Seccion id="est-diapason" titulo="Diapasón">
-                                                    <Segmentado
-                                                        etiqueta="Cómo se dibuja"
-                                                        ancho
-                                                        valor={style.fretboardSkin}
-                                                        onCambio={(v) => patchStyle({ fretboardSkin: v })}
-                                                        opciones={[{ id: "plano", label: "Plano" }, { id: "madera", label: "Madera" }]}
-                                                    />
-                                                    <p class="k2-ayuda">Madera: palisandro, trastes de metal y cuerdas entorchadas.</p>
-                                                </Seccion>
-                                                <Seccion id="est-colores" titulo="Colores">
-                                                    <div class="k2-dos-columnas">
-                                                        <CampoColor etiqueta="Fondo" valor={bgStyleColor} onCambio={setBgStyleColor} />
-                                                        <CampoColor etiqueta="Cuerdas y trastes" valor={gridStyleColor} onCambio={setGridStyleColor} />
-                                                        <CampoColor etiqueta="Título y texto" valor={textStyleColor} onCambio={setTextStyleColor} />
-                                                        <CampoColor etiqueta="Flechas del recorrido" valor={style.pathColor} onCambio={setPathColor} />
-                                                    </div>
-                                                </Seccion>
-                                                <Seccion id="est-grados" titulo="Colores por grado" abiertaPorDefecto={false}>
-                                                    <div class="k2-dos-columnas">
-                                                        <CampoColor etiqueta="Dedos (sin grado)" valor={baseFingerStyleColor} onCambio={setBaseFingerStyleColor} />
-                                                        {[
-                                                            ["1", "Tónica (1)"], ["2", "Segundas (b2, 2)"], ["3", "Terceras (b3, 3)"],
-                                                            ["4", "Cuartas (4, #4)"], ["5", "Quintas (b5, 5, #5)"], ["6", "Sextas (b6, 6)"], ["7", "Séptimas (b7, 7)"]
-                                                        ].map(([g, nombre]) => (
-                                                            <CampoColor key={g} etiqueta={nombre} valor={intervalColors[g]} onCambio={(v) => setIntervalColors({ ...intervalColors, [g]: v })} />
-                                                        ))}
-                                                        <CampoColor etiqueta="Texto dentro de las notas" valor={style.dotTextColor} onCambio={setDotTextColor} />
-                                                    </div>
-                                                </Seccion>
-                                                <Seccion id="est-letra" titulo="Letra y tamaños" abiertaPorDefecto={false}>
-                                                    <Campo etiqueta="Tipografía">
-                                                        {(id) => (
-                                                            <select id={id} value={fontFamilyStyle} onChange={(e) => setFontFamilyStyle(e.target.value)}>
-                                                                {FONTS_LIST.map(font => <option key={font.id} value={font.id}>{font.name}</option>)}
-                                                            </select>
-                                                        )}
-                                                    </Campo>
-                                                    <Campo etiqueta={`Tamaño de las notas · ${dotRadiusStyle} px`}>
-                                                        {(id) => <input id={id} type="range" min="8" max="13" value={dotRadiusStyle} onChange={(e) => setDotRadiusStyle(parseInt(e.target.value))} class="k2-rango" />}
-                                                    </Campo>
-                                                    <Campo etiqueta={`Grosor de las cuerdas · ${lineWidthStyle} px`}>
-                                                        {(id) => <input id={id} type="range" min="1" max="4" step="0.5" value={lineWidthStyle} onChange={(e) => setLineWidthStyle(parseFloat(e.target.value))} class="k2-rango" />}
-                                                    </Campo>
-                                                </Seccion>
-                                                <Seccion id="est-tuyos" titulo={`Tus estilos · ${stylePresets.length}`}>
-                                                    {stylePresets.length === 0 ? (
-                                                        <p class="k2-ayuda">Todavía no has guardado ninguno. Ajusta el diagrama a tu gusto y ponle nombre aquí abajo.</p>
-                                                    ) : (
-                                                        <ul class="k2-lista">
-                                                            {stylePresets.map(p => (
-                                                                <li key={p.id} class="k2-lista__fila">
-                                                                    <button type="button" onClick={() => aplicarPreset(p.id)} class="k2-lista__principal">
-                                                                        <span class="k2-lista__nombre">{p.name}</span>
-                                                                        <span class="k2-lista__detalle">Aplicar</span>
-                                                                    </button>
-                                                                    <BotonBorrar onClick={() => borrarEstiloConDeshacer(p.id)} title={`Borrar el estilo «${p.name}»`} className="k2-icono-borrar" />
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                    <div class="k2-bloque k2-guardar-estilo">
-                                                        <Campo etiqueta="Guardar el estilo de ahora como…" ayuda="Si el nombre ya existe, lo actualiza.">
-                                                            {(id, ayuda) => (
-                                                                <input id={id} type="text" aria-describedby={ayuda} value={nombrePreset} onChange={(e) => setNombrePreset(e.target.value)} placeholder="Ej.: Para imprimir" />
-                                                            )}
-                                                        </Campo>
-                                                        <button type="button" onClick={() => { guardarPreset(nombrePreset); setNombrePreset(""); }} class="k-btn k-btn--primary k-btn--touch k-text-sm px-4 py-2.5">
-                                                            Guardar estilo
-                                                        </button>
-                                                    </div>
-                                                </Seccion>
-                                                <div class="k2-pie-inspector">
-                                                    <button type="button" onClick={restablecerEstiloConDeshacer} class="k-btn k-btn--outline k-btn--touch k-text-sm px-4 py-2.5 w-full">
-                                                        Restablecer el estilo de fábrica
-                                                    </button>
-                                                </div>
-                                            </React.Fragment>
-                                        )}
+                                    {/* 0.6: sin pestañas. La pedalera entera, de arriba abajo. */}
+                                    <div class="k2-inspector__cuerpo k6-inspector__cuerpo">
+                                        {piezaPedalera()}
                                     </div>
                                 </aside>
                             )}
                         </div>
 
-                        {/* --- EL DOCK (sólo teléfono) --- las mismas cuatro pestañas,
+                        {/* --- EL DOCK (sólo teléfono) --- 0.6: un botón por pedal,
                             con su nombre debajo del icono. */}
-                        <nav class="k2-dock" aria-label="Ajustes del diagrama">
-                            {PESTANAS_INSPECTOR.map(p => (
+                        <nav class="k2-dock k6-dock" aria-label="Pedales">
+                            {PEDALES.map(p => (
                                 <button
                                     key={p.id}
                                     type="button"

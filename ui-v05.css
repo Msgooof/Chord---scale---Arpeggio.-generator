@@ -1,0 +1,158 @@
+/* =============================================================================
+ * 0.5 — La barra del Taller: wireframe 2 («el sonido baja al mástil») con el
+ * botón partido del wireframe 3. La barra de arriba sólo lleva el documento;
+ * lo que suena va en una píldora pegada al mástil.
+ * ============================================================================= */
+
+.k5-barra { justify-content: space-between; }
+.k5-barra .k2-barra-accion__fin { margin-left: 0; }
+
+.k5-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 6px var(--k-space-1);
+    background-color: var(--k-divider);
+}
+
+/* --- El botón partido -------------------------------------------------------- */
+.k5-partido { display: inline-flex; align-items: stretch; }
+.k5-partido__principal {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.k5-partido__flecha {
+    min-width: 36px;
+    padding: 0 var(--k-space-2);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid rgba(var(--k-surface-rgb), .35);
+}
+@media (min-width: 768px) { .k5-partido__flecha { min-height: 36px; } }
+/* Mientras el globo de guardar está abierto, la parte grande se hunde. */
+.k5-partido--activo .k5-partido__principal { box-shadow: inset 0 2px 6px rgba(var(--k-shadow-rgb), .35); }
+
+/* --- Panel, con nombre -------------------------------------------------------- */
+.k5-panel { gap: var(--k-space-2); }
+.k5-panel--activo {
+    background-color: var(--k-accent-soft);
+    color: var(--k-accent);
+    border-color: transparent;
+}
+
+/* --- La píldora del sonido ---------------------------------------------------- */
+.k5-pildora {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-2);
+    max-width: 100%;
+    padding: 6px 8px 6px 6px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+}
+.k5-pildora__tocar {
+    gap: var(--k-space-2);
+    min-width: var(--k-touch);
+    min-height: var(--k-touch);
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-pill);
+    font-size: var(--k-text-sm);
+}
+@media (min-width: 768px) {
+    .k5-pildora__tocar { min-height: 38px; padding: 0 var(--k-space-4) 0 var(--k-space-3); }
+}
+.k5-pildora__sep {
+    width: 1px;
+    height: 22px;
+    background-color: var(--k-divider);
+}
+
+/* --- Las tres velocidades -------------------------------------------------------
+ * El botón de tocar se pinta del color de la velocidad: verde lento, azul
+ * medio, rojo rápido. Con texto blanco en claro y oscuro en el modo oscuro,
+ * por contraste. */
+:root {
+    --k5-lento: #237A35;  --k5-lento-tinta: #FFFFFF;
+    --k5-medio: #1E3FE6;  --k5-medio-tinta: #FFFFFF;
+    --k5-rapido: #C4213E; --k5-rapido-tinta: #FFFFFF;
+}
+:root[data-theme="oscuro"] {
+    --k5-lento: #5BD46E;  --k5-lento-tinta: #0E0C09;
+    --k5-medio: #7D96FF;  --k5-medio-tinta: #0E0C09;
+    --k5-rapido: #FF6B80; --k5-rapido-tinta: #0E0C09;
+}
+.k5-pildora__tocar { transition: background-color .2s, filter .15s; }
+.k5-pildora__tocar.k5-vel--lento  { background-color: var(--k5-lento);  color: var(--k5-lento-tinta); }
+.k5-pildora__tocar.k5-vel--medio  { background-color: var(--k5-medio);  color: var(--k5-medio-tinta); }
+.k5-pildora__tocar.k5-vel--rapido { background-color: var(--k5-rapido); color: var(--k5-rapido-tinta); }
+.k5-pildora__tocar:hover { filter: brightness(1.08); }
+.k5-pildora__tocar[aria-disabled="true"] { filter: saturate(.6); }
+
+/* Los tres botones que salen encima de Rasguear con el clic derecho. Cada
+ * uno lleva su color; al pasar por encima, una etiqueta dice el término de
+ * partitura y qué se oye. */
+.k5-velocidades {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 10px);
+    z-index: 50;
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+    animation: k5-subir .16s cubic-bezier(.2,.7,.3,1);
+}
+@keyframes k5-subir { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .k5-velocidades { animation: none; } }
+
+.k5-velocidad {
+    position: relative;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: var(--k-radius-pill);
+    border: 2px solid transparent;
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+}
+.k5-velocidad.k5-vel--lento  { background-color: var(--k5-lento);  color: var(--k5-lento-tinta); }
+.k5-velocidad.k5-vel--medio  { background-color: var(--k5-medio);  color: var(--k5-medio-tinta); }
+.k5-velocidad.k5-vel--rapido { background-color: var(--k5-rapido); color: var(--k5-rapido-tinta); }
+.k5-velocidad:not(.k5-velocidad--elegida) { opacity: .55; }
+.k5-velocidad:hover, .k5-velocidad:focus-visible { opacity: 1; filter: brightness(1.08); }
+.k5-velocidad--elegida { border-color: var(--k-text); }
+@media (max-width: 767px) { .k5-velocidad { min-height: var(--k-touch); } }
+
+/* La etiqueta: Adagio · nota por nota. */
+.k5-velocidad::after {
+    content: attr(data-pista);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    transform: translate(-50%, 4px);
+    padding: 5px 10px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    font-size: var(--k-text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .12s, transform .12s;
+}
+/* Con el ratón manda el hover; el foco del teclado sólo enseña la suya
+ * mientras el ratón no está encima del grupo, para no ver dos a la vez. */
+.k5-velocidad:hover::after,
+.k5-velocidades:not(:hover) .k5-velocidad:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+
+/* `.k2-no-movil` lo vuelve inline-grid desde 768 px: sin esto, el icono y
+ * la palabra se apilan. */
+.k5-panel.k2-no-movil { grid-auto-flow: column; align-items: center; }

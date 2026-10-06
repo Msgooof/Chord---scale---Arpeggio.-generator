@@ -1,0 +1,447 @@
+/* ==========================================================================
+ * 0.6 · LA PEDALERA
+ * El panel del Taller sin pestañas: Afinador, Etiqueta, Recorrido, EQ de
+ * grados y Ampli. Sólo lo que añade esta versión; todo lo demás sigue en
+ * theme.css / ui.css / ui-v03.css.
+ *
+ * La única tinta propia es la de las pantallas (un visor de cristal líquido
+ * oscuro con letra lima). Lo demás sale de los tokens del sistema, así que el
+ * modo oscuro viene solo.
+ * ========================================================================== */
+
+:root {
+    --k6-lcd: #151A10;
+    --k6-lcd-ink: #ACEC00;
+    --k6-lcd-dim: #6E8A2E;
+    --k6-borde: var(--k-text);
+}
+:root[data-theme="oscuro"] {
+    --k6-lcd: #0B0E08;
+}
+
+/* --- El hueco -------------------------------------------------------------- */
+.k6-inspector__titulo {
+    flex: 1;
+    font-family: var(--k-font-title);
+    font-size: var(--k-text-xl);
+    line-height: 1;
+    letter-spacing: .02em;
+    margin: 0;
+}
+@media (max-width: 767px) {
+    .k6-inspector__titulo { display: none; }
+}
+/* Más ancho que los 360 px de Prime: dos pedales por fila necesitan aire. */
+@media (min-width: 768px) { .k6-inspector { width: 440px; } }
+.k6-inspector__cuerpo {
+    padding: var(--k-space-4) var(--k-space-4) var(--k-space-5);
+    /* La tabla de la pedalera: listones finos. */
+    background:
+        repeating-linear-gradient(0deg, transparent 0 22px, rgba(var(--k-shadow-rgb), .05) 22px 24px),
+        var(--k-bg);
+}
+
+.k6-pedalera { display: flex; flex-direction: column; gap: var(--k-space-3); }
+
+/* Dos columnas: Afinador y Etiqueta arriba; los pedales anchos, debajo. */
+.k6-rack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+}
+
+/* --- El pedal ------------------------------------------------------------- */
+.k6-pedal {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 10px 12px;
+    background-color: var(--k-surface-raised);
+    border: 2px solid var(--k6-borde);
+    border-radius: 14px;
+    box-shadow: 0 3px 0 var(--k6-borde);
+    scroll-margin-top: 12px;
+}
+.k6-pedal--ancho { grid-column: 1 / -1; }
+.k6-pedal__cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.k6-pedal__nombre {
+    margin: 0;
+    font-family: var(--k-font-title);
+    font-size: 17px;
+    line-height: 1;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.k6-pedal__sub {
+    margin: 3px 0 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k6-pedal__panel { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+.k6-led {
+    flex: none;
+    width: 11px;
+    height: 11px;
+    margin-top: 3px;
+    border-radius: 50%;
+    background-color: var(--k-divider);
+}
+.k6-led--on {
+    background-color: var(--k-marker);
+    box-shadow: 0 0 0 3px rgba(var(--k-marker-rgb), .3);
+}
+
+/* El rótulo pequeño debajo de cada control. */
+.k6-rotulo {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+    text-align: center;
+    line-height: 1.2;
+}
+
+.k6-fila {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 10px 12px;
+}
+.k6-fila > .k6-selector { flex: 1 1 140px; }
+.k6-fila--abajo { align-items: flex-end; }
+.k6-fila--perillas { justify-content: space-between; }
+
+.k6-nota { margin: 0; font-size: var(--k-text-xs); color: var(--k-text-muted); }
+.k6-nota--aviso { color: var(--k-text); }
+
+/* --- La pantalla (visor ◀ valor ▶) ------------------------------------------- */
+.k6-pantalla-bloque { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.k6-pantalla {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 32px;
+    padding: 0 2px;
+    border-radius: 8px;
+    background-color: var(--k6-lcd);
+    color: var(--k6-lcd-ink);
+    font-family: var(--k-font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.k6-pantalla__valor {
+    flex: 1;
+    min-width: 0;
+    padding: 0 4px;
+    text-align: center;
+    line-height: 1.15;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+.k6-pantalla__flecha {
+    flex: none;
+    width: 26px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--k6-lcd-ink);
+    font-size: 11px;
+    cursor: pointer;
+}
+.k6-pantalla__flecha:hover { background-color: rgba(172, 236, 0, .12); }
+.k6-pantalla__flecha:focus-visible,
+.k6-cuerdas__nota:focus-visible,
+.k6-pantalla--escribe input:focus-visible { outline: 2px solid var(--k6-lcd-ink); outline-offset: -2px; }
+
+/* Las cuerdas del afinador: cada letra es un campo. */
+.k6-cuerdas {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 8px;
+    background-color: var(--k6-lcd);
+}
+.k6-cuerdas__nota {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--k6-lcd-ink);
+    font-family: var(--k-font-ui);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
+.k6-cuerdas__nota:hover { background-color: rgba(172, 236, 0, .12); }
+
+/* --- La perilla ------------------------------------------------------------- */
+.k6-perilla { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 48px; }
+.k6-perilla__boton {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--k6-borde);
+    background-color: var(--k-surface);
+    box-shadow: 0 2px 0 var(--k6-borde);
+    cursor: ns-resize;
+    touch-action: none;
+}
+.k6-perilla__boton::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 3px;
+    width: 2.5px;
+    height: 12px;
+    margin-left: -1.25px;
+    border-radius: 2px;
+    background-color: var(--k6-borde);
+    transform-origin: 50% 14px;
+    transform: rotate(var(--k6-giro, 0deg));
+}
+.k6-perilla__boton:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 3px; }
+.k6-perilla__valor { font-size: 12px; font-weight: 700; color: var(--k-text); }
+
+/* --- El selector rotativo ------------------------------------------------------ */
+.k6-selector { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.k6-selector__dial { position: relative; height: 92px; }
+.k6-selector__perilla {
+    position: absolute;
+    left: 50%;
+    top: 62%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border-radius: 50%;
+    border: 2px solid var(--k6-borde);
+    background-color: var(--k-surface);
+    box-shadow: 0 2px 0 var(--k6-borde);
+    cursor: pointer;
+}
+.k6-selector__perilla::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 3px;
+    width: 3px;
+    height: 14px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background-color: var(--k6-borde);
+    transform-origin: 50% 15px;
+    transform: rotate(var(--k6-giro, 0deg));
+    transition: transform .15s ease;
+}
+.k6-selector__pos {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 2px 5px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--k-text-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.k6-selector__pos:hover { color: var(--k-text); }
+.k6-selector__pos--on { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k6-selector__pos:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+
+/* --- La palanca ----------------------------------------------------------- */
+.k6-palanca {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.k6-palanca:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k6-palanca__brazo {
+    position: relative;
+    width: 18px;
+    height: 30px;
+    border-radius: 9px;
+    border: 2px solid var(--k6-borde);
+    background-color: var(--k-surface);
+}
+.k6-palanca__brazo::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--k6-borde);
+    transition: top .12s ease;
+}
+.k6-palanca__brazo--arriba::after { top: 2px; }
+.k6-palanca__brazo--on { background-color: var(--k-marker); }
+.k6-palanca__valor { font-size: 11px; font-weight: 700; }
+
+/* --- Color: perilla y banda del EQ ----------------------------------------------- */
+.k6-color { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+.k6-color__muestra {
+    position: relative;
+    display: block;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--k6-borde);
+    box-shadow: 0 2px 0 var(--k6-borde);
+}
+.k6-color input,
+.k6-banda input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.k6-color__muestra:focus-within,
+.k6-banda__barra:focus-within { outline: 2px solid var(--k-accent); outline-offset: 3px; }
+
+.k6-eq { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.k6-banda { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.k6-banda__barra {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 64px;
+    border-radius: 8px;
+    border: 2px solid var(--k6-borde);
+    box-shadow: 0 2px 0 var(--k6-borde);
+}
+.k6-banda__grado { font-size: 12px; font-weight: 800; }
+
+/* --- El pisador ------------------------------------------------------------- */
+.k6-pisador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    margin-top: auto;
+    border: 2px solid var(--k6-borde);
+    border-radius: 10px;
+    background-color: var(--k-bg);
+    color: var(--k-text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.k6-pisador:active:not(:disabled) { transform: translateY(1px); }
+.k6-pisador:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k6-pisador:disabled { opacity: .45; cursor: default; }
+.k6-pisador__boton {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--k6-borde);
+    background-color: var(--k-surface);
+}
+.k6-pisador--on .k6-pisador__boton { background-color: var(--k-marker); }
+
+/* --- El estado del recorrido y los botones pequeños ---------------------------- */
+.k6-estado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: var(--k-text-xs);
+    color: var(--k-text-muted);
+}
+.k6-boton-chico {
+    padding: 5px 10px;
+    border: 1.5px solid currentColor;
+    border-radius: var(--k-radius-pill);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.k6-boton-chico:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+
+/* --- El ampli: el pedal oscuro del final ------------------------------------------ */
+.k6-pedal--ampli {
+    --k6-borde: var(--k-bg);
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    border-color: var(--k-text);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+}
+.k6-pedal--ampli .k6-pedal__sub,
+.k6-pedal--ampli .k6-rotulo,
+.k6-pedal--ampli .k6-nota { color: var(--k-text-faint); }
+.k6-pedal--ampli .k6-perilla__boton,
+.k6-pedal--ampli .k6-palanca__brazo { background-color: var(--k-text); }
+.k6-pedal--ampli .k6-perilla__valor { color: var(--k-bg); }
+.k6-pedal--ampli .k6-fila--abajo > .k6-pantalla-bloque { flex: 1; }
+
+.k6-canal { display: flex; flex-direction: column; gap: 8px; }
+.k6-canal .k6-pantalla { min-height: 40px; font-size: 13px; }
+.k6-canal__n {
+    margin-right: 8px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: var(--k6-lcd-ink);
+    color: var(--k6-lcd);
+}
+.k6-canal__acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.k6-pantalla--escribe { padding-left: 8px; }
+.k6-pantalla--escribe input {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    border: 0;
+    border-bottom: 1.5px dashed var(--k6-lcd-dim);
+    background: transparent;
+    color: var(--k6-lcd-ink);
+    font: inherit;
+}
+.k6-pantalla--escribe input::placeholder { color: var(--k6-lcd-dim); }
+
+/* --- Teléfono: todo un poco más grande para el dedo ------------------------------------ */
+@media (max-width: 767px) {
+    /* Una columna: en 375 px dos pedales dejan la pantalla en 85 px. */
+    .k6-rack { grid-template-columns: minmax(0, 1fr); }
+    .k6-perilla__boton { width: 44px; height: 44px; }
+    .k6-perilla__boton::after { transform-origin: 50% 17px; height: 14px; }
+    .k6-pisador { min-height: 48px; }
+    .k6-pantalla__flecha { width: 36px; height: 36px; }
+    .k6-dock .k2-dock__boton span { font-size: 10px; }
+}

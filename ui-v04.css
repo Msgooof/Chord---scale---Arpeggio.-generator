@@ -1,0 +1,258 @@
+/* =============================================================================
+ * 0.4 — Las características de la portada, contadas como una página de
+ * producto de Apple: una idea por pantalla, titular enorme, foto a lo ancho
+ * y un párrafo gris que arranca con su frase clave en negro.
+ *
+ * Sólo usa tokens de theme.css, así que el modo oscuro sale solo.
+ * ============================================================================= */
+
+.kv { margin-bottom: 96px; }
+
+/* --- Rótulos ----------------------------------------------------------------- */
+.kv-ojo {
+    font-family: var(--k-font-aux);
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--k-text-faint);
+    margin-bottom: var(--k-space-3);
+}
+.kv-ojo--modo { color: var(--k-accent); }
+.kv-lado--b .kv-ojo--modo { color: var(--k-highlight); }
+
+.kv-titular {
+    font-family: var(--k-font-title);
+    font-size: clamp(40px, 6.4vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -.01em;
+    color: var(--k-text);
+    text-wrap: balance;
+}
+.kv-titular--intro { font-size: clamp(44px, 7vw, 96px); }
+.kv-titular--capitulo { font-size: clamp(52px, 9vw, 128px); line-height: .95; }
+
+.kv-entradilla {
+    margin-top: var(--k-space-4);
+    max-width: 52ch;
+    font-size: clamp(17px, 1.6vw, 21px);
+    line-height: 1.45;
+    color: var(--k-text-muted);
+}
+
+/* --- Intro + carrusel «Lo esencial» -------------------------------------------- */
+.kv-intro { margin-bottom: 40px; }
+
+.kv-carrusel-marco { margin-bottom: 120px; }
+.kv-carrusel {
+    display: flex;
+    gap: 20px;
+    margin: 0 -16px;
+    padding: 4px 16px 24px;
+    list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    scrollbar-width: none;
+}
+.kv-carrusel::-webkit-scrollbar { display: none; }
+
+.kv-tarjeta {
+    flex: 0 0 min(82vw, 340px);
+    scroll-snap-align: start;
+}
+.kv-tarjeta__boton {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    border-radius: 28px;
+    overflow: hidden;
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-panel);
+    cursor: pointer;
+    transition: transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s;
+}
+.kv-tarjeta__boton:hover,
+.kv-tarjeta__boton:focus-visible { transform: scale(1.015); box-shadow: var(--k-shadow-float); }
+.kv-tarjeta__texto {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 28px 28px 20px;
+    min-height: 150px;
+}
+.kv-tarjeta__modo {
+    font-size: var(--k-text-sm);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--k-accent);
+}
+.kv-tarjeta__frase {
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 600;
+    color: var(--k-text);
+    text-wrap: balance;
+}
+.kv-tarjeta .kv-foto { border-radius: 0; margin-top: auto; }
+
+.kv-carrusel-mandos {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+.kv-mando {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--k-radius-pill);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    color: var(--k-text);
+    font-size: 26px;
+    line-height: 1;
+    padding-bottom: 3px;
+    cursor: pointer;
+    transition: background-color .15s, opacity .15s;
+}
+.kv-mando:hover:not(:disabled) { background-color: var(--k-bg-deep); }
+.kv-mando:disabled { opacity: .35; cursor: default; }
+
+.kv-instrumentos { margin-bottom: 140px; }
+
+/* --- Capítulos (Lado A / Lado B) ---------------------------------------------- */
+.kv-capitulo {
+    padding-top: 56px;
+    border-top: 1px solid var(--k-divider);
+    margin-bottom: 120px;
+}
+
+/* --- Cada característica ------------------------------------------------------ */
+.kv-rasgo { margin-bottom: 160px; }
+.kv-rasgo__cabeza { margin-bottom: 48px; }
+
+.kv-rasgo__fotos { display: grid; gap: 20px; margin-bottom: 48px; }
+@media (min-width: 720px) {
+    .kv-rasgo__fotos--par { grid-template-columns: 1fr 1fr; }
+}
+
+.kv-rasgo__cuerpo { display: grid; gap: 40px; }
+@media (min-width: 900px) {
+    .kv-rasgo__cuerpo { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; }
+    .kv-rasgo__cuerpo:not(.kv-rasgo__cuerpo--cifras) > div { grid-column: 1 / 2; }
+}
+
+/* El párrafo a lo Apple: gris, con la frase clave en el color del texto. */
+.kv-texto {
+    max-width: 40ch;
+    font-size: clamp(19px, 1.9vw, 24px);
+    line-height: 1.42;
+    font-weight: 500;
+    color: var(--k-text-faint);
+}
+.kv-texto strong { color: var(--k-text); font-weight: 700; }
+
+.kv-tecnicas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+    list-style: none;
+    padding: 0;
+}
+.kv-tecnicas li {
+    padding: 6px 14px;
+    border-radius: var(--k-radius-pill);
+    border: 1px solid var(--k-border);
+    font-size: var(--k-text-md);
+    font-weight: 600;
+    color: var(--k-text-muted);
+}
+
+.kv-enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 24px;
+    min-height: var(--k-touch);
+    font-size: var(--k-text-xl);
+    font-weight: 600;
+    color: var(--k-accent);
+    cursor: pointer;
+}
+.kv-enlace span { transition: transform .2s; }
+.kv-enlace:hover { text-decoration: underline; text-underline-offset: 4px; }
+.kv-enlace:hover span { transform: translateX(3px); }
+
+/* Las cifras grandes, como los «hasta 33 horas» de Apple. */
+.kv-cifras { display: grid; gap: 32px; align-content: start; }
+.kv-cifra { border-top: 1px solid var(--k-divider); padding-top: 16px; }
+.kv-cifra__valor {
+    font-family: var(--k-font-title);
+    font-size: clamp(56px, 6vw, 88px);
+    line-height: 1;
+    color: var(--k-text);
+}
+.kv-cifra__texto {
+    margin-top: 6px;
+    font-size: var(--k-text-lg);
+    font-weight: 600;
+    color: var(--k-text-muted);
+}
+
+/* --- Las fotos ---------------------------------------------------------------- */
+.kv-foto {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    border-radius: 28px;
+    overflow: hidden;
+    background-color: var(--k-bg-deep);
+}
+.kv-foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* El hueco mientras no hay foto: a trazos, con qué va ahí y a qué medida. */
+.kv-foto--hueco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    text-align: center;
+    border: 2px dashed var(--k-border);
+    background-image: repeating-linear-gradient(135deg, transparent 0 14px, rgba(var(--k-shadow-rgb), .035) 14px 15px);
+}
+.kv-foto__etiqueta {
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--k-text-faint);
+}
+.kv-foto__pista {
+    max-width: 32ch;
+    font-size: var(--k-text-lg);
+    font-weight: 600;
+    color: var(--k-text-muted);
+}
+.kv-foto__medida {
+    font-family: var(--k-font-mono);
+    font-size: var(--k-text-xs);
+    color: var(--k-text-faint);
+}
+
+/* --- Entrada al hacer scroll -------------------------------------------------- */
+.kv-aparece {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity .9s cubic-bezier(.2,.7,.3,1), transform .9s cubic-bezier(.2,.7,.3,1);
+}
+.kv-aparece.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+    .kv-aparece { opacity: 1; transform: none; transition: none; }
+    .kv-tarjeta__boton { transition: none; }
+}
