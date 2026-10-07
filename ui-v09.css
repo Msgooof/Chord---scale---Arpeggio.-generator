@@ -1,0 +1,402 @@
+/* ==========================================================================
+ * 0.9 · LA LUPA SOBRE EL MÁSTIL
+ * Sustituye a los mandos de Trastes y Posición. Un mástil entero con sus
+ * incrustaciones y una ventana lima encima, que es lo que se ve en la hoja.
+ * Vertical a la derecha del diagrama; en el teléfono, tumbado debajo.
+ *
+ * Sin `display` en `.k9-lupa`: el JSX lo da con `hidden md:flex` / `flex
+ * md:hidden`, y una regla de aquí ganaría a esas clases.
+ * ========================================================================== */
+
+.k9-lupa {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--k-space-2, 8px);
+    flex: none;
+}
+.k9-lupa--vertical { align-self: stretch; padding-left: 20px; }
+.k9-lupa--horizontal { width: 100%; flex-direction: row; padding: 18px 4px 0; }
+
+/* El riel no se pinta: es la zona que se toca. Su grosor lo pone el JSX a
+ * partir del largo (proporción de un mástil real). */
+.k9-lupa__riel {
+    position: relative;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+}
+.k9-lupa--vertical .k9-lupa__riel { flex: 1 1 auto; min-height: 180px; }
+.k9-lupa--horizontal .k9-lupa__riel { flex: 1 1 auto; min-width: 0; }
+
+/* La madera: un trapecio que se abre de la cejuela al cuerpo, de 43 a 57 mm
+ * como un diapasón de guitarra (43/57 ≈ 75 %, un 12,5 % por lado). Todo lo
+ * que va dentro se recorta con ella, así que los trastes llegan al borde. */
+.k9-lupa__madera {
+    position: absolute;
+    inset: 0;
+    background-color: var(--k-surface-raised);
+    background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.10), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.10));
+}
+.k9-lupa--vertical .k9-lupa__madera { clip-path: polygon(var(--k9-cono, 12.5%) 0, calc(100% - var(--k9-cono, 12.5%)) 0, 100% 100%, 0 100%); }
+.k9-lupa--horizontal .k9-lupa__madera {
+    clip-path: polygon(0 var(--k9-cono, 12.5%), 100% 0, 100% 100%, 0 calc(100% - var(--k9-cono, 12.5%)));
+    background-image: linear-gradient(rgba(0, 0, 0, 0.10), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.10));
+}
+
+/* La cejuela, los trastes (de borde a borde) y las incrustaciones. */
+.k9-lupa__cejuela { position: absolute; background-color: var(--k-text-muted); }
+.k9-lupa--vertical .k9-lupa__cejuela { left: 0; right: 0; top: 0; height: 4px; }
+.k9-lupa--horizontal .k9-lupa__cejuela { top: 0; bottom: 0; left: 0; width: 4px; }
+
+.k9-lupa__traste { position: absolute; background-color: var(--k-border); }
+.k9-lupa--vertical .k9-lupa__traste { left: 0; right: 0; height: 1.5px; margin-top: -0.75px; }
+.k9-lupa--horizontal .k9-lupa__traste { top: 0; bottom: 0; width: 1.5px; margin-left: -0.75px; }
+
+.k9-lupa__punto {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--k-text-faint);
+    pointer-events: none;
+}
+.k9-lupa--vertical .k9-lupa__punto { left: 50%; margin: -2.5px 0 0 -2.5px; }
+.k9-lupa--horizontal .k9-lupa__punto { top: 50%; margin: -2.5px 0 0 -2.5px; }
+/* El 12 y el 24 llevan dos puntos: el segundo es una sombra del primero. */
+.k9-lupa--vertical .k9-lupa__punto--doble { margin-left: -8px; box-shadow: 11px 0 0 var(--k-text-faint); }
+.k9-lupa--horizontal .k9-lupa__punto--doble { margin-top: -8px; box-shadow: 0 11px 0 var(--k-text-faint); }
+
+.k9-lupa__num {
+    position: absolute;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--k-text-faint);
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+}
+.k9-lupa--vertical .k9-lupa__num { right: calc(100% + 5px); transform: translateY(-50%); }
+.k9-lupa--horizontal .k9-lupa__num { bottom: calc(100% + 4px); transform: translateX(-50%); }
+
+/* La ventana: lo que se ve en la hoja. */
+.k9-lupa__ventana {
+    position: absolute;
+    border: 2px solid var(--k-marker);
+    border-radius: 6px;
+    background-color: rgba(var(--k-marker-rgb), 0.16);
+    cursor: grab;
+    transition: top .08s, left .08s, height .08s, width .08s;
+}
+.k9-lupa--vertical .k9-lupa__ventana { left: -3px; right: -3px; }
+.k9-lupa--horizontal .k9-lupa__ventana { top: -3px; bottom: -3px; }
+.k9-lupa__ventana:active { cursor: grabbing; }
+.k9-lupa__ventana:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 3px; }
+
+/* Las asas se ven finas pero se agarran en 44 px. */
+.k9-lupa__asa { position: absolute; }
+.k9-lupa__asa::before {
+    content: "";
+    position: absolute;
+    border-radius: 4px;
+    background-color: var(--k-marker);
+    box-shadow: 0 0 0 2px var(--k-bg);
+}
+.k9-lupa--vertical .k9-lupa__asa { left: 50%; width: 44px; height: 22px; margin-left: -22px; cursor: ns-resize; }
+.k9-lupa--vertical .k9-lupa__asa--inicio { top: -11px; }
+.k9-lupa--vertical .k9-lupa__asa--fin { bottom: -11px; }
+.k9-lupa--vertical .k9-lupa__asa::before { left: 11px; right: 11px; top: 7px; height: 8px; }
+.k9-lupa--horizontal .k9-lupa__asa { top: 50%; height: 44px; width: 22px; margin-top: -22px; cursor: ew-resize; }
+.k9-lupa--horizontal .k9-lupa__asa--inicio { left: -11px; }
+.k9-lupa--horizontal .k9-lupa__asa--fin { right: -11px; }
+.k9-lupa--horizontal .k9-lupa__asa::before { top: 11px; bottom: 11px; left: 7px; width: 8px; }
+
+.k9-lupa__dato {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    color: var(--k-text-muted);
+    white-space: nowrap;
+}
+.k9-lupa--horizontal .k9-lupa__dato { min-width: 64px; }
+.k9-lupa--horizontal > .k-label { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .k9-lupa__ventana { transition: none; }
+}
+
+/* --- Tríadas, al lado de Colores ---------------------------------------------
+ * Colores sólo existe desde 1280 px (la leyenda también). Tríadas hace falta
+ * desde 768 px, así que en Escalas la fila de abajo aparece antes y Colores
+ * se esconde hasta los 1280. En el teléfono sigue en la esquina del lienzo. */
+.k8-mesa__abajo { gap: var(--k-space-2); }
+@media (min-width: 768px) and (max-width: 1279px) {
+    .k9-mesa--triadas .k8-mesa__abajo { display: flex; flex: none; align-self: flex-start; }
+    .k9-mesa--triadas .k8-mesa__abajo .k8-colores { display: none; }
+    .k9-mesa--triadas .k-fretboard-fit { height: calc(100cqh - 122px); }
+}
+.k9-triadas:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Tríadas en lima, para que se vea: es lo único de la mesa que cambia lo
+ * que el diagrama enseña (no cómo). Encendidas, un aro de tinta. */
+.k9-triadas,
+.k2-vaciar--esquina.k2-triadas {
+    gap: var(--k-space-2);
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    border-color: transparent;
+    font-weight: 700;
+}
+.k9-triadas:hover:not(:disabled),
+.k2-vaciar--esquina.k2-triadas:hover:not(:disabled) {
+    background-color: var(--k-marker-soft);
+    color: var(--k-marker-ink);
+}
+.k9-triadas--activo,
+.k2-vaciar--esquina.k2-triadas[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 2px var(--k-marker-ink);
+}
+
+/* --- Vaciar, junto a deshacer y rehacer --------------------------------------- */
+.k9-vaciar {
+    gap: 6px;
+    height: 32px;
+    min-height: 32px;
+    margin-left: 6px;
+    padding: 0 10px;
+    border-left: 1px solid var(--k-divider);
+    border-radius: 0 var(--k-radius-md) var(--k-radius-md) 0;
+    font-size: var(--k-text-sm);
+}
+.k9-vaciar:disabled { opacity: .4; cursor: not-allowed; }
+
+/* --- En oscuro, el mini-mástil es de maple -------------------------------------
+ * Diapasón claro con veta, trastes de alpaca y puntos negros, como un mástil
+ * de arce de verdad. La ventana lleva un filo de tinta para no perderse en la
+ * madera clara. */
+:root[data-theme="oscuro"] .k9-lupa__madera {
+    background-color: #E2BF86;
+    background-image:
+        linear-gradient(var(--k9-veta, 90deg), rgba(110, 70, 25, 0.35), transparent 14%, transparent 86%, rgba(110, 70, 25, 0.35)),
+        repeating-linear-gradient(var(--k9-veta, 90deg), rgba(140, 92, 38, 0.10) 0 1px, transparent 1px 6px),
+        linear-gradient(var(--k9-veta, 90deg), #D9B276, #EACC97 45%, #DDB57A);
+}
+:root[data-theme="oscuro"] .k9-lupa--horizontal .k9-lupa__madera { --k9-veta: 0deg; }
+:root[data-theme="oscuro"] .k9-lupa__traste { background-color: #8F8A80; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45); }
+:root[data-theme="oscuro"] .k9-lupa__cejuela { background-color: #F4EEDC; box-shadow: 0 1px 0 #8C6A3C; }
+:root[data-theme="oscuro"] .k9-lupa__punto { background-color: #1A1712; }
+:root[data-theme="oscuro"] .k9-lupa--vertical .k9-lupa__punto--doble { box-shadow: 11px 0 0 #1A1712; }
+:root[data-theme="oscuro"] .k9-lupa--horizontal .k9-lupa__punto--doble { box-shadow: 0 11px 0 #1A1712; }
+:root[data-theme="oscuro"] .k9-lupa__ventana {
+    background-color: rgba(var(--k-marker-rgb), 0.30);
+    box-shadow: 0 0 0 1px #14120E, inset 0 0 0 1px #14120E;
+}
+
+/* --- El pedal Escala / Arpegio --------------------------------------------------
+ * A la izquierda, la perilla de la tónica con las doce notas en círculo; a la
+ * derecha, la pantalla del tipo (◀ ▶, y clic derecho para la lista). */
+.k9-tocar { display: flex; align-items: center; gap: 14px; }
+.k9-tocar > .k6-pantalla-bloque { flex: 1 1 auto; }
+
+.k9-tonica { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+.k9-tonica__esfera { position: relative; width: 112px; height: 112px; }
+.k9-tonica__boton { position: absolute; left: 50%; top: 50%; margin: -19px 0 0 -19px; cursor: ns-resize; touch-action: none; }
+.k9-tonica__nota {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    min-width: 20px;
+    padding: 1px 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--k-text-faint);
+    font: 700 10px var(--k-font-ui);
+    line-height: 1.2;
+    cursor: pointer;
+}
+.k9-tonica__nota:hover { color: var(--k-text); }
+.k9-tonica__nota--on { background-color: var(--k6-lcd); color: var(--k6-lcd-ink); }
+
+/* --- Rótulos que sólo salen al dejar el ratón encima -------------------------------
+ * Afinador y Ampli tenían un rótulo bajo cada pantalla. Ahora salen como globo
+ * tras un segundo con el ratón encima (o con el foco dentro). */
+.k9-rotulo-al-pasar { position: relative; }
+.k9-globo {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translate(-50%, 4px);
+    z-index: 5;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    font: 700 10px var(--k-font-ui);
+    letter-spacing: var(--k-tracking-label);
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .12s, transform .12s, visibility 0s .12s;
+}
+.k9-rotulo-al-pasar:hover > .k9-globo,
+.k9-rotulo-al-pasar:focus-within > .k9-globo {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition: opacity .15s 1s, transform .15s 1s, visibility 0s 1s;
+}
+
+/* --- Ampli: los tres botones del canal, en iconos ----------------------------------- */
+
+
+/* --- El afinador, bloqueado fuera de «Propia» ----------------------------------- */
+.k6-cuerdas__nota.k9-nota--fija { opacity: .55; cursor: not-allowed; }
+.k6-cuerdas__nota.k9-nota--fija:hover { background: transparent; }
+
+/* --- Las cuerdas de cada instrumento ---------------------------------------------
+ * Cuántas, cómo se abren y lo gruesas que son salen de MASTILES (index.html).
+ * Metal en guitarra y bajo; en el ukelele, nailon (más apagado). */
+.k9-lupa__cuerdas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+.k9-lupa__cuerdas line { stroke: var(--k-text-muted); stroke-linecap: butt; }
+.k9-lupa__madera--nailon .k9-lupa__cuerdas line { stroke: var(--k-text-faint); opacity: .8; }
+:root[data-theme="oscuro"] .k9-lupa__cuerdas line { stroke: #B7B3AA; filter: drop-shadow(0.6px 0.6px 0 rgba(60, 40, 15, 0.45)); }
+:root[data-theme="oscuro"] .k9-lupa__madera--nailon .k9-lupa__cuerdas line { stroke: #F6F1E4; opacity: .9; }
+
+/* --- El conmutador: L · R y Madera / Plano ------------------------------------------
+ * Dos posiciones escritas sobre un fondo de pantalla; una pastilla lima se
+ * desliza hasta la elegida. */
+.k9-conmuta-bloque { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.k9-conmuta {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px;
+    border-radius: 12px;
+    background-color: var(--k6-lcd);
+}
+.k9-conmuta--vertical { grid-template-columns: 1fr; }
+.k9-conmuta__pastilla {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+    border-radius: 9px;
+    background-color: var(--k6-lcd-ink);
+    transition: transform .16s ease;
+}
+.k9-conmuta--vertical .k9-conmuta__pastilla { width: calc(100% - 6px); height: calc(50% - 3px); }
+.k9-conmuta__op {
+    position: relative;
+    min-width: 46px;
+    height: 36px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--k6-lcd-dim);
+    font: 800 15px var(--k-font-ui);
+    letter-spacing: .04em;
+    cursor: pointer;
+    transition: color .16s;
+}
+.k9-conmuta--vertical .k9-conmuta__op { min-width: 84px; height: 32px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+.k9-conmuta__op--on { color: var(--k6-lcd); }
+.k9-conmuta__op:not(.k9-conmuta__op--on):hover { color: var(--k6-lcd-ink); }
+.k9-conmuta__op:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) { .k9-conmuta__pastilla { transition: none; } }
+
+/* --- Los botones redondos del Ampli: Guardar · Vaciar · Fábrica ------------------------- */
+.k9-canal__iconos { display: flex; justify-content: center; gap: 22px; }
+.k9-bpedal-bloque { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.k9-bpedal {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--k6-borde);
+    background-color: var(--k-surface);
+    color: var(--k-text);
+    box-shadow: 0 2px 0 var(--k6-borde);
+    cursor: pointer;
+    transition: background-color .12s, color .12s, transform .08s;
+}
+.k6-pedal--ampli .k9-bpedal { background-color: var(--k-text); color: var(--k-bg); }
+.k9-bpedal:hover:not(:disabled) { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k9-bpedal:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--k6-borde); }
+.k9-bpedal:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k9-bpedal:disabled { opacity: .35; cursor: default; }
+
+/* --- Los grados: leyenda sintética ----------------------------------------------------------
+ * Una bola del color con la nota dentro; a su lado el número del grado (b3,
+ * 5…); debajo, la función. Cuatro por fila. */
+.k9-grados__titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 6px;
+    font: 700 12px var(--k-font-ui);
+    letter-spacing: var(--k-tracking-label);
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k9-grados__lista {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 580px;
+    overflow-y: auto;
+}
+/* Una fila por grado: la bola con la nota, el número del grado y la función. */
+.k9-grado {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--k-divider);
+    min-width: 0;
+}
+.k9-grado:last-child { border-bottom: 0; }
+.k9-grado__arriba { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.k9-grado__bola {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font: 800 14px var(--k-font-ui);
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    flex: none;
+}
+.k9-grado__bola--chica { width: 22px; height: 22px; font-size: 10px; }
+.k9-grado__num { font: 800 16px var(--k-font-ui); color: var(--k-text); min-width: 24px; text-align: left; }
+.k9-grado__funcion { font: 600 14px/1.2 var(--k-font-ui); color: var(--k-text); min-width: 0; }
+
+/* La leyenda mide lo que mide su contenido; no se estira hasta el alto de la mesa. */
+.k9-grados.k9-grados { align-self: flex-start; }
+
+/* --- Las letras del diagrama (selector «Letra» del Ampli) ---------------------------------
+ * Sólo sans-serif libres (OFL), en vendor/fonts/, subconjunto latino. Las
+ * letras variables llevan el rango de pesos en una sola declaración. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('vendor/fonts/Inter-400-800.woff2') format('woff2'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('vendor/fonts/Montserrat-400-800.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: swap; src: url('vendor/fonts/Poppins-400.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('vendor/fonts/Poppins-700.woff2') format('woff2'); }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('vendor/fonts/SpaceGrotesk-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('vendor/fonts/Oswald-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('vendor/fonts/Nunito-400-800.woff2') format('woff2'); }
+@font-face { font-family: 'Josefin Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('vendor/fonts/JosefinSans-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 400; font-display: swap; src: url('vendor/fonts/BarlowCondensed-400.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('vendor/fonts/BarlowCondensed-700.woff2') format('woff2'); }

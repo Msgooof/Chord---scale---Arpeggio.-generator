@@ -1,0 +1,1085 @@
+/* ==========================================================================
+ * 0.11 · CANCIÓN EN CUATRO PASOS
+ * Del wireframe wireframes-cancion-flujo-2.html. Pasos en la base
+ * (Estructura › Letra y hoja › Ritmo › Tocar), biblioteca a la izquierda y
+ * la pedalera de la canción a la derecha. Solo lo nuevo: botones, pestañas,
+ * chips y pedales son los de ui.css y ui-v06.css.
+ * ========================================================================== */
+
+/* --- El marco ------------------------------------------------------------------ */
+.k11 {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    background-color: var(--k-bg);
+    color: var(--k-text);
+}
+.k11-hueco { flex: 1; }
+.k11-chico { padding: .375rem .625rem; font-size: 12px; min-height: 30px; }
+.k11-lima { color: var(--k-marker-trazo, var(--k-marker)); }
+
+/* --- La barra de arriba ------------------------------------------------------------ */
+.k11-barra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--k-divider);
+    background-color: var(--k-surface);
+    min-width: 0;
+}
+.k11-titulo {
+    min-width: 0;
+    width: 16ch;
+    flex: 0 1 auto;
+    padding: 2px 4px;
+    border: 0;
+    border-bottom: 1px dashed transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--k-text);
+    font: 400 20px/1.2 var(--k-font-title);
+    letter-spacing: .02em;
+}
+.k11-titulo:hover { border-bottom-color: var(--k-border); }
+.k11-titulo:focus-visible { outline: none; border-bottom: 1px solid var(--k-accent); }
+
+/* --- El cuerpo: biblioteca · centro · pedalera ---------------------------------------- */
+.k11-trabajo {
+    position: relative;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+}
+.k11-centro {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+@media (min-width: 1280px) {
+    .k11 .k11-pedalera { width: 340px; }
+    .k11 .k11-velo-pedalera { display: none; }
+}
+
+/* --- La biblioteca --------------------------------------------------------------------- */
+.k11-lateral {
+    flex: none;
+    width: 208px;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--k-divider);
+    background-color: var(--k-bg);
+    scrollbar-width: thin;
+}
+.k11-solo-estrecho { display: none; }
+.k11-velo { display: none; }
+@media (max-width: 1023px) {
+    .k11-solo-estrecho { display: inline-grid; }
+    .k11-lateral {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 41;
+        width: 240px;
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        box-shadow: var(--k-shadow-float);
+    }
+    .k11-lateral--abierta { transform: none; }
+    .k11-velo { display: block; position: absolute; inset: 0; z-index: 40; background-color: var(--k-scrim); }
+}
+.k11-lat { display: flex; flex-direction: column; gap: 8px; padding: 12px 10px; min-height: 100%; }
+.k11-lat__cab { display: flex; align-items: center; justify-content: space-between; }
+.k11-lat__nota { margin-top: auto; font-size: 11px; line-height: 1.35; color: var(--k-text-faint); }
+.k11-buscar { width: 100%; font-size: 12px; padding: 4px 8px; }
+.k11-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.k11-ficha {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 5px 4px 4px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface);
+    color: var(--k-text);
+    cursor: pointer;
+}
+.k11-ficha:hover { border-color: var(--k-accent); }
+.k11-ficha:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+.k11-ficha__hoja { display: block; width: 100%; aspect-ratio: 1 / 1.1; overflow: hidden; border-radius: 4px; }
+.k11-ficha__hoja svg { width: 100% !important; height: 100% !important; display: block; }
+.k11-ficha__nombre { font: 400 13px/1 var(--k-font-title); letter-spacing: .03em; }
+
+.k11-lat__ritmos { display: grid; gap: 6px; }
+.k11-ritmo {
+    display: grid;
+    gap: 5px;
+    padding: 7px 9px;
+    border: 1px solid var(--k-divider);
+    border-radius: 9px;
+    background-color: var(--k-surface);
+    color: var(--k-text);
+    text-align: left;
+    cursor: pointer;
+}
+.k11-ritmo b { font: 400 13px/1 var(--k-font-title); letter-spacing: .03em; }
+.k11-ritmo:hover { border-color: var(--k-border); }
+.k11-ritmo--sel { border-color: var(--k-marker); box-shadow: inset 0 0 0 1px var(--k-marker); }
+.k11-ritmo--propio b::before { content: "★ "; color: var(--k-marker); }
+.k11-ritmo:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+
+/* Las casillas de un patrón: abajo lima, arriba cobalto, punteo ámbar. */
+.k11-trazos { display: grid; gap: 2px; }
+.k11-trazos i {
+    height: 14px;
+    border-radius: 2px;
+    background-color: var(--k-surface-raised);
+    display: grid;
+    place-items: center;
+    font: 700 8px/1 var(--k-font-ui);
+    font-style: normal;
+    color: transparent;
+}
+.k11-trazos i.k11-t--d { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k11-trazos i.k11-t--u { background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k11-trazos i.k11-t--p { background-color: #E9B50E; color: var(--k-marker-ink); }
+
+/* --- El centro ------------------------------------------------------------------------ */
+.k11-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.k11-columna { max-width: 920px; margin: 0 auto; padding: 14px 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+.k11-panel {
+    border: 1px solid var(--k-divider);
+    border-radius: 10px;
+    background-color: var(--k-surface);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.k11-panel__t { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.k11-panel__ayuda { font-size: 12px; color: var(--k-text-muted); }
+
+
+/* La mesa: el papel sobre una cuadrícula, como en Prime 0.8. */
+.k11-mesa {
+    min-height: 0;
+    overflow: auto;
+    padding: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background:
+        linear-gradient(rgba(var(--k-shadow-rgb), .05) 1px, transparent 1px) 0 0 / 22px 22px,
+        linear-gradient(90deg, rgba(var(--k-shadow-rgb), .05) 1px, transparent 1px) 0 0 / 22px 22px,
+        var(--k-bg-deep, var(--k-bg));
+    scrollbar-width: thin;
+}
+.k11-mesa__papel { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 16px; }
+.k11-mesa__papel svg { width: 100%; height: auto; display: block; border-radius: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+
+/* --- Tocar ------------------------------------------------------------------------------ */
+.k11-atril { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.k11-recorrido {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--k-divider);
+}
+.k11-recorrido__barra { flex: 1; min-width: 0; display: flex; gap: 3px; height: 26px; }
+.k11-recorrido__tramo {
+    flex-basis: 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+    border: 0;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--c) 22%, transparent);
+    color: var(--k-text-muted);
+    font: 400 11px/1 var(--k-font-title);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+}
+.k11-recorrido__tramo--hecho { background: color-mix(in srgb, var(--c) 70%, transparent); color: var(--k-marker-ink); }
+.k11-recorrido__tramo--aqui { background: var(--c); color: var(--k-marker-ink); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3px var(--c); }
+.k11-recorrido__tramo--sel { outline: 1px dashed var(--k-text-muted); outline-offset: 2px; }
+
+/* --- Los pasos, en la base ------------------------------------------------------------------- */
+.k11-pasos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--k-divider);
+    background-color: var(--k-surface);
+}
+.k11-pasos__ayuda { min-width: 0; font-size: 12px; color: var(--k-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k11-pasos__ayuda b { color: var(--k-text); }
+.k11-pasos__tabs { justify-self: center; align-items: center; }
+.k11-pasos__sep { color: var(--k-text-faint); font-size: 12px; padding: 0 2px; }
+.k11-pasos__der { justify-self: end; display: flex; gap: 8px; }
+.k11-paso__num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: inline-grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    flex: none;
+}
+.k11-pasos .k-tab--active .k11-paso__num { background-color: var(--k-marker); border-color: var(--k-marker); color: var(--k-marker-ink); }
+.k11-pasos .k11-paso--hecho .k11-paso__num { background-color: var(--k-surface-raised); }
+.k11-pasos .k-tab { gap: 8px; }
+
+@media (max-width: 767px) {
+    .k11-pasos { grid-template-columns: 1fr auto; padding: 6px 8px; gap: 8px; }
+    .k11-pasos__ayuda { display: none; }
+    .k11-pasos__tabs { justify-self: start; }
+    .k11-pasos__sep { display: none; }
+    .k11-pasos .k-tab:not(.k-tab--active) .k11-paso__nombre { display: none; }
+    .k11-no-movil { display: none; }
+    /* La barra en dos filas: el título arriba, a todo lo ancho. */
+    .k11-barra { flex-wrap: wrap; row-gap: 4px; padding: 6px 8px; }
+    .k11-titulo { order: -1; flex: 1 1 100%; width: auto; font-size: 18px; }
+}
+@media (max-width: 1100px) { .k11-barra .k-chip { display: none; } }
+
+/* --- La pedalera de la canción ------------------------------------------------------------- */
+/* Las pantallas encendidas: la letra brilla y el cristal tiene fondo. */
+.k11-pedalera .k6-pantalla {
+    box-shadow: inset 0 0 0 1px rgba(172, 236, 0, .12), inset 0 0 14px rgba(172, 236, 0, .10);
+    text-shadow: 0 0 6px rgba(172, 236, 0, .6), 0 0 1px rgba(172, 236, 0, .9);
+}
+.k11-pedalera .k6-pantalla__valor small {
+    display: block;
+    font-size: 8.5px;
+    color: var(--k6-lcd-dim);
+    text-shadow: none;
+    letter-spacing: .06em;
+}
+.k6-pedal--ampli .k6-pedal--ampli .k6-pedal--ampli 
+.k11-lcd8 {
+    display: grid;
+    gap: 3px;
+    padding: 6px;
+    border-radius: 8px;
+    background-color: var(--k6-lcd);
+    box-shadow: inset 0 0 0 1px rgba(172, 236, 0, .12), inset 0 0 14px rgba(172, 236, 0, .10);
+}
+.k11-lcd8 i { height: 12px; border-radius: 2px; background-color: #18200F; font-style: normal; }
+.k11-lcd8 i.k11-t--d, .k11-lcd8 i.k11-t--p { background-color: var(--k6-lcd-ink); box-shadow: 0 0 6px rgba(172, 236, 0, .8); }
+.k11-lcd8 i.k11-t--u { background-color: #9BB0FF; box-shadow: 0 0 6px rgba(155, 176, 255, .7); }
+
+/* Los pedales que pesan en el paso: un anillo rosa. */
+.k6-pedal.k11-foco { box-shadow: 0 3px 0 var(--k6-borde), 0 0 0 3px var(--k-bg), 0 0 0 5px #FF4FA3; }
+.k6-pedal--ampli.k11-foco { box-shadow: 0 3px 0 rgba(0, 0, 0, .35), 0 0 0 3px var(--k-bg), 0 0 0 5px #FF4FA3; }
+@media (prefers-reduced-motion: no-preference) {
+    .k6-pedal.k11-foco { transition: box-shadow .2s ease; }
+}
+
+/* La ventanita de «lo que suena» sube por encima de los pasos. */
+body:has(.k11) .k3-sonando { bottom: 72px; }
+
+/* Nombres largos en las pantallas: en una línea, con puntos suspensivos. */
+.k11-pedalera .k6-pantalla__valor { hyphens: none; overflow-wrap: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ==========================================================================
+ * Fase 2 · ① Estructura: la pista
+ * ========================================================================== */
+.k11-daw { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; }
+.k11-pista-bloque { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.k11-daw-herr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.k11-daw-herr .k-tab { min-width: 34px; }
+
+.k11-pista {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    border: 1px solid var(--k-divider);
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--k-bg-deep, var(--k-bg));
+}
+/* Los carriles miden lo mismo en la columna de nombres y en la pista. */
+.k11-carril--regla { height: 22px; }
+.k11-carril--secciones { height: 64px; }
+.k11-carril--acordes { height: 96px; }
+.k11-carril--letra { height: 40px; }
+.k11-pista__cabezas { border-right: 1px solid var(--k-divider); background-color: var(--k-surface); }
+.k11-pista__cabezas > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 9px;
+    border-bottom: 1px solid var(--k-divider);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--k-text-muted);
+}
+.k11-pista__cabezas > div:last-child { border-bottom: 0; }
+.k11-pista__cabezas b { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.k11-pista__marco { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.k11-pista__carriles { position: relative; min-width: 100%; }
+.k11-pista__carriles > [class^="k11-carril--"] { position: relative; border-bottom: 1px solid var(--k-divider); }
+.k11-pista__carriles > .k11-carril--letra { border-bottom: 0; }
+.k11-pista__guias { position: absolute; inset: 0; pointer-events: none; }
+.k11-pista__guias i { position: absolute; top: 0; bottom: 0; width: 1px; background-color: var(--k-divider); opacity: .5; }
+.k11-carril--regla span { position: absolute; top: 0; bottom: 0; padding: 5px 0 0 4px; font: 700 9px var(--k-font-mono, monospace); color: var(--k-text-faint); }
+
+/* Los bloques de sección */
+.k11-bloque {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 7px;
+    background-color: var(--c);
+    color: var(--k-marker-ink);
+    font: 400 13px/1 var(--k-font-title);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+.k11-bloque small { font: 700 9px var(--k-font-ui); opacity: .7; text-transform: none; letter-spacing: 0; }
+.k11-bloque__nombre { overflow: hidden; text-overflow: ellipsis; }
+.k11-bloque__asa { margin-left: auto; opacity: .55; letter-spacing: -2px; }
+.k11-bloque--sel { box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 4px var(--k-text); }
+.k11-bloque--vacia { background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--k-text); border: 1.5px dashed var(--c); }
+.k11-bloque--fantasma { z-index: 4; cursor: grabbing; box-shadow: 0 10px 22px rgba(0, 0, 0, .45); opacity: .92; }
+.k11-bloque:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k11-insercion { position: absolute; top: 2px; bottom: 2px; width: 4px; border-radius: 2px; background: #FF4FA3; box-shadow: 0 0 8px #FF4FA3; z-index: 3; }
+
+/* Los acordes */
+.k11-acb {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+    border-radius: 7px;
+    background-color: var(--k-surface);
+    color: var(--k-text);
+    font: 400 13px/1 var(--k-font-title);
+    overflow: hidden;
+    cursor: pointer;
+}
+.k11-acb:hover { border-color: var(--c); }
+.k11-acb:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+.k11-acb__hoja { display: block; width: 100%; max-width: 54px; flex: 1 1 auto; min-height: 0; border-radius: 3px; overflow: hidden; }
+.k11-acb__hoja svg { width: 100% !important; height: 100% !important; display: block; }
+.k11-acb__nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.k11-acb--vuelta { background-color: transparent; border-style: dashed; color: var(--k-text-muted); }
+.k11-acb--sonando { box-shadow: inset 0 0 0 2px var(--k-marker); }
+.k11-acb--soltar {
+    border: 1.5px dashed var(--c);
+    background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c) 10%, transparent) 0 6px, transparent 6px 12px);
+    color: var(--k-text-muted);
+    font: 700 11px var(--k-font-ui);
+    cursor: default;
+}
+/* Dónde caerá el acorde que se arrastra: una raya rosa en el borde. */
+.k11-acb--destino { border-color: #FF4FA3; }
+.k11-acb--antes { box-shadow: inset 4px 0 0 #FF4FA3; }
+.k11-acb--despues { box-shadow: inset -4px 0 0 #FF4FA3; }
+.k11-acb--soltar.k11-acb--destino { background-color: rgba(255, 79, 163, .12); box-shadow: none; }
+
+/* La letra */
+.k11-letra {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    font: 11px/1.2 var(--k-font-mono, monospace);
+    color: var(--k-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.k11-letra--vacia { font-family: var(--k-font-ui); color: var(--k-text-faint); font-style: italic; }
+
+.k11-cabezal { position: absolute; top: 0; bottom: 0; width: 2px; background: #FF4FA3; z-index: 5; pointer-events: none; }
+.k11-cabezal::before { content: ""; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top-color: #FF4FA3; }
+
+/* El fantasma del arrastre desde la biblioteca */
+.k11-fantasma {
+    position: fixed;
+    z-index: 200;
+    pointer-events: none;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    font: 400 15px var(--k-font-title);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .35);
+    transform: rotate(-4deg);
+}
+body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user-select: none; }
+.k11-ficha { touch-action: pan-y; }
+
+/* El panel de la sección elegida */
+.k11-tag { display: inline-flex; align-items: center; gap: 6px; font: 400 16px var(--k-font-title); letter-spacing: .04em; text-transform: uppercase; }
+.k11-tag::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--c); }
+.k11-campos { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
+.k11-campo { display: inline-flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--k-text-muted); }
+.k11-campo input { font-size: 13px; padding: 5px 8px; min-width: 0; }
+.k11-campo--ancho { flex: 1 1 220px; }
+.k11-paso {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    border: 1px solid var(--k-border);
+    border-radius: var(--k-radius-sm, 6px);
+    background-color: var(--k-surface-raised);
+    overflow: hidden;
+}
+.k11-paso button { width: 30px; height: 100%; border: 0; background: transparent; color: var(--k-text); font-size: 15px; font-weight: 700; cursor: pointer; }
+.k11-paso button:hover:not(:disabled) { background-color: var(--k-surface); }
+.k11-paso button:disabled { opacity: .35; cursor: default; }
+.k11-paso b { min-width: 34px; padding: 0 4px; text-align: center; font-size: 13px; color: var(--k-text); white-space: nowrap; }
+
+/* ==========================================================================
+ * Fase 3 · ② Letra y hoja: el papel es el editor
+ * ========================================================================== */
+.k11-pagina-oculta, .k11-hoja-oculta { display: none !important; }
+.k11-hoja { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.k11-mesa--hoja { flex: 1; display: block; padding: 18px 56px 28px 16px; }
+.k11-mesa__fila { display: flex; align-items: flex-start; justify-content: center; gap: 16px; }
+.k11-mesa--hoja .k11-mesa__papel { flex: 0 1 560px; min-width: 360px; gap: 8px; }
+.k11-mesa__pie { margin: 0; font-size: 11px; color: var(--k-text-faint); text-align: center; }
+
+.k11-globo {
+    flex: 0 0 300px;
+    margin-top: var(--top, 0);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--k-border);
+    border-radius: 12px;
+    background-color: var(--k-surface-raised);
+    box-shadow: var(--k-shadow-panel);
+    position: relative;
+}
+/* El piquito que señala la sección en el papel. */
+.k11-globo::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 18px;
+    width: 12px;
+    height: 12px;
+    background: inherit;
+    border-left: 1px solid var(--k-border);
+    border-bottom: 1px solid var(--k-border);
+    transform: rotate(45deg);
+}
+.k11-globo__cab { display: flex; align-items: center; gap: 8px; }
+.k11-globo__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.k11-chip { cursor: pointer; }
+.k11-chip--on { background-color: var(--k-accent); color: var(--k-accent-ink); border-color: var(--k-accent); }
+.k11-globo .k-panel { background-color: var(--k-surface); }
+
+@container (max-width: 740px) {
+    .k11-mesa--hoja { padding-right: 18px; }
+    .k11-mesa__fila { flex-direction: column; align-items: stretch; }
+    .k11-globo { order: -1; flex-basis: auto; margin-top: 0; }
+    .k11-globo::before { display: none; }
+    .k11-mesa--hoja .k11-mesa__papel { flex-basis: auto; min-width: 0; max-width: 560px; align-self: center; width: 100%; }
+}
+
+/* El mando de páginas: el mismo gesto que los trastes del Taller. */
+.k11-mando-v {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: 1px solid var(--k-divider);
+    border-radius: 999px;
+    background-color: var(--k-surface);
+    box-shadow: var(--k-shadow-panel);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k11-mando-v b { font-size: 14px; color: var(--k-text); }
+.k11-mando-v small { font-size: 8px; }
+.k11-mando-v button {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--k-border);
+    background: transparent;
+    color: var(--k-text);
+    font-size: 10px;
+    cursor: pointer;
+}
+.k11-mando-v button:disabled { opacity: .3; cursor: default; }
+.k11-mando-v button:hover:not(:disabled) { background-color: var(--k-surface-raised); }
+@container (max-width: 740px) { .k11-mando-v { top: auto; bottom: 12px; transform: none; } }
+
+/* ==========================================================================
+ * Fase 4 · ③ Ritmo: la pista manda el ritmo
+ * ========================================================================== */
+/* Secciones y acordes se encogen; entran Ritmo y Rasgueo. */
+.k11-pista--ritmo .k11-carril--secciones { height: 34px; }
+.k11-pista--ritmo .k11-carril--acordes { height: 34px; }
+.k11-carril--ritmo { height: 52px; }
+.k11-carril--rasgueo { height: 40px; }
+.k11-pista--ritmo .k11-bloque { top: 4px; bottom: 4px; font-size: 11px; }
+.k11-pista--ritmo .k11-bloque small, .k11-pista--ritmo .k11-bloque__asa { display: none; }
+.k11-pista--ritmo .k11-acb { top: 4px; bottom: 4px; flex-direction: row; font-size: 11px; }
+.k11-pista__carriles > .k11-carril--rasgueo { border-bottom: 0; }
+
+.k11-patron {
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--k-marker);
+    border-radius: 7px;
+    background-color: rgba(var(--k-marker-rgb, 172, 236, 0), .08);
+    overflow: hidden;
+}
+.k11-patron--propio { border-color: #E9B50E; background-color: rgba(233, 181, 14, .1); }
+.k11-patron--sel { box-shadow: 0 0 0 2px var(--k-marker); }
+.k11-patron--propio.k11-patron--sel { box-shadow: 0 0 0 2px #E9B50E; }
+.k11-patron--destino { border-style: dashed; border-color: #FF4FA3; background: repeating-linear-gradient(45deg, rgba(255, 79, 163, .1) 0 6px, transparent 6px 12px); }
+.k11-patron__nombre {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: var(--k-text);
+    font: 400 13px/1 var(--k-font-title);
+    letter-spacing: .03em;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.k11-patron__editar {
+    flex: none;
+    align-self: center;
+    margin-right: 6px;
+    padding: 1px 6px;
+    border: 1px solid var(--k-border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--k-text-muted);
+    font: 700 10px var(--k-font-ui);
+    cursor: pointer;
+}
+.k11-patron__editar:hover { color: var(--k-text); border-color: var(--k-text); }
+.k11-patron__nombre:focus-visible, .k11-patron__editar:focus-visible { outline: 2px solid var(--k-accent); outline-offset: -2px; }
+
+.k11-carril--rasgueo i {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    border-radius: 2px;
+    background-color: var(--k-surface-raised);
+}
+.k11-carril--rasgueo i.k11-t--d { background-color: var(--k-marker); }
+.k11-carril--rasgueo i.k11-t--u { background-color: var(--k-accent); }
+.k11-carril--rasgueo i.k11-t--p { background-color: #E9B50E; }
+
+.k11-componer { flex: 1 0 auto; }
+.k11-fila-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.k11-ritmo { touch-action: pan-y; }
+
+/* ==========================================================================
+ * Fase 5 · ④ Tocar: el atril
+ * ========================================================================== */
+.k11-atril { position: relative; }
+.k11-atril__cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.k11-atril__vacio { margin: auto; padding: 24px; color: var(--k-text-muted); text-align: center; }
+
+.k11-escenario { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+.k11-ahora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    border-right: 1px solid var(--k-divider);
+    min-height: 0;
+}
+.k11-ahora__papel {
+    width: 170px;
+    padding: 8px 10px 4px;
+    border-radius: 8px;
+    background: #fff;
+    color: #16181D;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.k11-ahora__nombre { font: 400 40px/1 var(--k-font-title); }
+.k11-ahora__papel svg { width: 100% !important; height: auto !important; display: block; }
+.k11-luego { display: flex; align-items: center; gap: 10px; opacity: .65; }
+.k11-luego__papel { width: 64px; padding: 4px 5px 2px; border-radius: 6px; background: #fff; color: #16181D; display: flex; flex-direction: column; align-items: center; }
+.k11-luego__papel b { font: 400 15px/1 var(--k-font-title); }
+.k11-luego__papel svg { width: 100% !important; height: auto !important; display: block; }
+
+.k11-letra-grande { display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 16px 36px; min-width: 0; overflow: hidden; }
+.k11-letra-grande__seccion { font: 400 13px var(--k-font-title); letter-spacing: .1em; color: var(--k-accent); }
+.k11-ln { font-family: var(--k-font-mono, monospace); white-space: pre; overflow: hidden; text-overflow: ellipsis; color: var(--k-text-faint); }
+.k11-ln__acordes { font-weight: 700; font-size: .8em; color: var(--k-text-muted); }
+.k11-ln--ya { font-size: 17px; opacity: .5; }
+.k11-ln--luego { font-size: 19px; }
+.k11-ln--aqui { font-size: 28px; color: var(--k-text); }
+.k11-ln--aqui .k11-ln__acordes { color: var(--k-accent); }
+.k11-ln__ac-on { color: var(--k-marker-trazo, var(--k-marker)); }
+.k11-ln--aqui .k11-ln__ac-on { background: var(--k-accent); color: var(--k-accent-ink); border-radius: 3px; }
+.k11-ln mark { background: var(--k-marker); color: var(--k-marker-ink); border-radius: 3px; }
+.k11-ln--instrumental .k11-ln__letra { white-space: normal; }
+.k11-ln--instrumental span { margin-right: 6px; }
+.k11-ln--instrumental .k11-ln__ac-on { padding: 0 4px; background: var(--k-marker); color: var(--k-marker-ink); }
+
+/* El carril del rasgueo: la cinta pasa por debajo de la línea AHORA. */
+.k11-carril-atril { position: relative; flex: none; height: 150px; border-top: 1px solid var(--k-divider); background-color: var(--k-bg-deep, var(--k-bg)); overflow: hidden; }
+.k11-carril-atril__pista { position: absolute; left: 0; right: 0; top: 34px; bottom: 10px; }
+.k11-cinta { position: absolute; top: 0; bottom: 0; left: 0; will-change: transform; }
+.k11-cmp { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--k-border); }
+.k11-cmp__nombre { position: absolute; top: 0; left: 8px; font: 400 18px/1 var(--k-font-title); color: var(--k-text); }
+.k11-cmp__trazos { position: absolute; left: 0; right: 0; top: 26px; bottom: 6px; display: grid; gap: 4px; padding: 0 6px; }
+.k11-cmp__trazos i { border-radius: 6px; background-color: rgba(var(--k-shadow-rgb, 0, 0, 0), .06); display: grid; place-items: center; font: 800 18px var(--k-font-ui); font-style: normal; color: transparent; border: 1px dashed var(--k-divider); }
+.k11-cmp__trazos i[class] { border: 0; }
+.k11-cmp__trazos i.k11-t--d { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k11-cmp__trazos i.k11-t--u { background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k11-cmp__trazos i.k11-t--p { background-color: #E9B50E; color: var(--k-marker-ink); }
+.k11-velo-ya { position: absolute; top: 0; bottom: 0; left: 0; width: 150px; z-index: 1; background: linear-gradient(90deg, var(--k-bg-deep, var(--k-bg)) 30%, transparent); pointer-events: none; }
+.k11-linea-ahora { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: #FF4FA3; box-shadow: 0 0 10px #FF4FA3; z-index: 2; }
+.k11-linea-ahora::after { content: "AHORA"; position: absolute; top: -16px; left: -16px; font: 800 9px var(--k-font-ui); letter-spacing: .1em; color: #FF4FA3; }
+
+@media (max-width: 767px) {
+    .k11-escenario { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .k11-ahora { flex-direction: row; border-right: 0; border-bottom: 1px solid var(--k-divider); }
+    .k11-ahora > .k-group-label { display: none; }
+    .k11-ahora__papel { width: 110px; }
+    .k11-ahora__nombre { font-size: 28px; }
+    .k11-letra-grande { padding: 12px 16px; }
+    .k11-ln--aqui { font-size: 20px; }
+        .k11-carril-atril { height: 112px; }
+    .k11-atril { overflow-y: auto; }
+    .k11-atril__cuerpo, .k11-escenario { flex: none; }
+    .k11-letra-grande { min-height: 170px; }
+    .k11-carril-atril .k11-cmp__trazos i { font-size: 14px; }
+}
+
+/* ==========================================================================
+ * 2026-10-07 · Color: planos, neutros, y el lima solo como acento
+ * Pedido de Carlos: fuera el café de fondo y los bordes de color; colores
+ * planos (rojos, otros azules, morados); el lima, solo para lo que importa
+ * (el paso activo, lo que suena, la sílaba, los pedales del paso). Los
+ * pedales, cada uno de su color, como el Ampli y el EQ de grados.
+ * ========================================================================== */
+:root {
+    --k11-azul: #4C7DFF;
+    --k11-rojo: #E5484D;
+    --k11-morado: #8B6CEF;
+    --k11-cian: #1FB5C9;
+    --k11-naranja: #F0882E;
+    --k11-rosa: #E2508A;
+    --k11-amarillo: #E8B820;
+    --k11-tinta: #101114;
+    --k11-claro: #F3F4F6;
+    --k11-golpe-abajo: var(--k11-azul);
+    --k11-golpe-arriba: var(--k11-rojo);
+    --k11-golpe-punteo: var(--k11-morado);
+}
+/* En oscuro, grafito neutro en vez de la tinta cálida. */
+:root[data-theme="oscuro"] .k11,
+:root[data-theme="oscuro"] .k11-pedalera {
+    --k-bg: #121317;
+    --k-bg-deep: #0C0D10;
+    --k-surface: #1A1B20;
+    --k-surface-raised: #24262C;
+    --k-border: #4B505A;
+    --k-border-strong: #6E7480;
+    --k-divider: rgba(255, 255, 255, .08);
+    --k-text: #EEF0F3;
+    --k-text-muted: #B4B9C2;
+    --k-text-faint: #878D98;
+    --k-scrim: rgba(6, 7, 9, .6);
+}
+.k11-lima { color: var(--k-text); }
+
+/* --- Golpes: abajo azul, arriba rojo, punteo morado -------------------------- */
+.k11-trazos i.k11-t--d, .k11-carril--rasgueo i.k11-t--d, .k11-cmp__trazos i.k11-t--d { background-color: var(--k11-golpe-abajo); color: #fff; }
+.k11-trazos i.k11-t--u, .k11-carril--rasgueo i.k11-t--u, .k11-cmp__trazos i.k11-t--u { background-color: var(--k11-golpe-arriba); color: #fff; }
+.k11-trazos i.k11-t--p, .k11-carril--rasgueo i.k11-t--p, .k11-cmp__trazos i.k11-t--p { background-color: var(--k11-golpe-punteo); color: #fff; }
+
+/* --- La biblioteca ---------------------------------------------------------- */
+.k11-ritmo--sel { border-color: var(--k-text); box-shadow: inset 0 0 0 1px var(--k-text); }
+.k11-ritmo--propio b::before { color: var(--k11-naranja); }
+
+/* --- La pista ------------------------------------------------------------------ */
+.k11-pista__cabezas > div { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+.k11-pista__guias i { opacity: 1; }
+.k11-pista__guias i.k11-g--compas { background-color: var(--k-border); opacity: .55; }
+.k11-pista__guias i.k11-g--pulso { background-color: var(--k-divider); }
+.k11-carril--regla span.k11-regla__compas { color: var(--k-text-muted); font-size: 10px; }
+.k11-carril--regla span.k11-regla__pulso { padding-top: 8px; font-size: 8px; color: var(--k-text-faint); opacity: .8; }
+
+.k11-bloque { color: var(--k11-tinta); }
+.k11-bloque--vacia { background: transparent; border: 1.5px dashed var(--k-border); color: var(--k-text-muted); }
+
+.k11-acb { border: 0; background-color: var(--k-surface-raised); box-shadow: inset 0 3px 0 var(--c); padding-top: 5px; touch-action: none; cursor: grab; }
+.k11-acb:hover { border: 0; background-color: color-mix(in srgb, var(--k-surface-raised) 82%, var(--k-text)); }
+.k11-acb--vuelta { background-color: var(--k-surface); color: var(--k-text-muted); border: 0; box-shadow: inset 0 3px 0 color-mix(in srgb, var(--c) 45%, var(--k-surface)); }
+.k11-acb--sonando, .k11-acb--sonando:hover { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k11-acb--soltar { border: 1.5px dashed var(--k-border); background: transparent; box-shadow: none; cursor: default; }
+.k11-acb--destino { border: 0; }
+.k11-acb--antes { box-shadow: inset 4px 0 0 #FF4FA3, inset 0 3px 0 var(--c); }
+.k11-acb--despues { box-shadow: inset -4px 0 0 #FF4FA3, inset 0 3px 0 var(--c); }
+.k11-acb--soltar.k11-acb--destino { background-color: rgba(255, 79, 163, .14); border-color: #FF4FA3; }
+.k11-acb--fantasma { z-index: 4; opacity: .9; cursor: grabbing; box-shadow: 0 8px 18px rgba(0, 0, 0, .45), inset 0 3px 0 var(--c); }
+.k11-acb--estirando { box-shadow: inset 0 0 0 2px var(--k-text), inset 0 3px 0 var(--c); }
+.k11-acb__pulsos { position: absolute; right: 9px; bottom: 3px; font: 700 9px var(--k-font-ui); color: var(--k-text-faint); }
+.k11-acb--sonando .k11-acb__pulsos { color: var(--k-marker-ink); }
+.k11-acb__ritmo { padding: 1px 5px; border-radius: 4px; background-color: var(--k11-naranja); color: var(--k11-tinta); font: 700 9px var(--k-font-ui); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k11-acb__borde { position: absolute; top: 0; right: 0; bottom: 0; width: 8px; cursor: ew-resize; touch-action: none; }
+.k11-acb__borde::after { content: ""; position: absolute; top: 30%; bottom: 30%; right: 3px; width: 2px; border-radius: 1px; background-color: var(--k-text-faint); opacity: 0; transition: opacity .12s; }
+.k11-acb:hover .k11-acb__borde::after, .k11-acb--estirando .k11-acb__borde::after { opacity: 1; }
+.k11-globito {
+    position: absolute;
+    top: 4px;
+    z-index: 6;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    font: 700 10px var(--k-font-ui);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Ritmo: neutro si hereda, morado si es de la sección, naranja si es de un acorde. */
+.k11-patron { border: 0; background-color: var(--k-surface-raised); }
+.k11-patron--propio { background-color: var(--k11-morado); }
+.k11-patron--propio .k11-patron__nombre { color: #fff; }
+.k11-patron--sel, .k11-patron--propio.k11-patron--sel { box-shadow: inset 0 0 0 2px var(--k-text); }
+.k11-patron--destino { background: #FF4FA3; border: 0; }
+.k11-patron--destino .k11-patron__nombre { color: #fff; }
+.k11-patron__editar { border: 0; background-color: rgba(0, 0, 0, .22); color: inherit; }
+.k11-patron--propio .k11-patron__editar { color: #fff; }
+
+.k11-rasgueo-acorde {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    display: grid;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 4px;
+}
+.k11-carril--rasgueo .k11-rasgueo-acorde i { position: static; border-radius: 2px; background-color: var(--k-surface-raised); }
+.k11-rasgueo-acorde--propio { background-color: color-mix(in srgb, var(--k11-naranja) 30%, transparent); }
+.k11-rasgueo-acorde--destino { background-color: rgba(255, 79, 163, .4); }
+
+/* --- Tocar ---------------------------------------------------------------------- */
+.k11-recorrido__tramo { background: var(--k-surface-raised); box-shadow: inset 0 -3px 0 var(--c); color: var(--k-text-muted); }
+.k11-recorrido__tramo--hecho { background: color-mix(in srgb, var(--c) 40%, var(--k-surface-raised)); color: var(--k-text); }
+.k11-recorrido__tramo--aqui { background: var(--c); color: var(--k11-tinta); box-shadow: none; }
+.k11-recorrido__tramo--sel { outline: 2px solid var(--k-text); outline-offset: 2px; }
+.k11-cmp { border-left-color: var(--k-border); }
+.k11-cmp__trazos i { border: 0; background-color: var(--k-surface-raised); }
+.k11-letra-grande__seccion { color: var(--k-text-muted); }
+.k11-instrumental { font: 400 34px/1 var(--k-font-title); letter-spacing: .04em; color: var(--k-text); margin-bottom: 8px; white-space: normal; }
+.k11-entrada { font-size: 13px; font-weight: 700; color: var(--k-text-muted); }
+
+/* --- La pedalera: cada pedal de su color, planos -------------------------------- */
+.k11-pedalera, .k11-pedalera .k6-inspector__cuerpo { background: var(--k-bg); }
+.k11-pedalera .k6-pedal {
+    --k6-borde: var(--k11-tinta);
+    border: 0;
+    background-color: var(--p, var(--k-surface-raised));
+    color: var(--k11-tinta);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, .45);
+}
+.k11-pedalera #k6-pedal-tonalidad { --p: var(--k11-azul); }
+.k11-pedalera #k6-pedal-tempo { --p: var(--k11-rojo); }
+.k11-pedalera #k6-pedal-ritmo { --p: var(--k11-morado); }
+.k11-pedalera #k6-pedal-etiqueta { --p: var(--k11-cian); }
+.k11-pedalera #k6-pedal-looper { --p: var(--k11-naranja); }
+.k11-pedalera #k6-pedal-ensayo { --p: var(--k11-rosa); }
+/* El Transporte sigue siendo el pedal claro, como el Ampli. */
+.k11-pedalera .k6-pedal--ampli { --p: var(--k11-claro); }
+
+.k11-pedalera .k6-pedal .k6-pedal__sub,
+.k11-pedalera .k6-pedal .k6-rotulo,
+.k11-pedalera .k6-pedal .k6-perilla__valor,
+.k11-pedalera .k6-pedal .k6-palanca__valor { color: rgba(16, 17, 20, .75); }
+
+.k11-pedalera .k6-perilla__boton,
+.k11-pedalera .k6-selector__perilla,
+.k11-pedalera .k9-bpedal { background-color: var(--k11-claro); border-color: var(--k11-tinta); color: var(--k11-tinta); box-shadow: 0 2px 0 var(--k11-tinta); }
+.k11-pedalera .k9-bpedal:hover:not(:disabled) { background-color: var(--k11-tinta); color: var(--k11-claro); }
+.k11-pedalera .k6-selector__pos { color: rgba(16, 17, 20, .75); }
+.k11-pedalera .k6-selector__pos--on { background-color: var(--k11-tinta); color: var(--k11-claro); }
+.k11-pedalera .k6-palanca__brazo { background-color: var(--k11-claro); border-color: var(--k11-tinta); }
+.k11-pedalera .k6-palanca__brazo--on { background-color: var(--k11-tinta); }
+.k11-pedalera .k6-palanca__brazo--on::after { background-color: var(--k11-claro); }
+
+.k11-pedalera .k6-pisador,
+.k11-pedalera .k6-pedal--ampli .k11-pedalera .k6-pisador__boton,
+.k11-pedalera .k6-pedal--ampli .k11-pedalera .k6-pisador--on .k6-pisador__boton,
+.k11-pedalera .k6-pedal--ampli 
+/* El LED: rojo, como en un pedal de verdad. */
+.k11-pedalera .k6-led { background-color: rgba(0, 0, 0, .3); box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .35); }
+.k11-pedalera .k6-led--on { background-color: #FF3B30; box-shadow: 0 0 0 2px var(--k11-tinta), 0 0 9px #FF3B30; }
+
+/* Las pantallas: cristal oscuro y letra blanca azulada; nada de lima. */
+.k11-pedalera .k6-pantalla,
+.k11-pedalera .k11-lcd8,
+.k11-pedalera .k9-conmuta { background-color: #0E1014; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+.k11-pedalera .k6-pantalla { color: #EAF0FF; text-shadow: 0 0 6px rgba(150, 180, 255, .45); }
+.k11-pedalera .k6-pantalla__valor small { color: #8E97A8; }
+.k11-pedalera .k6-pantalla__flecha { color: #EAF0FF; }
+.k11-pedalera .k6-pantalla__flecha:hover { background-color: rgba(255, 255, 255, .08); }
+.k11-pedalera .k11-lcd8 i { background-color: #1B1E25; }
+.k11-pedalera .k11-lcd8 i.k11-t--d, .k11-pedalera .k11-lcd8 i.k11-t--p { background-color: #6F98FF; box-shadow: 0 0 6px rgba(111, 152, 255, .7); }
+.k11-pedalera .k11-lcd8 i.k11-t--u { background-color: #FF6B6F; box-shadow: 0 0 6px rgba(255, 107, 111, .7); }
+.k11-pedalera .k9-conmuta__pastilla { background-color: #EAF0FF; }
+.k11-pedalera .k9-conmuta__op { color: #8E97A8; }
+.k11-pedalera .k9-conmuta__op--on { color: #0E1014; }
+.k11-pedalera .k9-conmuta__op:not(.k9-conmuta__op--on):hover { color: #EAF0FF; }
+
+/* Los pedales que pesan en el paso: el acento. */
+.k11-pedalera .k6-pedal.k11-foco { box-shadow: 0 3px 0 rgba(0, 0, 0, .45), 0 0 0 3px var(--k-bg), 0 0 0 5px var(--k-marker); }
+
+/* El compositor: los golpes con los mismos colores que la pista. */
+.k11 .k-strum-cell { border-color: transparent; background-color: var(--k-surface-raised); }
+.k11 .k-strum-cell--beat { border-color: var(--k-border); }
+.k11 .k-strum-cell--abajo { background-color: var(--k11-golpe-abajo); color: #fff; }
+.k11 .k-strum-cell--arriba { background-color: var(--k11-golpe-arriba); color: #fff; }
+.k11 .k-strum-cell--accent { box-shadow: inset 0 0 0 2px var(--k-text); }
+.k11 .k-strum-cell--muted { background-color: transparent; border: 1px dashed var(--k-text-muted); color: var(--k-text-muted); }
+.k11 .k-strum-ruler--beat { color: var(--k-text); }
+.k11-carril--rasgueo .k11-rasgueo-acorde i.k11-t--d { background-color: var(--k11-golpe-abajo); }
+.k11-carril--rasgueo .k11-rasgueo-acorde i.k11-t--u { background-color: var(--k11-golpe-arriba); }
+.k11-carril--rasgueo .k11-rasgueo-acorde i.k11-t--p { background-color: var(--k11-golpe-punteo); }
+
+/* ==========================================================================
+ * 2026-10-07 (2) · La pedalera de colores en todo el Taller, y pantallas pixeladas
+ * ========================================================================== */
+/* Dentro de cada pedal, la tinta es oscura: así lo que usa los tokens del
+ * tema (la perilla de la tónica, las bandas, los rótulos) se lee sobre el color. */
+.k11-pedalera .k6-pedal {
+    --k-text: var(--k11-tinta);
+    --k-text-muted: rgba(16, 17, 20, .75);
+    --k-text-faint: rgba(16, 17, 20, .55);
+    --k-surface: var(--k11-claro);
+    --k-surface-raised: var(--k11-claro);
+    --k-divider: rgba(16, 17, 20, .15);
+    --k-border: rgba(16, 17, 20, .45);
+}
+.k11-pedalera #k6-pedal-tocar { --p: var(--k11-morado); }
+.k11-pedalera #k6-pedal-afinador { --p: var(--k11-azul); }
+.k11-pedalera #k6-pedal-eq { --p: var(--k11-claro); }
+.k11-pedalera #k6-pedal-ampli { --p: var(--k11-claro); }
+.k11-pedalera .k9-tonica__nota { color: var(--k11-tinta); }
+.k11-pedalera .k9-tonica__nota--on { background-color: var(--k11-tinta); color: var(--k11-claro); }
+.k11-pedalera .k6-boton-chico { color: var(--k11-tinta); }
+
+/* La letra de las pantallas: pixelada, como un visor de cristal líquido. */
+.k11-pedalera .k6-pantalla,
+.k11-pedalera .k6-cuerdas__nota {
+    font-family: "VT323", var(--k-font-mono, monospace);
+    font-weight: 400;
+    letter-spacing: .03em;
+}
+.k11-pedalera .k6-pantalla { font-size: 17px; line-height: 1; }
+.k11-pedalera .k6-pantalla__valor small { font-size: 13px; letter-spacing: .04em; margin-top: 1px; }
+.k11-pedalera .k11-pedalera .k6-cuerdas__nota { font-size: 20px; }
+.k11-pedalera .k6-canal .k6-pantalla { font-size: 18px; }
+
+/* El imán de la pista */
+.k11-iman { background: transparent; border: 1px solid var(--k-border); color: var(--k-text-muted); }
+.k11-iman--on { background-color: var(--k-text); border-color: var(--k-text); color: var(--k-bg); }
+.k11-iman svg { flex: none; }
+
+/* Los silencios (los huecos que deja el imán apagado) */
+.k11-acb--silencio, .k11-acb--silencio:hover {
+    background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(255, 255, 255, .04) 5px 10px);
+    box-shadow: inset 0 0 0 1px var(--k-divider);
+    color: var(--k-text-faint);
+    font: 600 11px var(--k-font-ui);
+    cursor: default;
+}
+.k11-acb--silencio.k11-acb--destino { background: rgba(255, 79, 163, .16); box-shadow: inset 0 0 0 1.5px #FF4FA3; }
+.k11-relleno { position: absolute; top: 6px; bottom: 6px; z-index: 3; border-radius: 7px; background: rgba(255, 79, 163, .2); box-shadow: inset 0 0 0 1.5px #FF4FA3; pointer-events: none; }
+.k11-ahora__silencio { font: 700 11px var(--k-font-ui); letter-spacing: .08em; text-transform: uppercase; color: #5F6470; }
+
+/* ==========================================================================
+ * 2026-10-07 (3) · El transporte en la barra; Tocar más limpio
+ * ========================================================================== */
+.k11-barra { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
+.k11-barra__izq, .k11-barra__der { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.k11-barra__der { justify-content: flex-end; }
+
+.k11-transporte {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px;
+    border-radius: 10px;
+    background-color: var(--k-bg-deep, var(--k-bg));
+    border: 1px solid var(--k-divider);
+}
+.k11-tr-btn {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    border: 0;
+    border-radius: 6px;
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    cursor: pointer;
+}
+.k11-tr-btn:hover { background-color: color-mix(in srgb, var(--k-surface-raised) 78%, var(--k-text)); }
+.k11-tr-btn--on, .k11-tr-btn--on:hover { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k11-tr-btn:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+.k11-tr-lcd {
+    min-width: 124px;
+    height: 30px;
+    padding: 1px 10px;
+    border-radius: 6px;
+    background-color: #0E1014;
+    color: #EAF0FF;
+    font-family: "VT323", var(--k-font-mono, monospace);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: .95;
+    text-shadow: 0 0 6px rgba(150, 180, 255, .45);
+}
+.k11-tr-lcd b { font-weight: 400; font-size: 18px; white-space: nowrap; }
+.k11-tr-lcd i { font-style: normal; color: #8E97A8; text-shadow: none; }
+.k11-tr-lcd small { font-size: 12px; color: #8E97A8; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; text-transform: uppercase; letter-spacing: .04em; }
+.k11-tr-alcance { padding: 2px; }
+.k11-tr-alcance .k-tab { min-height: 24px; padding: .25rem .5rem; font-size: 11px; }
+
+@media (max-width: 767px) {
+    .k11-barra { grid-template-columns: minmax(0, 1fr) auto; }
+    .k11-barra__izq { flex-wrap: wrap; }
+    .k11-transporte { grid-column: 1 / -1; order: 3; justify-self: center; }
+}
+
+/* Tocar: el acorde de ahora, grande. */
+.k11-escenario { grid-template-columns: minmax(300px, 34%) minmax(0, 1fr); }
+.k11-ahora { gap: 14px; }
+.k11-ahora__papel { width: min(100%, 300px); padding: 10px 14px 6px; }
+.k11-ahora__nombre { font-size: 56px; }
+/* Que el papel crezca hasta donde quepa, sin salirse de su columna. */
+.k11-ahora { min-height: 0; overflow: hidden; padding: 14px 12px; }
+.k11-ahora > .k-group-label, .k11-luego { flex: none; }
+.k11-ahora__papel { flex: 0 1 auto; min-height: 0; max-height: 100%; }
+.k11-ahora__nombre { flex: none; }
+.k11-ahora__papel svg { flex: 1 1 auto; min-height: 0; width: 100% !important; height: auto !important; max-height: 100%; }
+.k11-luego__papel { width: 84px; }
+@media (max-width: 767px) {
+    .k11-escenario { grid-template-columns: 1fr; }
+    .k11-ahora__papel { width: 150px; }
+    .k11-ahora__nombre { font-size: 32px; }
+}
+
+/* ==========================================================================
+ * 2026-10-07 (3) · El diagrama del Taller en horizontal
+ * ========================================================================== */
+/* El botón: lima, pegado al borde de la pedalera; se corre con ella. */
+.k11-girar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    font: 800 11px var(--k-font-ui);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+    cursor: pointer;
+    transition: right .26s cubic-bezier(.2, .8, .2, 1), transform .08s;
+}
+.k11-girar:active { transform: translateY(1px); }
+.k11-girar:focus-visible { outline: 2px solid var(--k-text); outline-offset: 2px; }
+.k11-girar svg { transition: transform .2s ease; }
+.k11-girar--on svg { transform: rotate(-90deg); }
+@media (min-width: 1280px) {
+    .k11-girar--con-pedalera { right: calc(440px + 12px); }
+}
+@media (max-width: 767px) {
+    .k11-girar { right: auto; left: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .k11-girar, .k11-girar svg { transition: none; }
+}
+
+/* La mesa en horizontal: el mini-mástil, acostado, va debajo del diagrama
+ * (dentro de su fila); la leyenda sigue a un lado. Al diagrama se le quita
+ * el alto de esa tira. */
+@media (min-width: 768px) {
+    .k8-mesa.k11-horizontal .k8-mesa__fila { flex-direction: column; }
+    .k8-mesa.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 150px); }
+    .k8-mesa--con-abajo.k11-horizontal .k-fretboard-fit,
+    .k9-mesa--triadas.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 194px); }
+}
+/* Con la leyenda de grados al lado, en horizontal el círculo se achica: el
+ * diagrama acostado necesita el ancho. */
+@media (min-width: 1280px) {
+    .k8-mesa.k11-horizontal .k9-grados.k10-grados-circulo.k10-grados-circulo { width: 300px; height: min(380px, calc(100cqh - 122px)); }
+    .k8-mesa.k10-con-grados.k11-horizontal .k-fretboard-fit { max-width: calc(100cqw - 110px - 300px); }
+    .k8-mesa.k10-con-grados.k10-con-triadas.k11-horizontal .k-fretboard-fit { max-width: calc(100cqw - 250px - 300px); }
+}

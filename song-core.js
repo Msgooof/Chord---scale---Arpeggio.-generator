@@ -323,7 +323,7 @@
             repeats: 1,
             bpm: null,        // null = hereda el de la canción
             rhythmId: null,   // null = hereda el de la canción
-            bars: [],         // [{ chordId, beats }]
+            bars: [],         // [{ chordId, beats, rhythmId? }] o { chordId: null, rest: true, beats }
             lines: [],        // [{ chordLine, lyric }]
             notes: ""
         };
@@ -533,7 +533,8 @@
                         chordId: bar.chordId,
                         beats,
                         bpm,
-                        rhythmId,
+                        // 0.11: el del acorde manda sobre el de la sección.
+                        rhythmId: bar.rhythmId || rhythmId,
                         startSeconds: tiempo,
                         durationSeconds: beatsToSeconds(beats, bpm)
                     });
@@ -719,8 +720,16 @@
             rhythmId: s && typeof s.rhythmId === "string" ? s.rhythmId : null,
             bars: Array.isArray(s && s.bars)
                 ? s.bars
-                    .filter(b => b && b.chordId)
-                    .map(b => ({ chordId: String(b.chordId), beats: Number(b.beats) > 0 ? Number(b.beats) : 4 }))
+                    // 0.11: un compás también puede ser un silencio (`rest`): el
+                    // hueco que deja mover un acorde con el imán apagado.
+                    .filter(b => b && (b.chordId || b.rest))
+                    // 0.11: un acorde puede llevar su propio ritmo (`rhythmId`).
+                    .map(b => {
+                        if (!b.chordId) return { chordId: null, rest: true, beats: Number(b.beats) > 0 ? Number(b.beats) : 4 };
+                        const bar = { chordId: String(b.chordId), beats: Number(b.beats) > 0 ? Number(b.beats) : 4 };
+                        if (typeof b.rhythmId === "string" && b.rhythmId) bar.rhythmId = b.rhythmId;
+                        return bar;
+                    })
                 : [],
             lines: Array.isArray(s && s.lines)
                 ? s.lines.map(l => ({

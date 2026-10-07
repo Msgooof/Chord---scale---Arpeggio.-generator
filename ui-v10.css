@@ -1,0 +1,542 @@
+/* ==========================================================================
+ * 0.10 · EL METRÓNOMO
+ * Una sección del Taller (encima de Biblioteca en la barra) que también se
+ * puede desacoplar a una ventana externa (`body.k10-externa`). Es una tarjeta
+ * en columna (variante 4 de los wireframes): tiempos, la rueda del tempo,
+ * TAP · arrancar · volumen, Compás y Figura (lo más usado a la vista y un «+»),
+ * y una hoja de Ajustes que sube desde abajo (Sonido · Práctica · Presets).
+ * Reutiliza la pantalla LCD y la perilla de la pedalera (ui-v06.css); el
+ * resto sale de los tokens de theme.css, así que claro y oscuro vienen solos.
+ * ========================================================================== */
+
+/* --- El hueco ----------------------------------------------------------------- */
+.k10-vista {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--k-space-4, 16px);
+}
+
+.k10-boton {
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font: 600 13px var(--k-font-ui);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.k10-boton:hover { border-color: var(--k-border); }
+.k10-boton--primario { background-color: var(--k-accent); color: var(--k-accent-ink); border-color: transparent; }
+
+/* --- La tarjeta ----------------------------------------------------------------- */
+.k10-tarjeta {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid var(--k-divider);
+    border-radius: 18px;
+    background-color: var(--k-surface);
+    overflow: hidden;
+}
+.k10-tarjeta__cabeza { align-self: stretch; display: flex; align-items: center; justify-content: space-between; }
+.k10-tarjeta__titulo { margin: 0; font-family: var(--k-font-title); font-size: 22px; font-weight: 400; line-height: 1; letter-spacing: .02em; }
+.k10-icono {
+    width: 34px; height: 34px;
+    border-radius: var(--k-radius-md);
+    border: 1px solid var(--k-divider);
+    background: transparent;
+    color: var(--k-text-muted);
+    font-size: 16px;
+    cursor: pointer;
+}
+.k10-icono:hover { color: var(--k-text); border-color: var(--k-border); }
+
+/* --- Los tiempos: un disco por tiempo ---------------------------------------------- */
+.k10-tiempos { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; }
+.k10-tiempo {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 0; border: 0; background: none; color: var(--k-text-muted);
+    cursor: pointer;
+}
+.k10-tiempo--grupo { margin-left: 12px; }
+.k10-tiempo__disco {
+    position: relative;
+    display: grid; place-items: center;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 2px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    transition: transform .08s;
+}
+.k10-tiempo__disco b { position: relative; font: 700 14px var(--k-font-ui); }
+.k10-tiempo--fuerte .k10-tiempo__disco { background-color: var(--k-marker); border-color: var(--k-marker); color: var(--k-marker-ink); }
+.k10-tiempo--suave .k10-tiempo__disco { transform: scale(.78); border-color: var(--k-divider); color: var(--k-text-muted); }
+.k10-tiempo--mudo .k10-tiempo__disco { background: transparent; border-style: dashed; border-color: var(--k-text-faint); color: var(--k-text-faint); }
+.k10-tiempo--mudo .k10-tiempo__disco b { text-decoration: line-through; }
+.k10-tiempo:hover .k10-tiempo__disco { border-color: var(--k-accent); }
+.k10-tiempo:focus-visible { outline: none; }
+.k10-tiempo:focus-visible .k10-tiempo__disco { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k10-tiempo--activo .k10-tiempo__disco { box-shadow: 0 0 0 3px var(--k-accent); }
+.k10-tiempo--activo.k10-tiempo--suave .k10-tiempo__disco { transform: scale(.86); }
+/* La luz: se monta de nuevo en cada pulso (key), y así su animación vuelve a empezar. */
+.k10-tiempo__luz {
+    position: absolute; inset: -2px;
+    border-radius: 50%;
+    background-color: var(--k-accent);
+    animation: k10-luz .32s ease-out forwards;
+}
+.k10-tiempo--fuerte .k10-tiempo__luz { background-color: #fff; }
+@keyframes k10-luz { from { opacity: .85; transform: scale(1.12); } to { opacity: 0; transform: scale(1); } }
+.k10-tiempo__figura { color: var(--k-text-faint); line-height: 0; }
+.k10-tiempo__figura--propia { color: var(--k-accent); }
+
+/* --- La rueda del tempo ----------------------------------------------------------------
+ * Un cilindro de números visto de frente (RuedaTempo): cada número va girado
+ * sobre el eje X a 24° del siguiente y empujado 205 px hacia fuera. Las
+ * máscaras arriba y abajo hacen de curva. */
+.k10-tempo2 { display: flex; align-items: center; gap: 14px; }
+.k10-tempo2__centro { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.k10-tempo2__bpm { font: 700 15px var(--k-font-ui); letter-spacing: .22em; color: var(--k-text-muted); }
+.k10-rueda {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    perspective: 700px;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+    outline: none;
+    border-radius: 14px;
+    -webkit-mask-image: linear-gradient(transparent, #000 26%, #000 74%, transparent);
+            mask-image: linear-gradient(transparent, #000 26%, #000 74%, transparent);
+}
+.k10-rueda:focus-visible { box-shadow: inset 0 0 0 2px var(--k-accent); }
+.k10-rueda__eje { position: absolute; inset: 0; transform-style: preserve-3d; }
+.k10-rueda__num {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 84px;
+    margin-top: -42px;
+    display: grid;
+    place-items: center;
+    font: 400 84px/1 var(--k-font-title);
+    color: var(--k-text);
+    backface-visibility: hidden;
+    font-variant-numeric: tabular-nums;
+}
+.k10-rueda__marco {
+    position: absolute;
+    left: 6px; right: 6px; top: 50%;
+    height: 92px;
+    margin-top: -46px;
+    border-top: 1px solid var(--k-divider);
+    border-bottom: 1px solid var(--k-divider);
+    pointer-events: none;
+}
+/* Doble clic: el número se escribe. Doble clase para ganar a la regla general de los campos. */
+.k10-rueda .k10-rueda__campo {
+    position: absolute;
+    left: 10px; right: 10px; top: 50%;
+    height: 84px;
+    margin-top: -42px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 2px var(--k-accent);
+    background: var(--k-surface-raised);
+    color: var(--k-text);
+    font: 400 72px/1 var(--k-font-title);
+    text-align: center;
+    -moz-appearance: textfield;
+}
+.k10-rueda__campo::-webkit-outer-spin-button,
+.k10-rueda__campo::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.k10-paso2 {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font-size: 20px;
+    cursor: pointer;
+    flex: none;
+}
+.k10-paso2:hover { background-color: var(--k-accent); color: var(--k-accent-ink); }
+
+/* --- TAP · arrancar · volumen ------------------------------------------------------ */
+.k10-mandos2 { display: flex; align-items: center; gap: 18px; }
+.k10-play2 {
+    display: grid; place-items: center;
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 0;
+    background-color: var(--k-accent);
+    color: var(--k-accent-ink);
+    cursor: pointer;
+    box-shadow: var(--k-shadow-panel);
+}
+.k10-play2--on { background-color: var(--k-marker); color: var(--k-marker-ink); }
+.k10-tap2 {
+    width: 62px; height: 46px;
+    border-radius: var(--k-radius-md);
+    border: 2px solid var(--k-border);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font: 700 13px var(--k-font-ui);
+    letter-spacing: .12em;
+    cursor: pointer;
+}
+.k10-tap2:active { background-color: var(--k-marker); color: var(--k-marker-ink); border-color: var(--k-marker); }
+.k10-vol { display: inline-flex; align-items: center; gap: 6px; color: var(--k-text-muted); }
+.k10-vol input { width: 92px; accent-color: var(--k-marker); }
+.k10-estado2 { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; margin-top: -6px; font-size: var(--k-text-sm); color: var(--k-text-muted); }
+.k10-estado2 b { color: var(--k-text); font-variant-numeric: tabular-nums; }
+
+/* --- Compás y figura: el conmutador con su «+» ---------------------------------------- */
+.k10-fila2 { align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.k10-fila2__rot { width: 58px; text-align: right; font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--k-text-muted); }
+.k10-seg { display: inline-flex; gap: 1px; padding: 3px; border-radius: 10px; background-color: var(--k6-lcd); }
+.k10-seg__op {
+    display: grid; place-items: center;
+    min-width: 38px; height: 34px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--k6-lcd-dim);
+    font: 700 13px var(--k-font-ui);
+    cursor: pointer;
+}
+.k10-seg__op:hover { color: var(--k6-lcd-ink); }
+.k10-seg__op--on, .k10-seg__op--on:hover { background-color: var(--k6-lcd-ink); color: var(--k6-lcd); }
+.k10-seg__mas { min-width: 34px; color: var(--k6-lcd-ink); border-left: 1px solid rgba(172, 236, 0, .2); border-radius: 0 8px 8px 0; }
+.k10-seg__mas.k10-seg__op--on { border-radius: 8px; }
+.k10-seg__op:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+
+/* El menú del «+» */
+.k10-mas-menu {
+    position: absolute;
+    z-index: 20;
+    width: 260px;
+    padding: 6px;
+    border-radius: 12px;
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-border);
+    box-shadow: var(--k-shadow-float);
+}
+.k10-mas-menu h5 { margin: 6px 8px 6px; font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--k-text-muted); }
+.k10-mas-menu > button {
+    display: flex; width: 100%; align-items: center; gap: 10px;
+    padding: 6px 10px;
+    border: 0; border-radius: 8px;
+    background: transparent;
+    color: var(--k-text);
+    font: 500 13px var(--k-font-ui);
+    text-align: left;
+    cursor: pointer;
+}
+.k10-mas-menu > button:hover { background-color: var(--k-accent-soft); }
+.k10-mas-menu > button.k10-mas-menu__on { color: var(--k-accent); font-weight: 700; }
+.k10-mas-menu__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 8px 6px; }
+.k10-mas-menu__num { min-width: 26px; text-align: center; font: 400 22px var(--k-font-title); }
+.k10-mas-menu__barra { color: var(--k-text-faint); font-size: 18px; }
+.k10-chip2 {
+    min-width: 36px; height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-pill);
+    background: transparent;
+    color: var(--k-text);
+    font: 600 12px var(--k-font-ui);
+    cursor: pointer;
+}
+.k10-chip2:hover { border-color: var(--k-border); }
+.k10-chip2--on, .k10-chip2--on:hover { background-color: var(--k6-lcd); color: var(--k6-lcd-ink); border-color: transparent; }
+.k10-mini2 {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--k-divider);
+    background: var(--k-surface);
+    color: var(--k-text);
+    cursor: pointer;
+}
+
+/* --- Ajustes: la hoja que sube desde abajo ---------------------------------------------- */
+.k10-ajustes-boton {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font: 600 13px var(--k-font-ui);
+    cursor: pointer;
+}
+.k10-ajustes-boton:hover { border-color: var(--k-border); }
+.k10-punto { width: 8px; height: 8px; border-radius: 50%; background-color: var(--k-marker); box-shadow: 0 0 0 2px var(--k-surface-raised); }
+.k10-hoja {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 15;
+    max-height: 88%;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px 14px;
+    background-color: var(--k-surface-raised);
+    border-top: 1px solid var(--k-border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, .35);
+    transform: translateY(102%);
+    visibility: hidden;
+    transition: transform .22s ease, visibility 0s .22s;
+}
+.k10-hoja--abierta { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s 0s; }
+.k10-hoja__asa { width: 40px; height: 4px; border-radius: 2px; background-color: var(--k-border); margin: 2px auto 8px; flex: none; }
+.k10-hoja__pestanas { display: flex; gap: 4px; padding: 4px; border-bottom: 1px solid var(--k-divider); margin-bottom: 8px; flex: none; }
+.k10-hoja__pestanas button { flex: 1; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--k-text-muted); font: 600 12px var(--k-font-ui); cursor: pointer; }
+.k10-hoja__pestanas button.k10-hoja__pestana--on { background-color: var(--k6-lcd); color: var(--k6-lcd-ink); }
+.k10-hoja__cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2px 4px; }
+.k10-hoja__pie { flex: none; display: flex; justify-content: center; margin-top: 10px; }
+.k10-hoja__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+/* La cuadrícula de acentos: un bloque por tiempo, con su figura encima y una
+ * barra por golpe. El alto de la barra es lo fuerte que suena. */
+.k10-cuad__titulo { display: flex; flex-direction: column; gap: 1px; margin: 2px 2px 8px; }
+.k10-cuad__titulo span { font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--k-text-muted); }
+.k10-cuad__titulo small { font-size: 12px; color: var(--k-text-faint); }
+.k10-cuad { display: flex; flex-wrap: wrap; gap: 8px 6px; }
+.k10-cuad__tiempo {
+    flex: 1 1 64px;
+    max-width: 120px;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--k-divider);
+    background-color: var(--k-surface);
+}
+.k10-cuad__tiempo--grupo { margin-left: 8px; }
+.k10-cuad__tiempo--on { border-color: var(--k-accent); box-shadow: 0 0 0 1px var(--k-accent); }
+.k10-cuad__cab { display: flex; align-items: center; justify-content: space-between; color: var(--k-text-muted); line-height: 0; }
+.k10-cuad__cab b { font: 700 12px/1 var(--k-font-ui); color: var(--k-text); }
+.k10-cuad__celdas { display: grid; gap: 3px; height: 40px; }
+.k10-cuad__celda {
+    display: flex; align-items: flex-end;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.k10-cuad__celda i { display: block; width: 100%; border-radius: 4px; transition: height .12s, background-color .12s; }
+.k10-cuad__celda--acento i { height: 100%; background-color: var(--k-marker); }
+.k10-cuad__celda--normal i { height: 62%; background-color: var(--k-text-muted); }
+.k10-cuad__celda--suave i { height: 32%; background-color: var(--k-text-faint); }
+.k10-cuad__celda--mudo i { height: 62%; background: transparent; box-shadow: inset 0 0 0 1.5px var(--k-text-faint); opacity: .6; }
+.k10-cuad__celda:hover i { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+.k10-cuad__celda:focus-visible { outline: none; }
+.k10-cuad__celda:focus-visible i { outline: 2px solid var(--k-accent); outline-offset: 1px; }
+
+/* La práctica: un interruptor y, si está encendido, sus números. */
+.k10-practica { display: flex; flex-direction: column; gap: 8px; }
+.k10-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 34px; }
+.k10-fila__datos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--k-text-sm); color: var(--k-text-muted); }
+.k10-switch {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-width: 150px;
+    padding: 0; border: 0; background: none;
+    color: var(--k-text);
+    font: 600 13px var(--k-font-ui);
+    text-align: left;
+    cursor: pointer;
+}
+.k10-switch__pista {
+    position: relative;
+    width: 34px; height: 20px;
+    border-radius: 10px;
+    background-color: var(--k-divider);
+    flex: none;
+    transition: background-color .15s;
+}
+.k10-switch__pista span {
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background-color: var(--k-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    transition: transform .15s;
+}
+.k10-switch--on .k10-switch__pista { background-color: var(--k-marker); }
+.k10-switch--on .k10-switch__pista span { transform: translateX(14px); }
+.k10-switch:focus-visible .k10-switch__pista { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k10-num { display: inline-flex; align-items: center; gap: 4px; }
+.k10-num input {
+    width: 54px; height: 30px;
+    padding: 0 6px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-sm);
+    background: var(--k-surface);
+    color: var(--k-text);
+    font: 600 13px var(--k-font-ui);
+    text-align: center;
+}
+
+/* Presets */
+.k10-presets2 { display: flex; flex-direction: column; gap: 6px; }
+.k10-presets2__vacio { margin: 0 0 6px; font-size: var(--k-text-sm); color: var(--k-text-muted); }
+.k10-presets2__fila { display: flex; align-items: center; gap: 6px; border-radius: 10px; }
+.k10-presets2__fila--on { box-shadow: inset 0 0 0 1px var(--k-marker); }
+.k10-presets2__cargar {
+    flex: 1; display: flex; justify-content: space-between; align-items: center;
+    height: 38px; padding: 0 12px;
+    border: 0; border-radius: 10px;
+    background: transparent;
+    color: var(--k-text);
+    font: 600 13px var(--k-font-ui);
+    cursor: pointer;
+}
+.k10-presets2__cargar:hover { background-color: var(--k-accent-soft); }
+.k10-presets2__cargar span { color: var(--k-text-muted); font-weight: 500; }
+.k10-presets2__form { display: flex; gap: 6px; }
+.k10-presets2__form input {
+    flex: 1; height: 34px; padding: 0 10px;
+    border: 1px solid var(--k-border); border-radius: var(--k-radius-md);
+    background: var(--k-surface); color: var(--k-text); font: 600 13px var(--k-font-ui);
+}
+
+/* --- El destello del 1 ------------------------------------------------------------ */
+.k10-destello {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background-color: rgba(var(--k-marker-rgb), .22);
+    pointer-events: none;
+    animation: k10-destello .28s ease-out forwards;
+}
+@keyframes k10-destello { from { opacity: 1; } to { opacity: 0; } }
+
+/* --- El botón de la barra late mientras suena --------------------------------------
+ * Dos animaciones iguales con distinto nombre: alternar entre ellas en cada
+ * pulso hace que vuelva a empezar sin desmontar el botón. */
+.k10-late { animation-duration: .3s; animation-timing-function: ease-out; }
+.k10-late--a { animation-name: k10-late-a; }
+.k10-late--b { animation-name: k10-late-b; }
+@keyframes k10-late-a { from { box-shadow: 0 0 0 4px rgba(229, 101, 75, .7); } to { box-shadow: 0 0 0 0 rgba(229, 101, 75, 0); } }
+@keyframes k10-late-b { from { box-shadow: 0 0 0 4px rgba(229, 101, 75, .7); } to { box-shadow: 0 0 0 0 rgba(229, 101, 75, 0); } }
+.k7-barra__boton.k10-late:not(.k7-barra__boton--activo) { color: #E5654B; }
+
+/* --- Desacoplado: lo que queda en la página ---------------------------------------- */
+.k10-fuera {
+    max-width: 420px;
+    margin: 12vh auto 0;
+    padding: 28px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    text-align: center;
+    color: var(--k-text);
+}
+.k10-fuera h2 { margin: 10px 0 4px; font-family: var(--k-font-title); font-weight: 400; font-size: 24px; }
+.k10-fuera p { margin: 0 0 18px; color: var(--k-text-muted); }
+.k10-fuera__botones { display: flex; justify-content: center; gap: 8px; }
+
+/* --- La ventana externa ----------------------------------------------------------------- */
+body.k10-externa {
+    margin: 0;
+    background-color: var(--k-bg);
+    color: var(--k-text);
+    font-family: var(--k-font-ui);
+}
+.k10-vista--compacta { padding: 10px; }
+.k10-vista--compacta .k10-tarjeta { max-width: none; border-radius: var(--k-radius-lg); }
+
+/* --- Teléfono ------------------------------------------------------------------------ */
+@media (max-width: 420px) {
+    .k10-vista { padding: 8px; }
+    .k10-tarjeta { padding: 14px 10px 18px; }
+    .k10-seg__op { min-width: 32px; padding: 0 5px; }
+    .k10-fila2__rot { display: none; }
+    .k10-vol input { width: 70px; }
+    .k10-mandos2 { gap: 12px; }
+    .k10-switch { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .k10-tiempo__luz, .k10-destello, .k10-late { animation: none; }
+    .k10-hoja { transition: none; }
+}
+
+/* ==========================================================================
+ * 0.10 · LOS GRADOS EN CÍRCULO
+ * El botón «Colores» de la mesa se llama «Grados». La tarjeta es un círculo
+ * del tamaño del diagrama: las doce notas como un reloj con la tónica arriba;
+ * las de la escala con su bola (la nota dentro) y la función fuera del aro.
+ * Sólo desde 1280 px, como siempre. (La escalera se probó y se quitó.)
+ * ========================================================================== */
+@media (min-width: 1280px) {
+    /* Tan alta como el diagrama (que mide 100cqh − 122 px con la fila de abajo)
+     * y algo más estrecha, como él. Sin `display` fuera de este bloque: el JSX
+     * la esconde por debajo de 1280 px con `hidden xl:block`. */
+    .k9-grados.k10-grados-circulo.k10-grados-circulo {
+        display: flex;
+        flex-direction: column;
+        align-self: center;
+        width: calc((100cqh - 122px) * .82);
+        height: calc(100cqh - 122px);
+        max-width: 460px;
+        max-height: none;
+        overflow: hidden;
+    }
+}
+.k10-circulo { display: block; flex: 1 1 auto; min-height: 0; width: 100%; height: 100%; margin: 0 auto; }
+.k10-circulo__aro { stroke: var(--k-divider); stroke-width: 1.5; }
+.k10-circulo__forma { fill: rgba(var(--k-marker-rgb), .08); stroke: rgba(var(--k-marker-rgb), .55); stroke-width: 1.5; stroke-linejoin: round; }
+.k10-circulo__punto { fill: var(--k-text-faint); opacity: .6; }
+.k10-circulo__nota { font: 800 12px var(--k-font-ui); pointer-events: none; }
+.k10-circulo__funcion { font: 600 9.5px var(--k-font-ui); fill: var(--k-text-muted); }
+
+/* ==========================================================================
+ * 0.10 · LAS TRÍADAS, A LA IZQUIERDA DEL DIAGRAMA
+ * Desde 768 px, en Escalas con «Tríadas» encendido: una columna de botones
+ * rectangulares (Todas, I … VII y «Mandar…» con una fijada). El color de cada
+ * tríada va en el borde; señalada, relleno; fijada, con aro. En el teléfono
+ * siguen arriba. Sin `display` fuera de los media: el JSX usa `hidden md:flex`.
+ * ========================================================================== */
+.k10-triadas { flex-direction: column; align-self: center; flex: none; }
+.k10-triadas__col { display: flex; flex-direction: column; gap: 8px; }
+.k10-triadas__rot { font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--k-text-muted); text-align: center; }
+.k10-triadas__lista { display: flex; flex-direction: column; gap: 6px; }
+.k10-triada {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 112px;
+    min-height: 38px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font: 600 13px var(--k-font-ui);
+    text-align: left;
+    color: var(--k-text);
+}
+.k10-triada strong { min-width: 28px; font-family: var(--k-font-title); font-size: 17px; font-weight: 400; }
+.k10-triada__nombre { opacity: .75; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k10-triada--mandar { justify-content: center; border: 1px solid var(--k-divider); background: var(--k-surface-raised); cursor: pointer; }
+.k10-triada--mandar:hover { border-color: var(--k-border); }
+
+/* El diagrama se estrecha para que quepan la columna de tríadas y el círculo de grados. */
+@media (min-width: 768px) {
+    .k8-mesa.k10-con-triadas .k-fretboard-fit { max-width: calc(100cqw - 380px); }
+}
+@media (min-width: 1280px) {
+    .k8-mesa.k10-con-grados .k-fretboard-fit { max-width: calc(100cqw - 260px - min(460px, (100cqh - 122px) * .82)); }
+    .k8-mesa.k10-con-grados.k10-con-triadas .k-fretboard-fit { max-width: calc(100cqw - 400px - min(460px, (100cqh - 122px) * .82)); }
+}

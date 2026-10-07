@@ -16,15 +16,7 @@
     --k3-aviso-suave: rgba(245, 158, 11, 0.16);
 }
 
-/* --- El pie del raíl: la Biblioteca ------------------------------------------
- * Abajo del todo, dentro de la banda del Lado B (que ya se estira hasta el
- * final), con una raya encima para que se lea como algo aparte de los lados. */
-.k3-rail__pie {
-    margin-top: auto;
-    padding-top: var(--k-space-2);
-    border-top: 1px solid var(--k-divider);
-}
-.k3-rail__biblioteca { width: 100%; }
+
 
 /* ==========================================================================
  * LA BIBLIOTECA

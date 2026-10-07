@@ -44,7 +44,7 @@ acompañar siempre a `index.html`.
 | `theory-core.js` | Teoría musical: instrumentos, afinaciones, escalas, acordes, recorridos, tríadas y grados diatónicos |
 | `render-core.js` | Geometría del diagrama |
 | `song-core.js` | Modelo de canción y de ejercicio, letra por columnas, tiempos, ritmos y paginación |
-| `Piano/piano_chord_diagram_generator.tsx` | Prototipo de generador para piano, todavía **sin integrar** |
+| `_trabajo/` | Versiones antiguas, wireframes y pruebas. Temporal: no se sube a GitHub (ver `_trabajo/LEEME.md`) |
 | `DOCUMENTACION.md` | Documentación técnica: cómo arranca, mapa del código, decisiones y deuda |
 
 Antes de tocar nada, lee **[DOCUMENTACION.md](DOCUMENTACION.md)** — sobre todo:

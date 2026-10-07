@@ -445,3 +445,189 @@
     .k6-pantalla__flecha { width: 36px; height: 36px; }
     .k6-dock .k2-dock__boton span { font-size: 10px; }
 }
+
+/* ==========================================================================
+ * 0.8 · EL TALLER REORDENADO
+ * - La mesa (el papel milimetrado) se ciñe al diagrama y se centra, en vez
+ *   de ocupar todo el ancho; Trastes y Posición van pegados a ella.
+ * - Deshacer y rehacer, arriba de la mesa.
+ * - Atajos (?) y Tutorial, abajo a la izquierda, en la fila del sonido.
+ * - Guardar y Pedalera suben a la cabecera; la pedalera sale de arriba
+ *   abajo por el borde derecho, cabecera incluida.
+ * ========================================================================== */
+
+/* --- La mesa ----------------------------------------------------------------- */
+.k8-mesa { flex: 1 1 auto; width: 100%; }
+.k8-mesa__arriba { display: flex; align-items: center; gap: 4px; flex: none; align-self: flex-start; }
+.k8-mesa__cuerpo { width: 100%; }
+.k8-mesa__fila { width: 100%; }
+@media (min-width: 768px) {
+    /* Ancho = lo que mide el contenido. El alto lo sigue dando el hueco: el
+     * diagrama se escala a ese alto y su ancho sale de su proporción. */
+    .k8-mesa { flex: 0 1 auto; width: auto; max-width: 100%; }
+    .k8-mesa__cuerpo, .k8-mesa__fila { width: auto; }
+    /* El alto se da en unidades del hueco (cqh) y no en %: con un alto en %
+     * el navegador mide el ancho de la mesa con el tamaño natural del dibujo
+     * (340 px) y Trastes y Posición se salían por los lados. 78 px = el
+     * relleno de la mesa, su borde y la fila de deshacer. */
+    .k8-hueco { container-type: size; }
+    .k8-mesa .k-lienzo { flex: none; width: auto; height: auto; align-self: center; }
+    .k8-mesa .k-fretboard-fit {
+        flex: none;
+        width: auto;
+        height: calc(100cqh - 78px);
+        max-width: calc(100cqw - 240px);
+    }
+}
+
+/* --- Abajo: ayuda · sonido · (vacío) --------------------------------------------- */
+.k8-pie { display: flex; justify-content: center; align-items: center; width: 100%; }
+@media (min-width: 768px) {
+    .k8-pie { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--k-space-3); }
+    .k8-pie > .k5-pildora { grid-column: 2; }
+    .k8-pie__ayuda.k2-no-movil { display: flex !important; align-items: center; gap: var(--k-space-2); justify-self: start; }
+}
+
+/* --- La pedalera sale de debajo de la cabecera, con su animación ---------------
+ * (Se probó de arriba abajo y no convenció.) Desde 768 px entra deslizándose
+ * desde la derecha; en el teléfono, la hoja sube desde abajo. */
+@keyframes k8-pedalera-entra {
+    from { transform: translateX(100%); opacity: .4; }
+    to   { transform: none; opacity: 1; }
+}
+@keyframes k8-pedalera-sube {
+    from { transform: translateY(100%); }
+    to   { transform: none; }
+}
+@keyframes k8-velo-entra { from { opacity: 0; } to { opacity: 1; } }
+.k2-inspector.k6-inspector { animation: k8-pedalera-sube .26s cubic-bezier(.2, .8, .2, 1); }
+@media (min-width: 768px) {
+    .k2-inspector.k6-inspector { animation-name: k8-pedalera-entra; animation-duration: .3s; }
+}
+.k2-velo { animation: k8-velo-entra .25s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .k2-inspector.k6-inspector, .k2-velo { animation: none; }
+}
+
+/* --- El «?»: sus dos opciones se despliegan hacia arriba -------------------------- */
+.k8-pie__ayuda { position: relative; }
+.k8-ayuda {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    z-index: 41;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    border-radius: var(--k-radius-lg);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+    transform-origin: bottom left;
+    animation: k8-ayuda-abre .16s ease-out;
+}
+@keyframes k8-ayuda-abre {
+    from { opacity: 0; transform: translateY(6px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .k8-ayuda { animation: none; } }
+.k8-ayuda__opcion {
+    display: flex;
+    align-items: center;
+    gap: var(--k-space-3);
+    min-height: 40px;
+    padding: 0 var(--k-space-3);
+    border-radius: var(--k-radius-md);
+    font-size: var(--k-text-sm);
+    font-weight: 600;
+    color: var(--k-text);
+    text-align: left;
+    cursor: pointer;
+}
+.k8-ayuda__opcion span { flex: 1; }
+.k8-ayuda__opcion kbd {
+    font-family: inherit;
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    color: var(--k-text-muted);
+    padding: 0 6px;
+    border: 1px solid var(--k-divider);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+}
+.k8-ayuda__opcion:hover, .k8-ayuda__opcion:focus-visible { background-color: var(--k-accent-soft); }
+
+/* --- «Colores»: abajo a la izquierda de la mesa ----------------------------------
+ * Vuelve a abrir la leyenda de grados. La leyenda sólo existe desde 1280 px,
+ * así que el botón también. */
+.k8-mesa__abajo { display: none; }
+@media (min-width: 1280px) {
+    .k8-mesa__abajo { display: flex; flex: none; align-self: flex-start; }
+    /* La fila de abajo (36 px + 8 de hueco) también se le quita al diagrama. */
+    .k8-mesa--con-abajo .k-fretboard-fit { height: calc(100cqh - 122px); }
+}
+.k8-colores { gap: var(--k-space-2); }
+.k8-colores--activo { background-color: var(--k-accent-soft); color: var(--k-accent); border-color: transparent; }
+
+/* El título, del tamaño del nombre del acorde en el diagrama. */
+.k6-inspector__cabeza { padding: var(--k-space-3) var(--k-space-4); }
+.k6-inspector__titulo { font-size: 34px; line-height: 1.1; }
+
+/* --- 0.8 · tercera vuelta ------------------------------------------------------
+ * El «?» se pega al borde de abajo de la pantalla (esquina inferior izquierda
+ * de la zona del lienzo), en vez de flotar a la altura de la píldora. */
+@media (min-width: 768px) {
+    .k2-lienzo-zona { position: relative; }
+    .k8-pie__ayuda.k2-no-movil {
+        position: absolute;
+        left: var(--k-space-5);
+        bottom: var(--k-space-4);
+        z-index: 5;
+    }
+}
+
+/* El subtítulo de la pedalera y la explicación que sale tras 3 s de ratón. */
+.k8-pedalera-titulo { position: relative; flex: 1; min-width: 0; }
+.k8-pedalera-titulo .k6-inspector__titulo { flex: none; }
+.k8-pedalera-titulo__sub {
+    margin: 2px 0 0;
+    font-size: var(--k-text-xs);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+}
+.k8-pedalera-titulo__ayuda {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    z-index: 5;
+    width: max-content;
+    max-width: 300px;
+    margin: 0;
+    padding: var(--k-space-2) var(--k-space-3);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+    font-size: var(--k-text-sm);
+    line-height: 1.4;
+    color: var(--k-text);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity .15s, transform .15s, visibility 0s .15s;
+}
+/* Sale al instante al pasar el ratón (o llegar con el teclado) y se va igual. */
+.k8-pedalera-titulo:hover .k8-pedalera-titulo__ayuda {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity .12s, transform .12s, visibility 0s 0s;
+}
+@media (max-width: 767px) {
+    .k8-pedalera-titulo__sub, .k8-pedalera-titulo__ayuda { display: none; }
+}

@@ -3066,7 +3066,8 @@ tresillos. Con decimales, un compás de tresillos daba «incompleto» por 0,0001
 ### El sonido: guitarras grabadas (2026-10-04, segunda vuelta)
 
 Antes de elegir, Carlos comparó tres motores en `prueba-sonido.html`, una página aparte: el sintetizador de
-Kharo, las muestras de tonejs-instruments y WebAudioFont. Eligió **tonejs-instruments con Tone.js**.
+Kharo, las muestras de tonejs-instruments y WebAudioFont. (Ojo: la autoría y las licencias de las
+muestras se corrigieron el 2026-10-06, ver «0.8».) Eligió **tonejs-instruments con Tone.js**.
 
 **Los sonidos son de Nicholaus Brosowsky** ([tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments)),
 con licencia **CC BY 3.0**, así que hay que citarlo. La cita está en tres sitios:
@@ -3203,6 +3204,429 @@ se recuerda en `kharo.v03.timbre`. Las opciones son:
 - **No hay ligaduras de prolongación** (una nota que pasa de un compás a otro).
 - **Tampoco hay copiar y pegar** compases, sólo duplicar.
 - **Compartir** quedó fuera de esta vuelta, a pedido de Carlos.
+
+## 0.7: la barra del Taller (2026-10-06)
+
+El raíl de dos bandas (Lado A / Lado B, 92 px con icono y nombre) pasa a ser una **barra de
+iconos de 48 px**, como la caja de herramientas de Photoshop. Salió de varias rondas de
+wireframes (`wireframes-menu-lateral.html`, `wireframes-sin-rail.html`, `wireframes-lomo.html`):
+Carlos eligió la barra de iconos y la recortó hasta lo esencial.
+
+- **Un color por sección**: Acordes #7D96FF, Escalas #22C3D6, Arpegios #B57CF5, Libre #F06AA8,
+  Canción #ACEC00, Ejercicios #F2C230, Tablaturas #FF9440, Biblioteca #C2B9A8. Viven en
+  `RAIL_TALLER` y llegan al CSS como `--k7-color`.
+- **Al pasar el ratón** el icono se tiñe de su color al 18 % y, tras un cuarto de segundo, sale una
+  barrita con el nombre en Fjalla, nada más (sin atajo, sin «último», sin lado). También sale con
+  el foco del teclado.
+- **La activa** es un cuadrado lleno de su color (sin esquinas redondas) con una raya del mismo
+  color pegada al borde.
+- **Sin «A» ni «B»**: una raya fina separa los diagramas de los documentos; la Biblioteca va al pie.
+- Los iconos son propios de la barra (`ICONOS_RAIL`), los del prototipo aprobado; el resto de la
+  app sigue con `ICONOS`.
+- La barra ya no tiene `overflow`: la barrita del nombre tiene que salir por encima del lienzo.
+  Con ocho botones cabe en cualquier alto de escritorio.
+- En el teléfono no cambia nada: siguen las pestañas.
+
+Código: `RailTaller` en `index.html`, estilos `.k7-barra*` en `ui.css` (sustituyen a
+`.k2-rail__*`); se quitó `.k3-rail__pie` de `ui-v03.css`. También se fueron las variables
+`--k2-lado-*`, que sólo usaba el raíl.
+
+**Abierto:** varios colores de sección se parecen a los del EQ de grados de la pedalera.
+
+## 0.8: el Taller reordenado (2026-10-06)
+
+Cambios de organización pedidos por Carlos, directos sobre Prime:
+
+- **La mesa se ciñe al diagrama.** El papel milimetrado ya no ocupa todo el ancho: mide lo que
+  miden Trastes + diagrama + Posición (y la leyenda de grados en Escalas/Arpegios) y se centra.
+  Truco: el hueco (`.k8-hueco`) es un contenedor de tamaño y el SVG toma su alto en `cqh`
+  (`100cqh - 78px`). Con un alto en % el navegador medía la mesa con el tamaño natural del
+  dibujo (340 px) y los mandos se salían por los lados.
+- **Deshacer y rehacer** van arriba de la mesa (`.k8-mesa__arriba`), no en una barra aparte.
+- **La barra de acción desapareció.** Guardar acorde (o Mandar a Ejercicios) y la Pedalera suben
+  a la cabecera, con este orden: Guardar · modo claro/oscuro · Pedalera.
+- **«Panel» se llama «Pedalera».** Se probó que saliera de arriba abajo, tapando la cabecera, y
+  no convenció (segunda vuelta, abajo): sale debajo de la franja de KHARO, como antes.
+- El título **«Pedalera»** mide 34 px, como el nombre del acorde en el diagrama.
+- **Abajo a la izquierda**, en la fila del sonido: el botón de atajos, ahora un «?», y un botón
+  **Tutorial** que por ahora sólo avisa «El tutorial llega pronto.» (la lógica es otra etapa).
+  Los dos sólo desde 768 px.
+
+**Segunda vuelta (mismo día):**
+
+- La pedalera vuelve a salir **debajo de la cabecera** y ahora **entra con animación**: se desliza
+  desde la derecha en escritorio y tableta, y sube desde abajo en el teléfono; el velo aparece
+  fundido. Sin animación con «movimiento reducido». (Al cerrar desaparece sin animación.)
+- **Tutorial va dentro del «?»**: el botón despliega hacia arriba un menú con «Atajos de teclado»
+  y «Tutorial». Se cierra con Esc o tocando fuera.
+- **Arreglo:** en Escalas y Arpegios, cerrar la leyenda de grados con su × no tenía vuelta desde
+  la mesa. Ahora hay un botón **Colores** abajo a la izquierda de la mesa que la abre y la cierra
+  (`showLegend`). Como la leyenda sólo existe desde 1280 px, el botón también; a ese ancho el
+  diagrama descuenta la fila de abajo (`100cqh - 122px`).
+- **La cita de los sonidos estaba incompleta.** Decía «grabaciones de Nicholaus Brosowsky», pero él
+  reunió y editó muestras de tres fuentes (su `sample-source-info.txt`, comprobado en la web):
+  University of Iowa EMS (acústica, uso libre), **quartertone en Freesound (nylon, CC BY 4.0,
+  que obliga a citarlo)** y Karoryfer Samples (eléctrica y bajo, CC0). `CreditoSonidos` ahora
+  nombra a los cuatro, con enlace a cada fuente y a cada licencia CC BY, y dice que las muestras
+  están editadas. Mismo cambio en `vendor/sonidos/LEEME.md`.
+
+**Tercera vuelta (mismo día):**
+
+- El **«?»** se pega al borde de abajo: esquina inferior izquierda de la zona del lienzo, a la
+  altura de la línea de pista, ya no a media altura junto a la píldora.
+- Bajo el título «Pedalera», un subtítulo: **«Configuración del Lado A»**. Al pasar el ratón por el
+  título sale **al instante** (al principio esperaba 3 s): **«Un pedal por ajuste: afinación,
+  etiquetas, colores y estilo de la hoja.»** (tooltip escrito con la skill voz-kharo; se va al
+  quitar el ratón). En el teléfono no salen: ahí el título está oculto.
+
+Código: JSX en `index.html` (cabecera, estudio); estilos al final de `ui-v06.css` (bloque 0.8).
+Se añadió el icono `ayuda` a `ICONOS`.
+
+
+## 0.9: la lupa sobre el mástil (2026-10-06)
+
+Los mandos de **Trastes** y **Posición** (dos `FretStepper`, uno a cada lado del diagrama) se
+sustituyen por un solo mando, `VentanaMastil` (`ui-v09.css`). Elegida por Carlos entre cuatro
+propuestas (`wireframes-trastes-posicion.html`, opción A).
+
+- **Por qué:** los dos mandos describían un solo dato —qué trozo del mástil se ve— partido en
+  dos, contaban de uno en uno (del 1 al 12 eran 11 clics) y no decían dónde estás en el mástil.
+- **Qué es:** un mástil entero de 24 trastes con sus incrustaciones (3, 5, 7, 9, 12 doble…) y una
+  ventana lima encima, que es lo que se ve en la hoja. Va a la derecha del diagrama; Vaciar y
+  Tríadas quedan solos en su columna, arriba.
+- **Gestos:** arrastrar la ventana = posición; estirar sus asas = cuántos trastes (el asa de
+  arriba deja quieto el último traste); clic fuera de la ventana = saltar ahí, centrada; doble
+  clic = mástil entero (1–24) y otra vez para volver.
+- **Teclado** (con el foco en la ventana, `role="slider"`): ↑↓ mueven, Mayús+↑↓ estiran, Inicio
+  = traste 1, Fin = hasta el 24, Intro = mástil entero. Los atajos `[` y `]` siguen igual.
+- **El suelo de las notas se respeta:** la ventana no encoge por debajo de
+  `trasteMasAltoDibujado()`; el aviso sale una vez por gesto, no en cada píxel del arrastre.
+- **Teléfono:** la lupa se tumba y va debajo del diagrama, en el sitio de la fila de los ±.
+- La ventana arrastrada no pasa del traste 24. Si ya viene pasada (cargada así o con `]`), el
+  mini-mástil crece para enseñarla entera.
+- `FretStepper` se queda en el código sin usarse, por si hay que volver atrás.
+- **Tríadas baja junto a Colores** (pedido de Carlos, mismo día): sale de la columna de Vaciar y
+  va en la fila de abajo de la mesa, con el mismo aspecto que Colores (activo = tinte cobalto).
+  Como Colores sólo existe desde 1280 px, en Escalas esa fila aparece ya desde 768 px con sólo
+  Tríadas, y el diagrama descuenta su alto (`.k9-mesa--triadas`). En el teléfono sigue en la
+  esquina del lienzo.
+- **Tríadas en lima** (`--k-marker` con tinta oscura), en la mesa y en la esquina del teléfono:
+  es lo que más tiene que llamar la atención. Encendidas llevan un aro de tinta.
+- **Vaciar sube junto a deshacer y rehacer** (`.k9-vaciar`, separado por una raya fina), en
+  todos los anchos. Sale la columna de la derecha de la lupa y la esquina del teléfono; el
+  ayudante `botonVaciar` se borró. Sigue saliendo sólo en los modos editables, como antes.
+- **En modo oscuro el mini-mástil es de maple:** diapasón claro con veta, trastes de alpaca,
+  cejuela de hueso y puntos negros. La ventana lima lleva un filo de tinta para no perderse en
+  la madera. En claro no cambia.
+
+**Segunda vuelta de 0.9 (mismo día):**
+
+- **El mini-mástil tiene proporciones reales.** Los trastes siguen el temperamento igual (el
+  traste f a `1 − 2^(−f/12)` del largo): cada uno es un 5,6 % más corto que el anterior y el 12
+  queda a dos tercios del recorrido hasta el 24. El grosor sale del largo (largo ÷ 9,7, medido
+  con un `ResizeObserver`) y la madera es un trapecio que se abre de 43 a 57 mm, como un
+  diapasón. El arrastre cuenta en trastes, no en píxeles.
+- **Los trastes van de borde a borde.** Antes quedaban 5 px por lado y el mástil parecía más
+  ancho que los trastes. Ahora la madera (`.k9-lupa__madera`) se recorta con `clip-path` y todo
+  lo de dentro se recorta con ella; la ventana va fuera del recorte.
+- **Pedal «Escala» / «Arpegio»**, el primero de la pedalera en esos dos modos (y en el dock del
+  teléfono). Desde 0.6 no había forma de cambiar la escala ni el arpegio. Lleva una pantalla
+  de tónica, otra del tipo (con el nombre corto: «Maj7», «Dórico») y debajo todas las opciones
+  en fichas. Usa `setScaleType`/`setArpeggioType` y sus raíces, como el antiguo «Qué tocar».
+  La agrupación de arpegios (Mapa · Por cuerdas · Posiciones) sigue sin control: pendiente.
+- **El afinador sólo deja escribir notas con la afinación «Propia».** Con un preset las seis
+  letras quedan de sólo lectura (`readOnly`, atenuadas, con un title que lo explica). Antes
+  teclear una nota rompía el preset en silencio.
+- «Guitarra clásica (nylon)» pasa a **«Guitarra clásica»** en el selector de sonido. La cita
+  de las grabaciones mantiene «nylon» porque la licencia CC BY obliga a describir la fuente.
+- **Un mini-mástil por instrumento** (`MASTILES`, junto a `VentanaMastil`). Cada uno con las
+  medidas de un modelo típico: escala, ancho en la cejuela y en el último traste, calibre de
+  cada cuerda y número de trastes. De ahí salen la proporción largo/ancho, cuánto se estrecha
+  hacia la cejuela (`--k9-cono`), cuántas cuerdas se dibujan y su grosor.
+
+  | Instrumento | Trastes | Escala | Cejuela → final | Largo/ancho |
+  |---|---|---|---|---|
+  | Ukelele (concierto, nailon) | 18 | 381 mm | 35 → 44 mm | ≈ 6 |
+  | Bajo 4 (tipo Jazz) | 20 | 864 mm | 38 → 60 mm | ≈ 12 |
+  | Bajo 5 | 24 | 864 mm | 45 → 72 mm | ≈ 11 |
+  | Guitarra 6 (tipo Strat) | 22 | 648 mm | 43 → 56 mm | ≈ 9,4 |
+  | Guitarra 7 | 24 | 648 mm | 48 → 64 mm | ≈ 8,7 |
+  | Guitarra 8 | 24 | 686 mm | 55 → 73 mm | ≈ 8 |
+
+  El ukelele lleva las incrustaciones de ukelele (5, 7, 10, 12, 15) y cuerdas de nailon (más
+  claras y menos marcadas); la G, fina por ser reentrante. La ventana ya no pasa del último
+  traste del instrumento, y «mástil entero» y Fin van hasta él. Si la ventana viene pasada (de
+  otro instrumento, o con `]`), el mini-mástil crece para enseñarla, como antes con el 24.
+  El diagrama grande sigue permitiendo hasta el 24 en todos.
+
+**Tercera vuelta de 0.9 (mismo día):**
+
+- **Libre sin menú de nota.** Tocar una nota la quita y tocar una casilla la pone, como en
+  Acordes. El clic derecho (y la pulsación larga) ya no abre el menú «Escucharla · Añadir al
+  recorrido · Quitar la nota». Con el recorrido a mano activo, el clic sigue siendo para el
+  recorrido. El menú (`menuNota`) queda en el código sin nada que lo abra.
+- **Pedal Escala/Arpegio:** fuera las fichas. La tónica es una **perilla con las doce notas en
+  círculo** (`PerillaTonica`): se gira arrastrando, con la rueda o con las flechas, o se toca la
+  nota. El tipo se recorre con ◀ ▶, y el **clic derecho sobre su pantalla despliega la lista
+  completa hacia abajo** (`menuTipoTocar`, con `MenuContextualAccesible`).
+- **Rótulos al pasar el ratón** (`Pantalla rotuloAlPasar`): bajo las pantallas del Afinador
+  (Afinación, Instrumento, Sonido) y del Ampli (Canal, Letra) ya no hay texto; sale como globo
+  tras un segundo con el ratón encima o con el foco dentro.
+- **Ampli más ligero:** «Guardar en este canal», «Vaciar» y «Fábrica» pasan a tres iconos
+  (guardar, papelera, volver) con su explicación en el title, y las perillas Notas y Línea
+  dejan de escribir su valor en px (sale al pasar el ratón por el rótulo).
+
+## 0.10: el metrónomo (2026-10-06)
+
+Pedido por Carlos: un metrónomo con su botón **encima de Biblioteca** en la barra del Taller, que
+sea una sección propia y que se pueda **desacoplar a una ventana externa**. Tempo independiente
+del de «Reproducir». Código en el bloque nuevo `app-source-metronomo` (compilado entre
+Biblioteca y el estudio) y estilos en `ui-v10.css`.
+
+**Qué hace**
+
+- **Tempo** de 30 a 300 bpm: número grande editable, − / + (Mayús: ±10), perilla y **Tap**
+  (media de los últimos toques; se reinicia tras 2 s). Debajo, el nombre italiano del tempo.
+- **Compás** 1–16 sobre 4 u 8, con atajos (2/4 … 12/8). En los de 8, la **agrupación**
+  (6/8 = 3+3, 7/8 = 2+2+3 · 3+2+2 · 2+3+2…) decide los acentos secundarios.
+- **Tiempos:** un disco por tiempo. Clic: Fuerte → Normal → Suave → Silencio. Clic derecho:
+  menú con el estado y una **figura propia para ese tiempo**.
+- **Figuras:** negra, corcheas, tresillo, semicorcheas, corchea + 2 semis, 2 semis + corchea,
+  galope, swing, contratiempo, quintillo y seisillo, dibujadas en SVG (`FiguraMetro`).
+- **Sonido:** Madera, Clic, Cencerro, Electrónico y Guitarra, sintetizados (`golpeMetro`). Perillas
+  de volumen general, acento, tiempo y subdivisión. El acento sube de tono además de volumen.
+- **Práctica:** entrenador de tempo (de X a Y, ±Z cada N compases), compases mudos (suena N,
+  calla M), silencio al azar (%), temporizador (para solo) y destello en el 1. Abajo, compás
+  actual y tiempo transcurrido.
+- **Presets** con nombre (lo musical: tempo, compás, acentos, figuras, sonido).
+- **Atajos** donde está el metrónomo: Espacio, ↑↓ (Mayús ×10), T.
+- **Sigue sonando al cambiar de sección**; su botón de la barra late con el pulso.
+- Todo se guarda en `kharo.metronomo.v1`.
+
+**Cómo está hecho**
+
+- `MotorMetronomo` tiene **su propio AudioContext**: el del reproductor se suspende con su pausa
+  y no debe callar el metrónomo. Planificador con anticipación (cada 25 ms programa lo que cae
+  en los próximos 120 ms con hora exacta del reloj de audio); el latido sale de un **Worker**
+  para no frenarse con la pestaña detrás. El temporizador también lo vigila el motor.
+- `useMetronomo` vive en `App`, no en la vista. La vista sigue al reloj de audio con
+  `requestAnimationFrame`, de la ventana externa si existe (la página oculta no pinta).
+- **Desacoplar:** `documentPictureInPicture` (siempre encima, Chrome/Edge) o, si no, una ventana
+  emergente. `prepararVentanaMetro` copia hojas de estilo y tema; `App` monta el mismo
+  `<Metronomo compacto>` con `ReactDOM.createPortal`. El estado y el sonido siguen en la página,
+  que muestra «El metrónomo está en otra ventana · Traer de vuelta». Si el navegador bloquea la
+  ventana, sale un aviso. `window.__kharoMetroEn(w)` acopla a una ventana ya abierta (pruebas).
+- El icono de **Ejercicios** era un metrónomo: pasa a una diana, y el metrónomo se queda el suyo.
+- Depuración: `window.__kharoMetronomo.ultimos` guarda los últimos golpes programados.
+- **En la ventana «Sonando»** (abajo a la izquierda, la misma de Canción): mientras suena y no
+  estás en su sección, sale «Metrónomo · 100 bpm · 4/4 · Negra». **Pausar** congela también
+  su reloj (suspende su AudioContext) y **Parar todo** lo para. Si se arranca el metrónomo con
+  todo en pausa, se quita la pausa general.
+
+**La tarjeta de grados: escalera y círculo (mismo día).** De los wireframes de grados
+(`wireframes-metronomo-grados.html`) Carlos eligió la 1 y la 2, las dos a la vez:
+
+- El botón **«Colores»** de la mesa pasa a llamarse **«Grados»** (y el pisador del pedal EQ, que
+  hace lo mismo, también). A su lado, con los grados a la vista, un conmutador **Escalera ·
+  Círculo** (`vistaGrados`, recordado en `kharo.v10.vistaGrados`; por defecto Escalera).
+- **Escalera:** la columna de bolas (nota dentro, función al lado), y entre grado y grado el hueco
+  real: 6 px por semitono + 8 de base, con su letra (S, T, T½…), también del último a la octava.
+  La mayor se lee T T S T T T S.
+- **Círculo:** las doce notas en un reloj con la tónica arriba; las de la escala con su bola y la
+  función fuera del aro, las demás un punto, y un polígono lima que las une (la forma de la
+  escala).
+- La lista ya no lleva tope propio (el redondeo de los huecos sacaba una barra por 1 px): es la
+  tarjeta la que se desplaza si no cabe en la mesa (`100cqh − 90px`).
+
+**Grados: sólo el círculo, del tamaño del diagrama (mismo día).** La escalera no convenció y
+se quitó, con su conmutador: el botón «Grados» sólo enseña u oculta la tarjeta. La tarjeta es
+ahora tan alta como el diagrama (`100cqh − 122px`) y un 82 % de ese alto de ancha (máx. 460 px),
+con el círculo llenándola; queda diagrama · mini-mástil · círculo. Medido a 1366×900: diagrama
+581×567, círculo 460×567.
+
+**El metrónomo, en tarjeta (mismo día).** De `wireframes-metronomo-variantes.html` Carlos eligió
+la 4 y la afinó en `wireframes-metronomo-tarjeta.html`; se aplica a Prime:
+
+- Una tarjeta en columna (máx. 440 px), la misma en la sección y en la ventana externa:
+  tiempos → **la rueda del tempo** con − + y «BPM» debajo → TAP · arrancar · volumen → Compás →
+  Figura → «Ajustes».
+- **La rueda** (`RuedaTempo`): un cilindro de números (24° entre número y número, 205 px de
+  radio). Arrastrar hacia arriba sube (9 px = 1 bpm); al soltar con fuerza sigue girando por
+  inercia y se asienta en un entero. Rueda del ratón ±1 (Mayús ±10), flechas ±1, RePág/AvPág ±10,
+  doble clic para escribir el número. Sólo el arrastre y la inercia cambian el tempo en vivo; lo
+  demás (−, +, tap, entrenador) llega por `valor` y la rueda gira hasta él sin avisar, para no
+  devolver el tempo hacia atrás. Pide los cuadros a su propia ventana.
+- **Compás:** 3/4 · 4/4 · 6/8 · 7/8 y un «+» con 2/4, 5/4, 9/8, 12/8, uno a medida (− n + / 4·8) y
+  la agrupación de los de 8. **Figura:** negra, corcheas, tresillo, semicorcheas, swing y
+  contratiempo, y un «+» con las demás. Si se elige una del «+», el «+» la enseña encendida.
+- **Ajustes:** una hoja que sube desde abajo con Sonido (timbre y mezcla acento · tiempo ·
+  subdivisión), Práctica (cada interruptor enseña sus números sólo si está encendido) y Presets
+  (lista, cargar, borrar, guardar el actual). Un punto lima en «Ajustes» avisa si hay práctica
+  activa. Mientras suena, debajo de los mandos: compás y tiempo transcurrido.
+- Fuera: la perilla y el número grande editable, las cajas de compás/figura/sonido/práctica y la
+  pantalla de presets de la cabecera. El motor (`MotorMetronomo`, `useMetronomo`) no cambia.
+- Comprobado: arrastre real (182 → 96 con inercia), rueda del ratón, teclado, los dos «+», la hoja,
+  el motor (0,619 s a 97 bpm), la ventana externa en un iframe y el teléfono sin desbordes.
+
+**Retoques del metrónomo y de las tríadas (mismo día).**
+
+- **Ajustes del metrónomo:** «Cerrar» va centrado. Fuera las perillas Acento · Tiempo · Subdiv.
+  (no se entendían) y los sonidos Cencerro y Guitarra (quedan Madera, Clic y Electrónico; un estilo
+  guardado con uno de los quitados vuelve a Madera). En su lugar, en la pestaña Sonido, la
+  **cuadrícula de acentos**: un bloque por tiempo con su figura dibujada y una barra por golpe
+  (tresillo: 3, semicorcheas: 4…). La primera barra es el tiempo y cicla como su disco (Fuerte ·
+  Normal · Suave · Silencio); las demás, normal → acento → silencio. El alto de la barra es lo fuerte
+  que suena y el tiempo que suena se marca. Datos: `subEstados` (`{"tiempo-golpe": "acento" |
+  "mudo"}`), que el motor respeta y que se vacía al cambiar de figura o de compás; va en los presets.
+- **Tríadas de Escalas a la izquierda del diagrama** (desde 768 px): una columna de botones
+  rectangulares (Todas, I … vii° y «Mandar…» con una fijada), con el mismo comportamiento de antes
+  (pasar señala, clic fija, clic derecho o pulsación larga abre su menú). En el teléfono siguen en la
+  tira de arriba. La mesa marca `k10-con-triadas` y `k10-con-grados` y el diagrama se estrecha lo
+  justo para que quepan la columna, el mini-mástil y el círculo.
+
+**La rueda del tempo, más precisa y con sonido (mismo día).** Carlos: «muy poco precisa; cuando
+creo que lo dejé, pasa». Segunda versión de `RuedaTempo`:
+
+- **Sin inercia:** al soltar se queda en el número que se ve en el centro.
+- **Precisión según la velocidad:** despacio, 18 px por número; deprisa, hasta 4 px (gradual,
+  como la aceleración del ratón). Probado: 60 px lentos = +3; 120 px rápidos = +30.
+- **Margen:** el número sólo cambia al pasar el 75 % del paso y sólo vuelve si se retrocede otro
+  tanto (una banda de medio paso, ~9 px despacio). Un temblor de ±4 px no lo mueve. Mientras
+  tanto la rueda se asoma un poco (35 %) hacia el siguiente, sin cambiarlo.
+- **Tic:** `MotorMetronomo.tic()`, un chasquido de 20 ms muy bajo (ruido por un paso-banda en
+  3,4 kHz y un golpecito de 1,9 kHz), por el bus del metrónomo (lo baja su volumen). Suena en cada
+  número que pasa por el centro cuando la mueve alguien (arrastre, rueda del ratón, flechas, −, +,
+  TAP), no cuando la mueve el entrenador; como mucho uno cada 28 ms.
+
+**La guitarra eléctrica, con distorsión (mismo día).** Sus muestras ya no van directas al bus
+maestro: pasan por un ampli (`InstrumentSynth.distorsion()`), una cadena compartida que se monta
+la primera vez: ganancia ×7 → paso-alto 110 Hz → saturación `tanh` (WaveShaper con sobremuestreo
+4x) → realce de medios (+5 dB en 800 Hz) → «caja de altavoz» (paso-bajo 5 kHz) → salida ×0,24.
+Al ser una sola cadena, un acorde se ensucia junto, como en un ampli de verdad. Medido con un
+rasgueo: a 0,32 de salida la eléctrica daba 0,48 de RMS frente a 0,34 de la acústica; bajada a
+0,24 queda a la par (≈0,36, calculado). Afecta a todo lo que suena con «Guitarra eléctrica»
+(elegida o por «Según el instrumento» en 7 y 8 cuerdas); el bajo eléctrico sigue limpio.
+
+**Cuarta vuelta de 0.9 (mismo día):**
+
+- **Conmutador** (`Conmutador`, `ui-v09.css`) en vez de la palanca vertical: dos posiciones
+  escritas sobre fondo de pantalla y una pastilla lima que se desliza hasta la elegida; con
+  flechas del teclado. **Etiqueta → Números de traste:** horizontal, más grande, con **L** y **R**
+  (y «Números de traste» debajo). **Ampli → Diapasón:** vertical, sin el título, **Madera**
+  arriba y **Plano** abajo.
+- **Ampli: Guardar, Vaciar y Fábrica vuelven** como botones redondos de pedal con su nombre
+  debajo (`BotonPedal`), como las perillas. Los iconos de la vuelta anterior eran casi blancos
+  sobre el crema del pedal y no se veían. Vaciar queda apagado si el canal está vacío.
+- **Los grados, sintéticos** (antes «Leyenda de grados»): una bola del color con la **nota
+  dentro**, a su lado el **número del grado** (b3, 5, b7…), debajo la **función** (Tónica, 3ª
+  menor…). Cuatro por fila, sin la nota repetida a la derecha. La columna pasa de unos 380 px a
+  ~125 px y ya no se estira hasta el alto de la mesa. La tira del móvil usa lo mismo (bola con la
+  nota + número). El nombre largo sigue en el `title`.
+  **Retocada el mismo día:** a Carlos le gustó más esta leyenda, pero en **columna** y más
+  legible: una fila por grado (bola de 34 px con la nota, número a 16 px, función a 14 px en el
+  color de texto, no atenuado) con una raya fina entre filas. Mide ~420 px con siete grados y,
+  con una escala de doce, se desplaza dentro de su caja (máx. 580 px).
+  **Sin los números** (b3, 5…) a petición de Carlos: queda la bola con la nota y la función; la tira del móvil igual.
+- **Letras del diagrama: sólo sans-serif libres, guardadas en el proyecto.** `FONTS_LIST` pasa
+  de Inter, Georgia, Courier, Times y Trebuchet a **Inter, Montserrat, Poppins, Space Grotesk,
+  Oswald, Nunito, Josefin Sans y Barlow Condensed** (OFL), en `vendor/fonts/*.woff2` (10 archivos,
+  251 KB, sólo el subconjunto latino) y declaradas en `ui-v09.css`. Antes Inter ni siquiera estaba
+  incluida: se veía la que tuviera el equipo. La pantalla «Letra» del Ampli escribe el nombre en
+  su propia letra. Si un estilo guardado trae una letra que ya no está en la lista (Georgia…), se
+  enseña tal cual y no se cambia sola. Créditos y licencia en `vendor/fonts/LEEME.md`.
+- **La exportación lleva la letra dentro.** PNG, SVG y SVG para Illustrator incrustan el
+  `.woff2` de la elegida como `@font-face` en base64 (`incrustarFuente`), así el archivo se ve
+  igual en cualquier equipo. Comprobado: el SVG con Montserrat pesa 53 KB y la lleva dentro. Sólo
+  funciona servido por http(s); abriendo `index.html` con doble clic el navegador no deja leer los
+  `.woff2` y se exporta como antes (con la letra del sistema).
+
+**Comprobado en el navegador:** 100 bpm = 0,6 s exactos y acento en el 1; tresillo a 0,2 s;
+galope en 0 y 0,75; tiempo silenciado sin golpe; 7/8 con sus acentos; tap a 500 ms = 120;
+entrenador 200 → 210; compases mudos alternos; sigue sonando en Escalas; la ventana externa
+(probada con un iframe) funciona y vuelve; teléfono sin desbordes. **Sin probar:** abrir la
+ventana real, porque el navegador integrado del panel bloquea Picture-in-Picture y las
+emergentes; hay que probarlo en Chrome o Edge.
+
+## 0.11: Canción en cuatro pasos (2026-10-06 / 07)
+
+Del wireframe `_trabajo/wireframes/wireframes-cancion-flujo-2.html`. Canción deja de ser una
+columna de tarjetas y pasa a cuatro pasos en la base: **Estructura › Letra y hoja › Ritmo ›
+Tocar**, con la biblioteca a la izquierda, la pedalera de la canción a la derecha y el transporte
+centrado en la barra de arriba (el mismo en los cuatro pasos). Se hizo en `v11.html` en cinco
+fases y tres vueltas de retoques; al aprobarla se copió sobre `index.html` (respaldo de la 0.10
+en el scratchpad de esa sesión; la copia `v11.html` queda en `_trabajo/versiones-antiguas/`).
+Estilos en `ui-v11.css`.
+
+**Qué hace**
+
+- **Estructura: la pista.** Regla de compases y pulsos, carril de Secciones (bloques de su color,
+  del ancho de lo que duran con sus vueltas), de Acordes (con su diagrama si cabe) y de Letra.
+  Zoom − / Toda / +. Las secciones se **reordenan arrastrando**; los acordes se **mueven
+  arrastrando** (también a otra sección) y se **estiran o encogen por su borde** en pasos de ½
+  pulso. Clic derecho en un acorde: duplicar, **partir en dos**, pulsos, mover, quitar. Panel de la
+  sección elegida (nombre, vueltas, tempo propio, nota).
+- **El imán** (junto a «+ Sección»). Encendido: al mover, encoger o quitar, lo de después se
+  corre. Apagado: queda el **hueco, un compás de silencio** que se ve rayado y no suena; soltar un
+  acorde encima lo llena.
+- **Los acordes se ponen arrastrando** desde la biblioteca; un clic solo los hace sonar (con el
+  dedo, tocar sí añade: el arrastre táctil choca con el scroll).
+- **Letra y hoja: el papel es el editor.** Una página cada vez con su mando ▲ n ▼. Tocar una
+  sección del papel la enmarca y abre un globo con su letra (`LyricEditor`). Un acorde soltado
+  sobre una línea cae en la sílaba que marca la raya azul (`columnaEnHoja`). La capa de edición va
+  marcada `data-no-exportar` y no viaja al archivo.
+- **Ritmo.** La pista con los carriles Ritmo (uno por sección: neutro si hereda el de la canción,
+  morado si lleva el suyo) y Rasgueo (casilla a casilla). Un ritmo soltado en el carril Ritmo es
+  de esa **sección**; soltado sobre un **acorde**, solo de ese acorde (etiqueta naranja). Tocarlo en
+  la biblioteca lo pone en toda la canción. ✎ hace una **copia editable** de un ritmo de fábrica
+  («Mi pop»). El compositor (`StrumEditor`) va en línea, abajo.
+- **Tocar: el atril.** El acorde de ahora en grande y el siguiente en pequeño; la letra con la
+  sílaba que suena en lima (el acorde k de la sección ↔ el acorde k escrito en la letra; los
+  silencios no cuentan); las partes sin letra salen como «Instrumental» con cuántos compases faltan
+  para la letra; la cinta del rasgueo pasa hacia la línea AHORA. Tocar una sección del recorrido
+  empieza desde ahí.
+- **Transporte en la barra:** ⏮ ▶/⏹ ⟳, visor con tiempo y compás, Toda | Sección. Espacio =
+  play/stop.
+- **Pedalera de la canción:** Tonalidad, Tempo (bpm, compás, Tap), Ritmo, Etiqueta, **Looper**
+  (repite la sección elegida N vueltas o sin fin y sigue) y **Ensayo** (empieza al X % y sube un
+  Y % por vuelta).
+- **Color (pedido de Carlos):** colores planos, sin bordes de color; en oscuro, grafito neutro en
+  vez de la tinta cálida (solo en Canción y en las pedaleras); el lima solo como acento. Cada
+  pedal de un color (Tonalidad azul, Tempo rojo, Ritmo y Escala morado, Etiqueta cian, Afinador
+  azul, Looper naranja, Ensayo rosa, EQ y Ampli claros) **también en la pedalera del Taller**.
+  Pantallas con letra pixelada **VT323** (enlazada a Google Fonts; sin conexión cae a la
+  monoespaciada).
+- **Diagrama horizontal en el Taller.** Botón lima pegado al borde de la pedalera: gira el
+  diagrama 90° (cejuela a la izquierda, 6.ª cuerda abajo, textos derechos) y lo exportado sale
+  igual. Se guarda en `kharo.v11.taller.horizontal`. Biblioteca y hojas siguen en vertical.
+
+**Cómo está hecho**
+
+- **Modelo (`song-core.js`):** un compás puede llevar su **ritmo propio** (`bars[].rhythmId`) o ser
+  un **silencio** (`{ chordId: null, rest: true, beats }`); `normalizeSong` los conserva y
+  `expandSong` usa el ritmo del compás antes que el de la sección. Las duraciones admiten ½ pulso.
+- **Reproductor:** `playSong(soloSeccion, opciones)` arma un **plan** que crece vuelta a vuelta
+  (`looper`, `ensayo`, `desde`); cada vuelta puede ir a otro tempo. El atril lo lee de
+  `songPlaybackRef.current.plan` y anima la cinta con `requestAnimationFrame`.
+- **Arrastre entre paneles:** `useArrastreKharo` (puntero, fantasma, `elementFromPoint` y destinos
+  `data-soltar`). Sin DnD de HTML5.
+- **Exportar** lee las páginas de la hoja del DOM: en los pasos sin hoja a la vista va una
+  escondida (`.k11-hoja-oculta`).
+- **Diagrama horizontal:** `escena.orientacion`; `DiagramaKharo` envuelve el dibujo en
+  `<g data-dibujo transform="translate(-60, W+56) rotate(-90)">` y contragira cada texto sobre su
+  centro. En vertical no añade nodos: **el SVG sale idéntico** (comprobado con SHA-256).
+  `puntoDelLienzo` pasa a `getScreenCTM`, así los gestos funcionan girados.
+- Estado de la canción en `kharo.v11.cancion` (paso, imán, Looper, Ensayo).
+
+**Comprobado en el navegador** (con «Olvídala», `_trabajo/pruebas/olvidala-binomio.json`: la
+progresión de acordesweb, la letra de relleno): reordenar, mover y estirar acordes con el ratón
+real, con imán y sin él; soltar acordes y ritmos por sección y por acorde; la sílaba en la hoja;
+Looper 2 vueltas y sigue; Ensayo 80 → 100 %; «desde aquí»; los gestos del diagrama horizontal
+(punto, cejilla, al aire/apagada); exportar con todas las páginas; teléfono sin desbordes.
+**Sin probar:** descargar de verdad el PNG del diagrama horizontal.
+
+**Pendiente:** soltar un acorde *entre* dos con el imán apagado sigue corriendo lo de detrás (solo
+los huecos se llenan sin mover nada). En la hoja de Prime anterior un silencio salía como «?».
+Guardar VT323 en `vendor/fonts` para que funcione sin conexión.
 
 ## 23. Deuda técnica de fondo
 

@@ -1,3 +1,6 @@
+# Lo temporal no se sube: versiones antiguas, wireframes, pruebas y material de trabajo.
+_trabajo/
+
 .claude/settings.local.json
 .claude/launch.json
 piano_chord_diagram_generator (4).tsx

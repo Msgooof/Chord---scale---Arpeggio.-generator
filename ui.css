@@ -2461,101 +2461,114 @@ div.k2-solo-escritorio { display: none; }
     flex-direction: column;
 }
 
-/* --- El raíl del Taller ---------------------------------------------------------
- * Dos bandas, una por cara del disco: Lado A en cobalto pastel y Lado B en lima
- * tenue, cada una cubriendo su sección entera. El Lado B se estira hasta abajo
- * para que el raíl no acabe en un hueco sin color. */
-:root {
-    --k2-lado-a: color-mix(in srgb, var(--k-accent) 8%, var(--k-surface));
-    --k2-lado-a-tinta: var(--k-accent);
-    --k2-lado-b: color-mix(in srgb, var(--k-marker) 16%, var(--k-surface));
-    --k2-lado-b-tinta: var(--k-highlight);
-}
-:root[data-theme="oscuro"] {
-    --k2-lado-a: color-mix(in srgb, var(--k-accent) 11%, var(--k-surface));
-    --k2-lado-b: color-mix(in srgb, var(--k-marker) 8%, var(--k-surface));
-}
+/* --- La barra del Taller (0.7) --------------------------------------------------
+ * Una columna fina de iconos, como la caja de herramientas de Photoshop. Cada
+ * sección trae su color en --k7-color: al pasar el ratón se tiñe tenue y sale
+ * una barrita con el nombre; la activa es un cuadrado lleno de su color, con
+ * una raya del mismo color pegada al borde. Sin overflow, para que la barrita
+ * del nombre pueda salir por encima del lienzo. */
 .k2-rail { display: none; }
 @media (min-width: 768px) {
     .k2-rail {
+        position: relative;
+        z-index: 30;
         display: flex;
         flex-direction: column;
+        align-items: center;
         flex: none;
-        width: 92px;
-        overflow-y: auto;
+        width: 48px;
+        padding: 10px 0;
         background-color: var(--k-surface);
         border-right: 1px solid var(--k-divider);
     }
 }
-.k2-rail__lado {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-    padding: var(--k-space-3) var(--k-space-2);
-}
-.k2-rail__lado--a { background-color: var(--k2-lado-a); --k2-tinta: var(--k2-lado-a-tinta); }
-.k2-rail__lado--b {
-    flex: 1 0 auto;
-    background-color: var(--k2-lado-b);
-    --k2-tinta: var(--k2-lado-b-tinta);
-    border-top: 1px solid var(--k-divider);
-}
-/* La cabecera de cada banda: la galleta del disco, «Lado A» y qué hay. */
-.k2-rail__cabeza {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    margin-bottom: var(--k-space-2);
-    text-align: center;
-}
-.k2-rail__disco {
+.k7-barra__grupo { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.k7-barra__raya { width: 28px; height: 1px; margin: 10px 0; background-color: var(--k-divider); flex: none; }
+.k7-barra__pie { margin-top: auto; padding-top: 10px; }
+.k7-barra__boton {
+    position: relative;
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
-    margin-bottom: 2px;
-    border-radius: 50%;
-    font-family: var(--k-font-title);
-    font-size: 14px;
-    line-height: 1;
-    background-color: var(--k2-tinta);
-    color: var(--k-surface);
-}
-.k2-rail__lado-texto {
-    font-size: var(--k-text-xs);
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--k2-tinta);
-}
-.k2-rail__lado-nombre {
-    font-size: 10px;
-    line-height: 1.2;
-    color: var(--k-text-muted);
-}
-.k2-rail__item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    min-height: 58px;
-    padding: 6px 2px;
-    border-radius: var(--k-radius-md);
-    font-size: var(--k-text-xs);
-    font-weight: 700;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
     color: var(--k-text-muted);
     cursor: pointer;
     transition: background-color .12s, color .12s;
 }
-.k2-rail__item:hover { color: var(--k-text); background-color: rgba(var(--k-shadow-rgb), 0.05); }
-:root[data-theme="oscuro"] .k2-rail__item:hover { background-color: rgba(242, 237, 227, 0.06); }
-.k2-rail__item--activo,
-.k2-rail__item--activo:hover {
+/* La raya del borde: tenue al pasar, entera en la activa. */
+.k7-barra__boton::after {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background-color: var(--k7-color);
+    opacity: 0;
+}
+.k7-barra__boton:hover,
+.k7-barra__boton:focus-visible {
     color: var(--k-text);
-    background-color: var(--k-surface-raised);
-    box-shadow: inset 3px 0 0 var(--k2-tinta), 0 1px 2px rgba(var(--k-shadow-rgb), 0.08);
+    background-color: color-mix(in srgb, var(--k7-color) 18%, transparent);
+}
+.k7-barra__boton:hover::after,
+.k7-barra__boton:focus-visible::after { opacity: .45; }
+.k7-barra__boton--activo,
+.k7-barra__boton--activo:hover,
+.k7-barra__boton--activo:focus-visible {
+    border-radius: 0;
+    background-color: var(--k7-color);
+    color: #14120E;
+}
+.k7-barra__boton--activo::after { opacity: 1; }
+/* La barrita del nombre: sale a la derecha con un cuarto de segundo de
+ * retraso, para que no parpadee al cruzar la barra camino de otra cosa. */
+.k7-barra__nombre {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translate(-4px, -50%);
+    padding: 6px 12px 5px;
+    white-space: nowrap;
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    border-top: 3px solid var(--k7-color);
+    box-shadow: 0 14px 30px rgba(var(--k-shadow-rgb), 0.35);
+    font-family: var(--k-font-title);
+    font-size: 14px;
+    letter-spacing: .06em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: var(--k-text);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .12s, transform .12s, visibility 0s .12s;
+}
+.k7-barra__nombre::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    margin-top: -5px;
+    background-color: var(--k-surface);
+    border-left: 1px solid var(--k-divider);
+    border-bottom: 1px solid var(--k-divider);
+    transform: rotate(45deg);
+}
+.k7-barra__boton:hover .k7-barra__nombre,
+.k7-barra__boton:focus-visible .k7-barra__nombre {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(0, -50%);
+    transition: opacity .12s .25s, transform .12s .25s, visibility 0s .25s;
+}
+@media (prefers-reduced-motion: reduce) {
+    .k7-barra__nombre, .k7-barra__boton:hover .k7-barra__nombre { transform: translate(0, -50%); }
 }
 
 /* --- Vaciar el mástil, encima de Posición ---------------------------------------- */
