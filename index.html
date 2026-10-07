@@ -3165,6 +3165,37 @@
             );
         }
 
+        /* --- 0.11 · LA BARRA DE ABAJO DEL TELÉFONO ----------------------------
+         * Las siete secciones con los iconos de la barra de escritorio, en una
+         * sola franja abajo, con el nombre chiquito debajo. Sustituye a las
+         * pestañas de texto de la cabecera (dos filas) y al dock de pedales:
+         * la pedalera se abre desde su botón de arriba. Metrónomo y
+         * Biblioteca siguen en la cabecera. */
+        function BarraMovilTaller({ activo, onSelect }) {
+            return (
+                <nav class="k12-barra-movil md:hidden" aria-label="Secciones del Taller">
+                    {RAIL_TALLER.flat().map(it => (
+                        <button
+                            key={it.id}
+                            type="button"
+                            onClick={() => onSelect(it.id)}
+                            aria-current={activo === it.id ? "page" : undefined}
+                            class={`k12-barra-movil__boton${activo === it.id ? " k12-barra-movil__boton--activo" : ""}`}
+                            style={{ "--k7-color": it.color }}
+                        >
+                            <span class="k12-barra-movil__icono">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+                                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                                    {ICONOS_RAIL[it.icono]}
+                                </svg>
+                            </span>
+                            <span class="k12-barra-movil__nombre">{it.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            );
+        }
+
         /* --- LA PANTALLA DE CARGA DEL TALLER (0.2) ----------------------------
          * Un segundo entre el sitio y la app, para que el salto de la portada
          * al mástil no sea de golpe. Seis cuerdas que se afinan; con
@@ -3685,6 +3716,27 @@
             return { ancho: g.width, alto: g.height };
         }
 
+        /* 0.11 · tercera vuelta · Las medidas del diagrama acostado. Al girarlo,
+         * los 70 px de margen de cada lado (PADDING_LEFT/RIGHT) quedaban
+         * enteros arriba y abajo: mucho aire entre el título y las cuerdas, y
+         * un SVG más alto de la cuenta que se encogía al caber. Ahora se deja
+         * lo justo: más en el lado de los números de traste, menos en el
+         * otro. La usan el diagrama y la mesa (el mini-mástil de 7 trastes). */
+        const H_CORTE = 60;      // la franja del título de arriba, que en horizontal sobra
+        const H_FRANJA = 46;     // la franja nueva, encima, para el título derecho
+        function medidasHorizontal(geo, numerosTraste, dotRadius) {
+            const corto = Math.max(26, (dotRadius || 10) + 12);
+            const largo = Math.max(44, corto + 18);
+            const numerosArriba = numerosTraste !== "left";
+            const recorteArriba = Math.max(0, geo.paddingRight - (numerosArriba ? largo : corto));
+            const recorteAbajo = Math.max(0, geo.paddingLeft - (numerosArriba ? corto : largo));
+            return {
+                ancho: geo.height - H_CORTE,
+                alto: geo.width - recorteArriba - recorteAbajo + H_FRANJA,
+                recorteArriba
+            };
+        }
+
         function DiagramaKharo({ escena, interaccion, ancho, alto, titulo }) {
             const est = useDiagramStyle();
             const idPielPropio = useIdUnico("kh-madera");
@@ -3734,15 +3786,16 @@
              * franja del título de arriba (CORTE) y se deja otra encima para
              * escribirlo derecho (FRANJA). Los textos se contragiran sobre su
              * centro para leerse de pie. En vertical no se añade nada: el SVG
-             * sale idéntico al de siempre. */
+             * sale idéntico al de siempre. Tercera vuelta: también se recortan
+             * los márgenes de arriba y abajo (`medidasHorizontal`) y los
+             * números de traste y la afinación se escriben más grandes. */
             const horizontal = escena.orientacion === "horizontal";
-            const CORTE = 60;
-            const FRANJA = 56;
-            const anchoSvg = horizontal ? height - CORTE : width;
-            const altoSvg = horizontal ? width + FRANJA : height;
+            const mh = horizontal ? medidasHorizontal(geo, escena.numerosTraste, dotRadiusStyle) : null;
+            const anchoSvg = horizontal ? mh.ancho : width;
+            const altoSvg = horizontal ? mh.alto : height;
             const derecho = (cx, cy) => horizontal ? { transform: `rotate(90 ${cx} ${cy})` } : {};
             const envolverDibujo = (hijos) => horizontal
-                ? <g data-dibujo="1" transform={`translate(${-CORTE} ${width + FRANJA}) rotate(-90)`}>{hijos}</g>
+                ? <g data-dibujo="1" transform={`translate(${-H_CORTE} ${width - mh.recorteArriba + H_FRANJA}) rotate(-90)`}>{hijos}</g>
                 : hijos;
 
             // Las flechas del recorrido. Copia de `renderNotePath`, con los
@@ -3911,7 +3964,7 @@
 
                     <text
                         x={anchoSvg / 2}
-                        y={horizontal ? 40 : 50}
+                        y={horizontal ? 34 : 50}
                         textAnchor="middle"
                         fill={textStyleColor}
                         fontSize={dynamicTitleFontSize}
@@ -3938,7 +3991,7 @@
                                     y={y}
                                     {...derecho(xPos, y - 4)}
                                     fill={textStyleColor}
-                                    fontSize="13"
+                                    fontSize={horizontal ? "17" : "13"}
                                     fontWeight="bold"
                                     textAnchor="middle"
                                     opacity={isCommon ? "1" : "0.6"}
@@ -3960,7 +4013,7 @@
                                 {...derecho(x, paddingTop - 49)}
                                 textAnchor="middle"
                                 fill={textStyleColor}
-                                fontSize="12"
+                                fontSize={horizontal ? "16" : "12"}
                                 fontWeight="bold"
                             >
                                 {note}
@@ -4391,7 +4444,37 @@
             guitar8: { trastes: 24, escala: 686, cejuela: 55, final: 73, calibres: [1.88, 1.37, 1.17, 0.91, 0.66, 0.43, 0.33, 0.25] }
         };
 
-        function VentanaMastil({ inicio, cuantos, onCambiar, instrumento, orientacion = "vertical", className }) {
+        /* 0.11 · tercera vuelta · El «?» de ayuda: un botón que despliega un
+         * menú hacia arriba (`.k8-ayuda`). Era sólo del Taller; ahora también
+         * lo lleva Canción. Cada opción: { icono, label, kbd?, hacer }. */
+        function MenuAyuda({ opciones, className }) {
+            const [abierto, setAbierto] = useState(false);
+            return (
+                <div class={className || "k11-menu-ayuda"}>
+                    <BotonIcono icono="ayuda" etiqueta="Ayuda" activo={abierto} onClick={() => setAbierto(v => !v)} variante="borde" extra={{ "aria-haspopup": "menu", "aria-expanded": abierto }} />
+                    {abierto && (
+                        <React.Fragment>
+                            <div class="fixed inset-0 z-40" onClick={() => setAbierto(false)} aria-hidden="true" />
+                            <div class="k8-ayuda" role="menu" aria-label="Ayuda" onKeyDown={(e) => { if (e.key === "Escape") setAbierto(false); }}>
+                                {opciones.map((o, i) => (
+                                    <button key={o.label} type="button" role="menuitem" class="k8-ayuda__opcion" autoFocus={i === 0} onClick={() => { setAbierto(false); o.hacer(); }}>
+                                        <Icono nombre={o.icono} />
+                                        <span>{o.label}</span>
+                                        {o.kbd && <kbd>{o.kbd}</kbd>}
+                                    </button>
+                                ))}
+                            </div>
+                        </React.Fragment>
+                    )}
+                </div>
+            );
+        }
+
+        /* Tercera vuelta de la 0.11: `largo` (px) fija lo que mide el riel.
+         * Con el diagrama en horizontal el mini-mástil iba a lo ancho del
+         * diagrama, así que crecía y encogía con los trastes; ahora la mesa le
+         * pasa el largo que tendría el diagrama con 7. */
+        function VentanaMastil({ inicio, cuantos, onCambiar, instrumento, orientacion = "vertical", className, largo: largoFijo }) {
             const vertical = orientacion === "vertical";
             const fin = inicio + cuantos - 1;
             const m = MASTILES[instrumento] || MASTILES.guitar6;
@@ -4517,12 +4600,12 @@
             });
 
             return (
-                <div class={`k9-lupa k9-lupa--${orientacion} ${className || ""}`}>
+                <div class={`k9-lupa k9-lupa--${orientacion}${largoFijo ? " k9-lupa--fija" : ""} ${className || ""}`}>
                     <span class="k-label k-text-xs">Mástil</span>
                     <div
                         ref={rielRef}
                         class="k9-lupa__riel"
-                        style={{ [vertical ? "width" : "height"]: `${grosor}px` }}
+                        style={{ [vertical ? "width" : "height"]: `${grosor}px`, ...(largoFijo ? { flex: `0 0 ${largoFijo}px` } : {}) }}
                         onPointerDown={alBajar}
                         onPointerMove={alMover}
                         onPointerUp={alSoltar}
@@ -5560,14 +5643,48 @@
          * Debajo va la regla de pulsos (1 · · · 2 · · · …), que es lo que
          * convierte una fila de flechas en algo que se puede leer y contar.
          * ================================================================== */
-        function StrumEditor({ pattern, onChange, onPlay, onStop, sonando, bpm, onAviso }) {
+        function StrumEditor({ pattern, onChange, onPlay, onStop, sonando, bpm, onAviso, onProbarGolpe }) {
             const sub = pattern.subdivision || 2;
             const total = pattern.beats * sub;
+            const arpegio = pattern.tipo === "arpegio";
 
             const cambiarCelda = (i, atras) => {
                 const cells = pattern.cells.slice();
                 cells[i] = Song.nextCellState(cells[i], atras);
                 onChange({ ...pattern, cells });
+                if (cells[i] && onProbarGolpe) onProbarGolpe(cells[i]);
+            };
+
+            /* --- Tercera vuelta de la 0.11 · ARPEGIO ---
+             * La misma rejilla de casillas, pero con una fila por nota del
+             * acorde: la aguda arriba y el bajo abajo, como en una tablatura.
+             * Un clic enciende o apaga esa nota en esa casilla (dos en la
+             * misma columna = pellizco); el clic derecho acentúa la columna.
+             * «Bajo» es la nota más grave del acorde y las demás cuentan hacia
+             * arriba; si el acorde tiene menos notas, se da la vuelta. */
+            const VOCES = [5, 4, 3, 2, 1, 0];
+            const nombreDeVoz = (v) => v === 0 ? "Bajo" : String(v + 1);
+            const alternarNota = (i, voz) => {
+                const cells = pattern.cells.slice();
+                const antes = cells[i] && cells[i].picks ? cells[i].picks : [];
+                const enciende = antes.indexOf(voz) === -1;
+                const picks = enciende ? antes.concat(voz).sort((x, y) => x - y) : antes.filter(v => v !== voz);
+                cells[i] = picks.length ? { picks, accent: !!(cells[i] && cells[i].accent) } : null;
+                onChange({ ...pattern, cells });
+                if (enciende && onProbarGolpe) onProbarGolpe({ picks: [voz], accent: !!(cells[i] && cells[i].accent) });
+            };
+            const alternarAcento = (i) => {
+                const c = pattern.cells[i];
+                if (!c || !c.picks) return;
+                const cells = pattern.cells.slice();
+                cells[i] = { ...c, accent: !c.accent };
+                onChange({ ...pattern, cells });
+            };
+            const cambiarTipo = (nuevo) => {
+                if ((nuevo === "arpegio") === arpegio) return;
+                const habiaAlgo = pattern.cells.some(Boolean);
+                onChange({ ...pattern, tipo: nuevo, cells: new Array(total).fill(null) });
+                if (habiaAlgo && onAviso) onAviso(nuevo === "arpegio" ? "Rejilla de arpegio: los golpes de rasgueo se quitaron" : "Rejilla de rasgueo: las notas del arpegio se quitaron");
             };
 
             /* Poner una casilla en un estado CONCRETO, sin recorrer el ciclo.
@@ -5642,6 +5759,15 @@
                             </div>
                         </div>
                         <Segmentado
+                            etiqueta="Qué se escribe"
+                            valor={arpegio ? "arpegio" : "rasgueo"}
+                            onCambio={cambiarTipo}
+                            opciones={[
+                                { id: "rasgueo", label: "Rasgueo", ayuda: "Golpes hacia abajo y hacia arriba" },
+                                { id: "arpegio", label: "Arpegio", ayuda: "Notas sueltas del acorde, una fila por cuerda" }
+                            ]}
+                        />
+                        <Segmentado
                             etiqueta="Casillas por pulso"
                             valor={sub}
                             onCambio={(v) => cambiarResolucion(v)}
@@ -5656,6 +5782,44 @@
                         <span class="k-chip">{bpm} bpm</span>
                     </div>
 
+                    {arpegio && (
+                        <div class="k-strip">
+                            <div class="k11-arp" role="group" aria-label="Arpegio: una fila por nota del acorde" style={{ gridTemplateColumns: `auto repeat(${total}, minmax(26px, 1fr))` }}>
+                                {VOCES.map(voz => (
+                                    <React.Fragment key={voz}>
+                                        <span class="k11-arp__rot">{nombreDeVoz(voz)}</span>
+                                        {Array.from({ length: total }).map((_, i) => {
+                                            const celda = pattern.cells[i];
+                                            const on = !!(celda && celda.picks && celda.picks.indexOf(voz) !== -1);
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    aria-pressed={on}
+                                                    aria-label={`${nombreDeCasilla(i)}, ${voz === 0 ? "bajo" : "nota " + (voz + 1)}${on ? (celda.accent ? ", acentuada" : ", suena") : ""}`}
+                                                    class={"k11-arp__celda"
+                                                        + (i % sub === 0 ? " k11-arp__celda--pulso" : "")
+                                                        + (on ? " k11-arp__celda--on" : "")
+                                                        + (on && celda.accent ? " k11-arp__celda--acento" : "")}
+                                                    onClick={() => alternarNota(i, voz)}
+                                                    onContextMenu={(e) => { e.preventDefault(); alternarAcento(i); }}
+                                                    title={`${nombreDeCasilla(i)} · ${nombreDeVoz(voz)}. Clic: que suene; clic derecho: acento`}
+                                                />
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                ))}
+                                <span aria-hidden="true" />
+                                {Array.from({ length: total }).map((_, i) => (
+                                    <span key={`r-${i}`} class={"k-strum-ruler" + (i % sub === 0 ? " k-strum-ruler--beat" : "")}>
+                                        {i % sub === 0 ? (i / sub) + 1 : "·"}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!arpegio && (
                     <div class="k-strip">
                         <div class="k-strum-grid" style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}>
                             {Array.from({ length: total }).map((_, i) => {
@@ -5696,6 +5860,7 @@
                             ))}
                         </div>
                     </div>
+                    )}
 
                     {/* --- LOS SEIS ESTADOS, EN FILA ---
                         En horizontal porque una casilla de rasgueo se reconoce
@@ -5706,7 +5871,7 @@
                         recorre el clic izquierdo. Con dos listas, añadir un
                         estado dejaría el menú y el ciclo diciendo cosas
                         distintas. */}
-                    {menuCelda && (
+                    {menuCelda && !arpegio && (
                         <MenuContextualAccesible
                             x={menuCelda.x}
                             y={menuCelda.y}
@@ -7003,11 +7168,22 @@
          * corcheas, para poder editarlo: así «editar Pop» parte de Pop en vez
          * de una rejilla vacía. Los punteos pasan a golpes abajo. */
         function copiaEditableDeRitmo(base, pulsos) {
-            const nueva = Song.createStrumPattern(`Mi ${nombreCortoRitmo(base).toLowerCase()}`, base.beats || pulsos);
+            const eventos = Song.rhythmEvents(base);
+            /* Tercera vuelta: si TODO son punteos (la balada), la copia es un
+             * arpegio y conserva sus notas. Si se mezclan (el vals: bajo +
+             * rasgueo), sigue siendo rasgueo y los punteos pasan a golpes. */
+            const esArpegio = eventos.length > 0 && eventos.every(ev => typeof ev.pick === "number");
+            const nueva = Song.createStrumPattern(`Mi ${nombreCortoRitmo(base).toLowerCase()}`, base.beats || pulsos, esArpegio ? "arpegio" : "rasgueo");
             const cells = nueva.cells.slice();
-            Song.rhythmEvents(base).forEach(ev => {
+            eventos.forEach(ev => {
                 const i = Math.round(ev.at * (nueva.subdivision || 2));
-                if (i < 0 || i >= cells.length || cells[i]) return;
+                if (i < 0 || i >= cells.length) return;
+                if (esArpegio) {
+                    const antes = cells[i] ? cells[i].picks : [];
+                    if (antes.indexOf(ev.pick) === -1) cells[i] = { picks: antes.concat(ev.pick).sort((x, y) => x - y), accent: (ev.gain || 0) >= 0.95 || !!(cells[i] && cells[i].accent) };
+                    return;
+                }
+                if (cells[i]) return;
                 cells[i] = { dir: ev.dir === "up" ? "up" : "down", accent: (ev.gain || 0) >= 0.95, muted: !!ev.muted };
             });
             return { ...nueva, cells };
@@ -7054,7 +7230,28 @@
             return juntarSilencios(out);
         }
 
-        function PistaCancion({ modo, herramientas, song, chordsById, activaId, onSeleccionar, onMoverSeccion, onTocarCompas, onMenuCompas, onMenuRitmo, onEditarRitmo, onMoverAcorde, onPulsosAcorde, playhead, destino }) {
+        /* Tercera vuelta · El imán, sólo con su icono. Lo que hace se lee en un
+         * globo que sale al dejar el ratón encima un segundo (`.k11-con-globo`,
+         * con retardo propio: el del `title` del navegador no se controla). */
+        function BotonIman({ iman, onCambio }) {
+            const texto = iman
+                ? "Imán encendido: al mover, encoger o quitar un acorde, lo de después se corre"
+                : "Imán apagado: al mover, encoger o quitar un acorde, queda su hueco (un silencio)";
+            return (
+                <button
+                    type="button"
+                    class={`k-btn k11-chico k11-iman k11-con-globo${iman ? " k11-iman--on" : ""}`}
+                    aria-pressed={iman}
+                    aria-label={texto}
+                    data-globo={texto}
+                    onClick={() => onCambio(!iman)}
+                >
+                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h4v8a2 2 0 0 0 4 0V4h4v8a6 6 0 0 1-12 0z" /><path d="M6 8h4M14 8h4" /></svg>
+                </button>
+            );
+        }
+
+        function PistaCancion({ modo, herramientas, song, chordsById, activaId, onSeleccionar, onMoverSeccion, onTocarCompas, onMenuCompas, onMenuRitmo, onEditarRitmo, onMoverAcorde, onPulsosAcorde, playhead, destino, iman = true }) {
             const enRitmo = modo === "ritmo";
             const pulsosCompas = Song.beatsPerBar(song.timeSignature);
             const [zoom, setZoom] = useState(-1);   // -1: toda la canción a la vista
@@ -7076,9 +7273,11 @@
                 return () => ro.disconnect();
             }, []);
 
-            // Mientras se estira, la pista se dibuja ya con la duración nueva.
+            /* Mientras se estira, la pista se dibuja ya con la duración nueva,
+             * con la MISMA regla que al soltar (`cambiarDuracion`): con el imán
+             * apagado el hueco aparece ya, en vez de correrse todo y volver. */
             const secciones = acc && acc.tipo === "estirar" && acc.activo
-                ? song.sections.map(s => s.id !== acc.sec ? s : { ...s, bars: s.bars.map((b, k) => k === acc.k ? { ...b, beats: acc.beats } : b) })
+                ? song.sections.map(s => s.id !== acc.sec ? s : { ...s, bars: cambiarDuracion(s.bars, acc.k, acc.beats, iman) })
                 : song.sections;
 
             let cursor = 0;
@@ -7665,7 +7864,7 @@
             onExport, onImport, onNuevaCancion,
             songs, onAbrirCancion, onDuplicarCancion, onBorrarCancion, onBorrarTodasLasCanciones,
             onBorrarTodosLosAcordes, onMandarAcordeA,
-            onPreviewRhythm, onStopPreview, previewSonando, onAviso, onElegirDestino, onBiblioteca
+            onPreviewRhythm, onStopPreview, previewSonando, onAviso, onElegirDestino, onBiblioteca, onProbarGolpe
         }) {
             const [chordParaInsertar, setChordParaInsertar] = useState(null);
             const [gestorAbierto, setGestorAbierto] = useState(false);
@@ -7960,6 +8159,7 @@
             const [pedaleraAbierta, setPedaleraAbierta] = useState(anchoEscritorio);
             const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
             const [dialogoTono, setDialogoTono] = useState(false);
+            const [dialogoAtajos, setDialogoAtajos] = useState(false);   // tercera vuelta: el «?» del pie
             const cuerpoPedalera = React.useRef(null);
 
             // Al cambiar de paso, la pedalera se lleva sola a los pedales que
@@ -8594,16 +8794,7 @@
                                             >
                                                 + Sección ▾
                                             </button>
-                                                <button
-                                                    type="button"
-                                                    class={`k-btn k11-chico k11-iman${iman ? " k11-iman--on" : ""}`}
-                                                    aria-pressed={iman}
-                                                    onClick={() => { setIman(!iman); if (onAviso) onAviso(iman ? "Imán apagado: al mover o encoger un acorde queda su hueco" : "Imán encendido: al mover o encoger un acorde, la canción se corre"); }}
-                                                    title={iman ? "Imán encendido: al mover, encoger o quitar un acorde, el resto de la canción se corre y no quedan huecos" : "Imán apagado: al mover, encoger o quitar un acorde, queda su hueco (un silencio)"}
-                                                >
-                                                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h4v8a2 2 0 0 0 4 0V4h4v8a6 6 0 0 1-12 0z" /><path d="M6 8h4M14 8h4" /></svg>
-                                                    Imán
-                                                </button>
+                                                <BotonIman iman={iman} onCambio={(v) => { setIman(v); if (onAviso) onAviso(v ? "Imán encendido: al mover o encoger un acorde, la canción se corre" : "Imán apagado: al mover o encoger un acorde queda su hueco"); }} />
                                             </React.Fragment>
                                         }
                                         song={song}
@@ -8615,6 +8806,7 @@
                                         onMenuCompas={(sec, k, x, y) => { setActiveSectionId(sec); setMenuCompas({ sec, k, x, y }); }}
                                         onMoverAcorde={moverAcorde}
                                         onPulsosAcorde={(sec, k, beats) => editarCompases(sec, b => cambiarDuracion(b, k, beats, iman))}
+                                        iman={iman}
                                         playhead={playhead}
                                         destino={arrastre && arrastre.destino}
                                     />
@@ -8717,16 +8909,7 @@
                                                     {nombreCortoRitmo(ritmoDeLaCancion)} ▾
                                                 </button>
                                                 <span class="k11-panel__ayuda k11-no-movil">suelta un ritmo en el carril Ritmo para una sección, o sobre un acorde para ese acorde</span>
-                                                <button
-                                                    type="button"
-                                                    class={`k-btn k11-chico k11-iman${iman ? " k11-iman--on" : ""}`}
-                                                    aria-pressed={iman}
-                                                    onClick={() => { setIman(!iman); if (onAviso) onAviso(iman ? "Imán apagado: al mover o encoger un acorde queda su hueco" : "Imán encendido: al mover o encoger un acorde, la canción se corre"); }}
-                                                    title={iman ? "Imán encendido: al mover, encoger o quitar un acorde, el resto de la canción se corre y no quedan huecos" : "Imán apagado: al mover, encoger o quitar un acorde, queda su hueco (un silencio)"}
-                                                >
-                                                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h4v8a2 2 0 0 0 4 0V4h4v8a6 6 0 0 1-12 0z" /><path d="M6 8h4M14 8h4" /></svg>
-                                                    Imán
-                                                </button>
+                                                <BotonIman iman={iman} onCambio={(v) => { setIman(v); if (onAviso) onAviso(v ? "Imán encendido: al mover o encoger un acorde, la canción se corre" : "Imán apagado: al mover o encoger un acorde queda su hueco"); }} />
                                             </React.Fragment>
                                         }
                                         song={song}
@@ -8738,6 +8921,7 @@
                                         onMenuCompas={(sec, k, x, y) => { setActiveSectionId(sec); setMenuCompas({ sec, k, x, y }); }}
                                         onMoverAcorde={moverAcorde}
                                         onPulsosAcorde={(sec, k, beats) => editarCompases(sec, b => cambiarDuracion(b, k, beats, iman))}
+                                        iman={iman}
                                         onMenuRitmo={(sec, x, y) => setMenuRitmo({ sec, x, y })}
                                         onEditarRitmo={editarRitmoDe}
                                         playhead={playhead}
@@ -8771,6 +8955,7 @@
                                                 onChange={actualizarRitmo}
                                                 onPlay={() => onPreviewRhythm(patronEnEdicion)}
                                                 onStop={onStopPreview}
+                                                onProbarGolpe={onProbarGolpe}
                                                 sonando={previewSonando}
                                                 bpm={(seccionActiva && seccionActiva.bpm) || song.bpm}
                                                 onAviso={onAviso}
@@ -8831,7 +9016,15 @@
 
                     {/* --- LOS PASOS, EN LA BASE --- */}
                     <footer class="k11-pasos">
-                        <span class="k11-pasos__ayuda"><b>Paso {indicePaso + 1} de 4</b> · {pasoActual.ayuda}</span>
+                        {/* Tercera vuelta: el «?» de ayuda, como en el Taller. El
+                            tutorial llega en otra etapa. */}
+                        <span class="k11-pasos__izq">
+                            <MenuAyuda opciones={[
+                                { icono: "teclado", label: "Atajos de teclado", hacer: () => setDialogoAtajos(true) },
+                                { icono: "abrir", label: "Tutorial", hacer: () => { if (onAviso) onAviso("El tutorial llega pronto."); } }
+                            ]} />
+                            <span class="k11-pasos__ayuda"><b>Paso {indicePaso + 1} de 4</b> · {pasoActual.ayuda}</span>
+                        </span>
                         <nav class="k-tabs k11-pasos__tabs" aria-label="Pasos de la canción">
                             {PASOS_CANCION.map((p, i) => (
                                 <React.Fragment key={p.id}>
@@ -8855,6 +9048,19 @@
                     </footer>
 
                     {fantasma}
+
+                    {dialogoAtajos && (
+                        <Dialogo titulo="Atajos de Canción" ancho="460px" onCerrar={() => setDialogoAtajos(false)}
+                            acciones={<button type="button" onClick={() => setDialogoAtajos(false)} class="k-btn k-btn--primary k-btn--touch px-4 py-2.5 k-text-sm">Listo</button>}>
+                            <dl class="k11-atajos">
+                                <dt><kbd>Espacio</kbd></dt><dd>Tocar o parar la canción</dd>
+                                <dt><kbd>Intro</kbd></dt><dd>Escuchar el acorde elegido en la pista</dd>
+                                <dt><kbd>Alt</kbd> + <kbd>←</kbd> <kbd>→</kbd></dt><dd>Mover la sección o el acorde elegido</dd>
+                                <dt><kbd>Mayús</kbd> + <kbd>←</kbd> <kbd>→</kbd></dt><dd>Medio pulso más o menos para el acorde elegido</dd>
+                                <dt>Clic derecho</dt><dd>Más opciones de un acorde, una sección o una casilla del ritmo</dd>
+                            </dl>
+                        </Dialogo>
+                    )}
 
                     {/* La tarjeta «Tonalidad y notas» de siempre, en un diálogo. */}
                     {dialogoTono && (
@@ -12653,7 +12859,6 @@
                 } catch (e) {}
                 return true;
             });
-            const [menuAyuda, setMenuAyuda] = useState(false);            // 0.8: el «?» de abajo a la izquierda
             const [dialogoEstudio, setDialogoEstudio] = useState(null);   // "exportar" | "atajos" | null
             // El temporizador de la pulsación larga, compartido (ver crearPulsacionLarga).
             const pulsoLargoRef = useRef({ t: null, x: 0, y: 0 });
@@ -13022,6 +13227,64 @@
             const lineWidthStyle = style.lineWidth;
             const baseFingerStyleColor = style.baseFingerColor;
             const intervalColors = style.intervalColors;
+
+            /* 0.11 · tercera vuelta · El mini-mástil del diagrama en horizontal.
+             * Mide lo que mediría el diagrama con 7 trastes (desde el 1) a la
+             * escala a la que se ve ahora, y no cambia con los trastes. La mesa
+             * recibe además el alto real del mini-mástil (`--k11-lupa`) para
+             * restárselo al diagrama: con un número fijo se le quedaba corto y
+             * el mini-mástil pisaba Grados y Tríadas. */
+            const iconoGirar = (
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="8" width="13" height="13" rx="2" />
+                    <path d="M12 3h3a6 6 0 0 1 6 6v1" />
+                    <path d="M18 8l3 2.5L23.5 8" />
+                </svg>
+            );
+            const columnaRef = useRef(null);
+
+            /* El giro, animado: al cambiar de orientación el diagrama nuevo
+             * entra girado un cuarto de vuelta (hacia el lado contrario al que
+             * gira) y algo encogido, y se asienta. Parece que el de antes da la
+             * vuelta. Con movimiento reducido, no se anima. */
+            const giroPrevioRef = useRef(diagramaHorizontal);
+            useLayoutEffect(() => {
+                if (giroPrevioRef.current === diagramaHorizontal) return;
+                giroPrevioRef.current = diagramaHorizontal;
+                const lienzo = columnaRef.current && columnaRef.current.querySelector(".k-lienzo");
+                if (!lienzo || !lienzo.animate) return;
+                if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+                const desde = diagramaHorizontal ? 90 : -90;
+                lienzo.animate([
+                    { transform: `rotate(${desde}deg) scale(.72)`, opacity: 0.35 },
+                    { transform: `rotate(${desde * 0.12}deg) scale(1.02)`, opacity: 1, offset: 0.75 },
+                    { transform: "none", opacity: 1 }
+                ], { duration: 520, easing: "cubic-bezier(.2, .8, .2, 1)" });
+            }, [diagramaHorizontal]);
+            const [gradosMovil, setGradosMovil] = useState(false);   // el submenú de grados del teléfono
+            const [columnaH, setColumnaH] = useState({ largo: 0, lupa: 0 });
+            useLayoutEffect(() => {
+                const col = columnaRef.current;
+                if (!diagramaHorizontal || !col || typeof ResizeObserver === "undefined") return;
+                const geo7 = computeDiagramGeometry({ numStrings, numFrets: 7, startingFret: 1, dotRadius: dotRadiusStyle });
+                const m7 = medidasHorizontal(geo7, fretNumPosition, dotRadiusStyle);
+                const medir = () => {
+                    const svg = col.querySelector(".k-lienzo svg");
+                    const lupa = col.querySelector(".k9-lupa");
+                    const fila = col.parentElement;
+                    if (!svg) return;
+                    const escala = svg.getBoundingClientRect().height / m7.alto;
+                    const tope = fila ? fila.clientWidth - 90 : Infinity;
+                    const largo = Math.round(Math.max(160, Math.min(tope, m7.ancho * escala)));
+                    const alto = lupa ? Math.round(lupa.getBoundingClientRect().height) : 0;
+                    setColumnaH(prev => (Math.abs(prev.largo - largo) > 1 || Math.abs(prev.lupa - alto) > 1) ? { largo, lupa: alto } : prev);
+                };
+                const ro = new ResizeObserver(medir);
+                ro.observe(col);
+                if (col.parentElement) ro.observe(col.parentElement);
+                medir();
+                return () => ro.disconnect();
+            }, [diagramaHorizontal, numStrings, dotRadiusStyle, fretNumPosition]);
             // Prueba: la piel «madera» del diapasón (ver render-core-prueba.js).
             const maderaSkin = style.fretboardSkin === "madera";
 
@@ -13812,12 +14075,12 @@
 
                         if (notas.length > 0) {
                             Song.rhythmEventsForBar(compas.rhythmId, compas.beats, compas.bpm, song.customRhythms).forEach(evento => {
-                                const golpe = Song.notesForEvent(notas, evento);
-                                golpe.forEach((midi, i) => {
-                                    // `spread` es lo que separa un rasgueo de un
-                                    // acorde de piano: las cuerdas no suenan a la vez.
-                                    const cuando = inicioCompas + evento.atSeconds + i * evento.spread;
-                                    synthInstance.playNote(midi, evento.duration || 1.1, Math.max(0, cuando - ahora), evento.gain);
+                                // `strokeForEvent`: el orden, el barrido (`spread`, lo
+                                // que separa un rasgueo de un acorde de piano) y el
+                                // crescendo que hace oír si va ↓ o ↑.
+                                Song.strokeForEvent(notas, evento).forEach(n => {
+                                    const cuando = inicioCompas + evento.atSeconds + n.offset;
+                                    synthInstance.playNote(n.midi, evento.duration || 1.1, Math.max(0, cuando - ahora), n.gain);
                                 });
                             });
                         }
@@ -13918,9 +14181,37 @@
              * --------------------------------------------------------------- */
             const previewPatronRef = useRef(null);
 
-            const timbreDelGolpe = (evento) => {
-                if (evento.muted) return "seco";
-                return evento.dir === "up" ? "alto" : "golpe";
+            /* Tercera vuelta de la 0.11: ya no es sólo percusión. Con ruido no
+             * se oía si el golpe iba hacia abajo o hacia arriba, que es justo
+             * lo que se está escribiendo. Ahora suena un acorde rasgueado
+             * (el primero de la sección activa; si no hay, las cuerdas al
+             * aire), con notas cortas para que el ritmo se siga contando. El
+             * apagado (×) sigue siendo el chasquido. */
+            const notasParaProbarRitmo = () => {
+                const sec = seccionActivaDeLaCancion();
+                const acorde = sec && sec.bars
+                    .map(b => b.chordId && chordLibrary.find(c => c.id === b.chordId))
+                    .find(Boolean);
+                const notas = acorde ? chordVoicingToMidi(acorde) : [];
+                return notas.length ? notas : [40, 45, 50, 55, 59, 64];
+            };
+            const tocarGolpe = (evento, cuando, notas, largo) => {
+                const espera = (t) => Math.max(0, t - synthInstance.ctx.currentTime);
+                if (evento.muted) { synthInstance.playPercussion("seco", espera(cuando), evento.gain); return; }
+                const esPunteo = evento.pick !== null && evento.pick !== undefined;
+                Song.strokeForEvent(notas, evento).forEach(n => {
+                    synthInstance.playNote(n.midi, esPunteo ? Math.max(0.5, largo) : largo, espera(cuando + n.offset), n.gain);
+                });
+            };
+            // Una casilla del compositor, al escribirla: se oye ese golpe solo.
+            const probarGolpe = (celda) => {
+                if (!celda) return;
+                synthInstance.init();
+                const notas = notasParaProbarRitmo();
+                const ahora = synthInstance.ctx.currentTime + 0.02;
+                Song.gridToEvents({ beats: 1, subdivision: 1, cells: [celda] }).forEach(ev => {
+                    tocarGolpe({ ...ev, spread: (ev.spread || 0) / 1000, pick: typeof ev.pick === "number" ? ev.pick : null }, ahora, notas, 0.45);
+                });
             };
 
             const previewRhythm = (patron) => {
@@ -13939,14 +14230,15 @@
                  * bucle» y programaba dos pasadas: se paraba justo cuando
                  * empezabas a contarlo. Se reprograma una vuelta cada vez, con
                  * el reloj de Web Audio, que es el exacto. */
+                const notas = notasParaProbarRitmo();
                 const programarVuelta = (desde) => {
-                    Song.rhythmEventsForBar(patron.id, patron.beats, bpm, song.customRhythms).forEach(evento => {
-                        const cuando = desde + evento.atSeconds;
-                        synthInstance.playPercussion(
-                            timbreDelGolpe(evento),
-                            Math.max(0, cuando - synthInstance.ctx.currentTime),
-                            evento.gain
-                        );
+                    const eventos = Song.rhythmEventsForBar(patron.id, patron.beats, bpm, song.customRhythms);
+                    eventos.forEach((evento, i) => {
+                        // Cada golpe dura hasta el siguiente (y nunca más de
+                        // 0,35 s): así se oye el barrido y el ritmo no se emborrona.
+                        const siguiente = i + 1 < eventos.length ? eventos[i + 1].atSeconds : duracionVuelta + (eventos[0] ? eventos[0].atSeconds : 0);
+                        const largo = Math.min(0.35, Math.max(0.12, siguiente - evento.atSeconds));
+                        tocarGolpe(evento, desde + evento.atSeconds, notas, largo);
                     });
                 };
 
@@ -16593,22 +16885,59 @@
 
             // Tira horizontal para móvil: el mismo dato en una fila que se
             // desliza, en vez de una columna que roba alto al diagrama.
+            /* 0.11: en el teléfono la tira ocupaba una fila entera y se cortaba;
+             * ahora es un botón «Grados» que despliega la lista. Entre 768 y
+             * 1279 px sigue la tira. */
             const renderLegendStrip = () => {
                 if (appMode === "chord" || appMode === "free" || !showLegend) return null;
+                const chip = (item, idx) => (
+                    <span key={idx} class="k-chip shrink-0" title={item.degreeName}>
+                        <span
+                            class="k9-grado__bola k9-grado__bola--chica"
+                            style={{ backgroundColor: item.color, color: tintaLegibleSobre(item.color) }}
+                        >
+                            {item.noteName}
+                        </span>
+                        {item.degreeCorto}
+                    </span>
+                );
                 return (
-                    <div class="k-strip xl:hidden w-full shrink-0 flex gap-1.5 pb-1">
-                        {getLegendItems().map((item, idx) => (
-                            <span key={idx} class="k-chip shrink-0" title={item.degreeName}>
-                                <span
-                                    class="k9-grado__bola k9-grado__bola--chica"
-                                    style={{ backgroundColor: item.color, color: tintaLegibleSobre(item.color) }}
-                                >
-                                    {item.noteName}
-                                </span>
-                                {item.degreeCorto}
-                            </span>
-                        ))}
-                    </div>
+                    <React.Fragment>
+                        <div class="k-strip hidden md:flex xl:hidden w-full shrink-0 gap-1.5 pb-1">
+                            {getLegendItems().map(chip)}
+                        </div>
+                        <div class="k12-grados md:hidden">
+                            <button
+                                type="button"
+                                class={`k-chip k12-grados__boton${gradosMovil ? " k12-grados__boton--abierto" : ""}`}
+                                aria-expanded={gradosMovil}
+                                aria-haspopup="true"
+                                onClick={() => setGradosMovil(v => !v)}
+                            >
+                                <Icono nombre="estilo" tam={14} />
+                                Grados
+                                <span aria-hidden="true">▾</span>
+                            </button>
+                            {gradosMovil && (
+                                <React.Fragment>
+                                    <div class="fixed inset-0 z-40" onClick={() => setGradosMovil(false)} aria-hidden="true" />
+                                    <div class="k12-grados__lista" role="list" aria-label="Grados de la escala">
+                                        {getLegendItems().map((item, idx) => (
+                                            <span key={idx} role="listitem" class="k12-grados__item">
+                                                <span
+                                                    class="k9-grado__bola k9-grado__bola--chica"
+                                                    style={{ backgroundColor: item.color, color: tintaLegibleSobre(item.color) }}
+                                                >
+                                                    {item.noteName}
+                                                </span>
+                                                <span>{item.degreeName || item.degreeCorto}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </React.Fragment>
+                            )}
+                        </div>
+                    </React.Fragment>
                 );
             };
 
@@ -16812,9 +17141,10 @@
                             // si no, fijar una y apartar el ratón la apagaría.
                             onMouseLeave={() => setGradoTriada(gradoFijado)}
                         >
-                            <span class={lateral ? "k10-triadas__rot" : "k-label shrink-0 mr-1"} id={lateral ? "k10-elige-triada" : "k2-elige-triada"}>{lateral ? "Tríadas" : "Elige tríada"}</span>
-                            <div role="radiogroup" aria-labelledby={lateral ? "k10-elige-triada" : "k2-elige-triada"} class={lateral ? "k10-triadas__lista" : "flex items-center gap-1.5"}>
-                            <button
+                            {lateral && <span class="k10-triadas__rot" id="k10-elige-triada">Tríadas</span>}
+                            <div role="radiogroup" {...(lateral ? { "aria-labelledby": "k10-elige-triada" } : { "aria-label": "Tríadas de la escala" })} class={lateral ? "k10-triadas__lista" : "flex items-center gap-1.5"}>
+                            {/* En el teléfono no va «Todas»: tocar la tríada fijada la suelta. */}
+                            {lateral && <button
                                 type="button"
                                 role="radio"
                                 aria-checked={gradoFijado === null}
@@ -16830,7 +17160,7 @@
                                 title="Ver las siete a la vez, flojas"
                             >
                                 Todas
-                            </button>
+                            </button>}
                             {triadasVisibles.map((g, gi) => {
                                 const color = DEFAULT_STYLE.triadRingColors[gi % DEFAULT_STYLE.triadRingColors.length];
                                 const senalada = gradoTriada === g.grado;
@@ -16844,8 +17174,10 @@
                                         onMouseEnter={() => setGradoTriada(g.grado)}
                                         onFocus={() => setGradoTriada(g.grado)}
                                         onClick={() => {
-                                            setGradoFijado(g.grado);
-                                            setGradoTriada(g.grado);
+                                            // En el teléfono no hay «Todas»: tocar la fijada la suelta.
+                                            const soltar = !lateral && gradoFijado === g.grado;
+                                            setGradoFijado(soltar ? null : g.grado);
+                                            setGradoTriada(soltar ? null : g.grado);
                                         }}
                                         onContextMenu={(e) => {
                                             e.preventDefault();
@@ -18232,13 +18564,26 @@
                             {appMode !== "free" && (
                                 <SelectorRotativo etiqueta="Dentro de cada nota" sinRotulo opciones={opcionesEtiqueta} valor={valorEtiqueta} onCambio={cambiarEtiqueta} />
                             )}
-                            <Conmutador
-                                etiqueta="Números de traste"
-                                rotulo="Números de traste"
-                                valor={fretNumPosition}
-                                onCambio={setFretNumPosition}
-                                opciones={[{ id: "left", label: "L", ayuda: "Números a la izquierda" }, { id: "right", label: "R", ayuda: "Números a la derecha" }]}
-                            />
+                            {/* Con el diagrama acostado, la derecha queda arriba y la
+                                izquierda abajo: el conmutador lo dice así. El dato es el mismo. */}
+                            {diagramaHorizontal ? (
+                                <Conmutador
+                                    etiqueta="Números de traste"
+                                    rotulo="Números de traste"
+                                    valor={fretNumPosition}
+                                    onCambio={setFretNumPosition}
+                                    vertical
+                                    opciones={[{ id: "right", label: "Arriba", ayuda: "Números arriba del diagrama" }, { id: "left", label: "Abajo", ayuda: "Números debajo del diagrama" }]}
+                                />
+                            ) : (
+                                <Conmutador
+                                    etiqueta="Números de traste"
+                                    rotulo="Números de traste"
+                                    valor={fretNumPosition}
+                                    onCambio={setFretNumPosition}
+                                    opciones={[{ id: "left", label: "L", ayuda: "Números a la izquierda" }, { id: "right", label: "R", ayuda: "Números a la derecha" }]}
+                                />
+                            )}
                         </Pedal>
 
                         {/* ============ EQ DE GRADOS ============ */}
@@ -18431,7 +18776,7 @@
                         {/* Logo a la izquierda y pestañas en el centro: el
                             tercio derecho queda vacío a propósito, para que las
                             pestañas caigan sobre el eje del lienzo. */}
-                        <div class="flex items-center justify-between gap-3 px-3 py-2 md:px-5 md:py-2.5 lg:grid lg:grid-cols-[auto_1fr_auto]">
+                        <div class="k12-cabecera flex items-center justify-between gap-3 px-3 py-2 md:px-5 md:py-2.5 lg:grid lg:grid-cols-[auto_1fr_auto]">
                             {/* El logo es la vuelta a la portada. No hay un botón
                                 «Inicio» aparte porque el logo ya es el sitio donde
                                 todo el mundo pincha para volver al principio. */}
@@ -18490,6 +18835,13 @@
                                     />
                                 ))}
                                 <InterruptorModo />
+                                {/* 0.11: en el teléfono la pedalera se abre desde aquí
+                                    (antes, desde los cuatro botones de abajo). */}
+                                {appView === "studio" && (
+                                    <span class="md:hidden">
+                                        <BotonIcono icono="panel" etiqueta={inspectorAbierto ? "Ocultar la pedalera" : "Pedalera"} activo={inspectorAbierto} onClick={() => alternarInspector()} variante="borde" />
+                                    </span>
+                                )}
                                 {appView === "studio" && (
                                     <button
                                         type="button"
@@ -18511,11 +18863,9 @@
                             <div class="lg:hidden px-2 pb-1">
                                 <NavSitio vista={appView} onIr={irA} fila />
                             </div>
-                        ) : (
-                            <div class="md:hidden px-2 pb-2">
-                                <ModeTabs items={MODE_TABS} active={appView === "studio" ? appMode : appView} onSelect={selectMode} stretch />
-                            </div>
-                        )}
+                        ) : null}
+                        {/* 0.11: en el teléfono las secciones bajan a la barra de
+                            iconos de abajo (`BarraMovilTaller`). */}
                     </header>
 
                     {/* 0.2: el cuerpo. En la app, el raíl de secciones a la
@@ -18570,6 +18920,7 @@
                             onBorrarTodosLosAcordes={borrarTodosLosAcordes}
                             onMandarAcordeA={mandarAcordeA}
                             onPreviewRhythm={previewRhythm}
+                            onProbarGolpe={probarGolpe}
                             onStopPreview={stopPreviewRhythm}
                             previewSonando={previewSonando}
                             onAviso={showToast}
@@ -18692,11 +19043,7 @@
                                 title={diagramaHorizontal ? "Volver al diagrama en vertical" : "Diagrama en horizontal: la cejuela a la izquierda y la 6.ª cuerda abajo"}
                                 onClick={() => setDiagramaHorizontal(!diagramaHorizontal)}
                             >
-                                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="8" width="13" height="13" rx="2" />
-                                    <path d="M12 3h3a6 6 0 0 1 6 6v1" />
-                                    <path d="M18 8l3 2.5L23.5 8" />
-                                </svg>
+                                {iconoGirar}
                                 <span>{diagramaHorizontal ? "Horizontal" : "Vertical"}</span>
                             </button>
 
@@ -18716,11 +19063,22 @@
                                     {/* En el teléfono Tríadas va en la esquina del lienzo
                                         (Vaciar ya vive arriba, junto a deshacer). */}
                                     {botonTriadas("k2-vaciar--esquina md:hidden")}
-                                    <div class={`kp-milimetrado k8-mesa${diagramaHorizontal ? " k11-horizontal" : ""}${appMode === "scale" || appMode === "arpeggio" ? " k8-mesa--con-abajo" : ""}${appMode === "scale" ? " k9-mesa--triadas" : ""}${(appMode === "scale" || appMode === "arpeggio") && showLegend ? " k10-con-grados" : ""}${appMode === "scale" && scaleTriads && triadasVisibles.length > 0 ? " k10-con-triadas" : ""} min-h-0 p-2 sm:p-4 rounded-2xl border flex flex-col gap-2`} style={{borderColor:'var(--k-divider)'}}>
+                                    <div class={`kp-milimetrado k8-mesa${diagramaHorizontal ? " k11-horizontal" : ""}${appMode === "scale" || appMode === "arpeggio" ? " k8-mesa--con-abajo" : ""}${appMode === "scale" ? " k9-mesa--triadas" : ""}${(appMode === "scale" || appMode === "arpeggio") && showLegend ? " k10-con-grados" : ""}${appMode === "scale" && scaleTriads && triadasVisibles.length > 0 ? " k10-con-triadas" : ""} min-h-0 p-2 sm:p-4 rounded-2xl border flex flex-col gap-2`} style={{ borderColor: 'var(--k-divider)', ...(diagramaHorizontal ? { "--k11-lupa": `${columnaH.lupa || 72}px` } : {}) }}>
                                         {/* 0.8: deshacer y rehacer, arriba de la mesa: junto a lo que cambian. */}
                                         <div class="k8-mesa__arriba" role="toolbar" aria-label="Historial del diagrama">
                                             <BotonIcono icono="deshacer" etiqueta="Deshacer (Ctrl+Z)" onClick={() => pulsarDeshacer(false)} disabled={!historial.hayQueDeshacer} />
                                             <BotonIcono icono="rehacer" etiqueta="Rehacer (Ctrl+Shift+Z)" onClick={() => pulsarDeshacer(true)} disabled={!historial.hayQueRehacer} />
+                                            {/* 0.11: en el teléfono el botón de girar va aquí, en la
+                                                fila de deshacer: flotando encima tapaba deshacer y Vaciar. */}
+                                            <button
+                                                type="button"
+                                                class={`k11-girar-movil md:hidden${diagramaHorizontal ? " k11-girar--on" : ""}`}
+                                                aria-pressed={diagramaHorizontal}
+                                                aria-label={diagramaHorizontal ? "Volver al diagrama en vertical" : "Diagrama en horizontal"}
+                                                onClick={() => setDiagramaHorizontal(!diagramaHorizontal)}
+                                            >
+                                                {iconoGirar}
+                                            </button>
                                             {/* 0.9: Vaciar, al lado de deshacer: lo que borra junto a
                                                 lo que lo devuelve. */}
                                             {modoEditable && (
@@ -18740,6 +19098,10 @@
                                     <div class="k8-mesa__cuerpo flex-1 min-h-0 flex flex-col xl:flex-row items-center xl:items-stretch justify-center gap-3 xl:gap-6">
                                         <div class="k8-mesa__fila flex-1 min-h-0 flex items-center justify-center gap-2 md:gap-3">
                                             {piezaTriadas(true)}
+                                            {/* Tercera vuelta: diagrama + mini-mástil en su propia
+                                                columna, para que las tríadas sigan a la izquierda
+                                                también en horizontal. En vertical es `display: contents`. */}
+                                            <div class="k11-columna" ref={columnaRef}>
                                             <div class={"k-lienzo" + (modoAMano ? " k-lienzo--a-mano" : "")}>
                                         <DiagramaKharo escena={escenaDelEstudio()} interaccion={interaccionDelEstudio()} />
                                     </div>
@@ -18747,8 +19109,9 @@
                                             {/* 0.9: la lupa sustituye a Trastes y Posición. */}
                                             {/* 0.11: en horizontal el mini-mástil va acostado, debajo del diagrama. */}
                                             {diagramaHorizontal
-                                                ? <VentanaMastil {...propsVentana} orientacion="horizontal" className="flex" />
+                                                ? <VentanaMastil {...propsVentana} orientacion="horizontal" className="flex" largo={columnaH.largo || undefined} />
                                                 : <VentanaMastil {...propsVentana} className="hidden md:flex" />}
+                                            </div>
                                         </div>
 
                                         {/* En el teléfono la lupa se acuesta y va debajo del
@@ -18801,26 +19164,11 @@
                                     El volumen deja de depender del clic
                                     derecho, que en el teléfono no existe. */}
                                 <div class="k8-pie">
-                                <div class="k8-pie__ayuda k2-no-movil">
-                                    <BotonIcono icono="ayuda" etiqueta="Ayuda" activo={menuAyuda} onClick={() => setMenuAyuda(v => !v)} variante="borde" extra={{ "aria-haspopup": "menu", "aria-expanded": menuAyuda }} />
-                                    {menuAyuda && (
-                                        <React.Fragment>
-                                            <div class="fixed inset-0 z-40" onClick={() => setMenuAyuda(false)} aria-hidden="true" />
-                                            <div class="k8-ayuda" role="menu" aria-label="Ayuda" onKeyDown={(e) => { if (e.key === "Escape") setMenuAyuda(false); }}>
-                                                <button type="button" role="menuitem" class="k8-ayuda__opcion" autoFocus onClick={() => { setMenuAyuda(false); setDialogoEstudio("atajos"); }}>
-                                                    <Icono nombre="teclado" />
-                                                    <span>Atajos de teclado</span>
-                                                    <kbd>?</kbd>
-                                                </button>
-                                                {/* 0.8: el botón ya está; lo que hace llega en otra etapa. */}
-                                                <button type="button" role="menuitem" class="k8-ayuda__opcion" onClick={() => { setMenuAyuda(false); showToast("El tutorial llega pronto."); }}>
-                                                    <Icono nombre="abrir" />
-                                                    <span>Tutorial</span>
-                                                </button>
-                                            </div>
-                                        </React.Fragment>
-                                    )}
-                                </div>
+                                {/* 0.8: Tutorial ya está; lo que hace llega en otra etapa. */}
+                                <MenuAyuda className="k8-pie__ayuda k2-no-movil" opciones={[
+                                    { icono: "teclado", label: "Atajos de teclado", kbd: "?", hacer: () => setDialogoEstudio("atajos") },
+                                    { icono: "abrir", label: "Tutorial", hacer: () => showToast("El tutorial llega pronto.") }
+                                ]} />
                                 <div class="k5-pildora" role="group" aria-label="Sonido" style={{ position: "relative" }}>
                                     <button
                                         type="button"
@@ -18890,7 +19238,7 @@
                                 </div>
                                 </div>
 
-                                <p class="k-hint select-none text-center px-3 py-1">
+                                <p class="k-hint k12-pista select-none text-center px-3 py-1">
                                     <span aria-hidden="true" style={{ color: 'var(--k-accent)' }}>●</span>
                                     {pistaDelLienzo()}
                                 </p>
@@ -18925,22 +19273,8 @@
                             )}
                         </div>
 
-                        {/* --- EL DOCK (sólo teléfono) --- 0.6: un botón por pedal,
-                            con su nombre debajo del icono. */}
-                        <nav class="k2-dock k6-dock" aria-label="Pedales">
-                            {PEDALES.map(p => (
-                                <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => abrirPestana(p.id)}
-                                    aria-pressed={inspectorAbierto && pestanaInspector === p.id}
-                                    class={`k2-dock__boton ${inspectorAbierto && pestanaInspector === p.id ? "k2-dock__boton--activo" : ""}`}
-                                >
-                                    <Icono nombre={p.icono} tam={20} />
-                                    <span>{p.label}</span>
-                                </button>
-                            ))}
-                        </nav>
+                        {/* 0.11: el dock de pedales del teléfono se quitó; la
+                            pedalera se abre desde su botón de la cabecera. */}
 
                         {/* --- EXPORTAR --- */}
                         {dialogoEstudio === "exportar" && (
@@ -18995,6 +19329,9 @@
                     </div>
                     {cargandoTaller && <CargaTaller texto={cargandoTaller === "portada" ? "Volviendo a la portada…" : null} />}
                     </div>
+
+                    {/* 0.11: en el teléfono, las siete secciones abajo, en iconos. */}
+                    {!esSitio && <BarraMovilTaller activo={appView === "studio" ? appMode : appView} onSelect={selectMode} />}
 
                     {/* --- LOS MENÚS DE CLIC DERECHO ---
                         Van FUERA del SVG: son piel, no obra, así que usan el

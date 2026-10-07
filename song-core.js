@@ -197,7 +197,7 @@
             if (!celda) return;
             const posicion = (i / sub) * nuevaSub;         // en casillas nuevas
             if (Number.isInteger(posicion) && posicion < celdas.length) {
-                celdas[posicion] = { ...celda };
+                celdas[posicion] = celda.picks ? { ...celda, picks: celda.picks.slice() } : { ...celda };
             } else {
                 perdidas++;
             }
@@ -209,14 +209,15 @@
         };
     }
 
-    function createStrumPattern(nombre, beats) {
+    function createStrumPattern(nombre, beats, tipo) {
         const pulsos = beats || 4;
         return {
             id: newId("rit"),
-            name: nombre || "Mi rasgueo",
+            name: nombre || (tipo === "arpegio" ? "Mi arpegio" : "Mi rasgueo"),
             beats: pulsos,
             subdivision: SUBDIVISION_POR_DEFECTO,
             propio: true,
+            tipo: tipo === "arpegio" ? "arpegio" : "rasgueo",
             cells: new Array(pulsos * SUBDIVISION_POR_DEFECTO).fill(null)
         };
     }
@@ -245,12 +246,38 @@
         return valor ? { ...valor } : null;
     }
 
+    /* Una casilla guardada: rasgueo `{ dir, accent, muted }`, arpeggio
+     * `{ picks: [0, 2], accent }` (notas del acorde, 0 = la más grave) o
+     * vacía. Lo que no se entienda se queda en silencio. */
+    function normalizarCelda(c) {
+        if (!c) return null;
+        if (Array.isArray(c.picks)) {
+            const picks = c.picks
+                .map(Number)
+                .filter((n, i, a) => Number.isInteger(n) && n >= 0 && n <= 7 && a.indexOf(n) === i)
+                .sort((x, y) => x - y);
+            return picks.length ? { picks, accent: !!c.accent } : null;
+        }
+        if (c.dir) return { dir: c.dir === "up" ? "up" : "down", accent: !!c.accent, muted: !!c.muted };
+        return null;
+    }
+
     function gridToEvents(pattern) {
         const sub = pattern.subdivision || SUBDIVISION_POR_DEFECTO;
         const eventos = [];
 
         (pattern.cells || []).forEach((celda, i) => {
             if (!celda) return;
+
+            /* Una casilla de ARPEGIO: las notas sueltas que suenan en ella
+             * (0 = la más grave). Dos a la vez son un pellizco. Salen como
+             * punteos, los mismos `{ at, pick }` de los patrones de fábrica. */
+            if (Array.isArray(celda.picks)) {
+                celda.picks.forEach(pick => {
+                    eventos.push({ at: i / sub, pick, gain: celda.accent ? 1 : 0.8, accent: !!celda.accent });
+                });
+                return;
+            }
 
             eventos.push({
                 at: i / sub,
@@ -614,6 +641,26 @@
         return evento.dir === "up" ? seleccion.slice().reverse() : seleccion;
     }
 
+    /* Un golpe, nota a nota: qué suena, con cuánto retraso y con qué fuerza.
+     *
+     * Ordenar las notas no bastaba para OÍR la dirección: con 20 ms entre
+     * cuerda y cuerda y todas igual de fuertes, ↓ y ↑ se confundían. Ahora el
+     * barrido lleva un pequeño crescendo (la mano acelera y la última cuerda
+     * que toca suena más) y hacia arriba nunca baja de 22 ms. Lo usan la
+     * canción y el ▶ del compositor, así que suenan igual. */
+    function strokeForEvent(notas, evento) {
+        const golpe = notesForEvent(notas, evento);
+        const n = golpe.length;
+        const esPunteo = evento.pick !== null && evento.pick !== undefined;
+        const spread = esPunteo ? 0 : Math.max(evento.spread || 0, evento.dir === "up" ? 0.022 : 0);
+        const fuerza = evento.gain === undefined ? 1 : evento.gain;
+        return golpe.map((midi, i) => ({
+            midi,
+            offset: i * spread,
+            gain: fuerza * (n > 1 && !esPunteo ? 0.78 + 0.22 * (i / (n - 1)) : 1)
+        }));
+    }
+
     /* --- Guardado ---------------------------------------------------------
      *
      * localStorage puede lanzar excepción sin que haya nada roto: en ventana
@@ -702,9 +749,9 @@
                         beats: Number(r.beats) > 0 ? Number(r.beats) : 4,
                         subdivision: Number(r.subdivision) > 0 ? Number(r.subdivision) : SUBDIVISION_POR_DEFECTO,
                         propio: true,
-                        cells: r.cells.map(c => c && c.dir
-                            ? { dir: c.dir === "up" ? "up" : "down", accent: !!c.accent, muted: !!c.muted }
-                            : null)
+                        // Rasgueo o arpegio: lo pide el compositor, el motor no lo mira.
+                        tipo: r.tipo === "arpegio" ? "arpegio" : "rasgueo",
+                        cells: r.cells.map(normalizarCelda)
                     }))
                 : [],
             notes: typeof bruto.notes === "string" ? bruto.notes : "",
@@ -995,6 +1042,7 @@
         expandSong,
         rhythmEventsForBar,
         notesForEvent,
+        strokeForEvent,
 
         paginateSong,
 

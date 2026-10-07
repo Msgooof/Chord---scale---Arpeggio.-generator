@@ -226,6 +226,13 @@
     border-top: 1px solid var(--k-divider);
     background-color: var(--k-surface);
 }
+/* Tercera vuelta: el «?» a la izquierda, antes del texto del paso. */
+.k11-pasos__izq { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.k11-menu-ayuda { position: relative; flex: none; }
+.k11-atajos { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: baseline; margin: 0; font-size: 14px; }
+.k11-atajos dt { font-weight: 700; white-space: nowrap; }
+.k11-atajos dd { margin: 0; color: var(--k-text-muted); }
+.k11-atajos kbd { font: 700 12px var(--k-font-ui); padding: 1px 6px; border: 1px solid var(--k-divider); border-bottom-width: 2px; border-radius: 4px; }
 .k11-pasos__ayuda { min-width: 0; font-size: 12px; color: var(--k-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .k11-pasos__ayuda b { color: var(--k-text); }
 .k11-pasos__tabs { justify-self: center; align-items: center; }
@@ -248,7 +255,7 @@
 
 @media (max-width: 767px) {
     .k11-pasos { grid-template-columns: 1fr auto; padding: 6px 8px; gap: 8px; }
-    .k11-pasos__ayuda { display: none; }
+    .k11-pasos__ayuda, .k11-pasos__izq { display: none; }
     .k11-pasos__tabs { justify-self: start; }
     .k11-pasos__sep { display: none; }
     .k11-pasos .k-tab:not(.k-tab--active) .k11-paso__nombre { display: none; }
@@ -897,6 +904,33 @@ body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user
 .k11 .k-strum-cell--arriba { background-color: var(--k11-golpe-arriba); color: #fff; }
 .k11 .k-strum-cell--accent { box-shadow: inset 0 0 0 2px var(--k-text); }
 .k11 .k-strum-cell--muted { background-color: transparent; border: 1px dashed var(--k-text-muted); color: var(--k-text-muted); }
+
+/* Tercera vuelta · La rejilla del arpegio: una fila por nota del acorde (la
+ * aguda arriba, el bajo abajo, como en una tablatura). Encendida, morado de
+ * punteo; acentuada, con aro. Debajo, la misma regla de pulsos. */
+.k11-arp { display: grid; gap: 2px; min-width: max-content; align-items: center; }
+.k11-arp__rot {
+    padding-right: 8px;
+    font: 700 10px var(--k-font-ui);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--k-text-muted);
+    text-align: right;
+}
+.k11-arp__celda {
+    height: 22px;
+    min-width: 26px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background-color: var(--k-surface-raised);
+    cursor: pointer;
+    transition: background-color .1s;
+}
+.k11-arp__celda--pulso { border-color: var(--k-border); }
+.k11-arp__celda:hover { background-color: var(--k-border); }
+.k11-arp__celda--on, .k11-arp__celda--on:hover { background-color: var(--k11-golpe-punteo); border-color: transparent; }
+.k11-arp__celda--acento { box-shadow: inset 0 0 0 2px var(--k-text); }
+.k11-arp__celda:focus-visible { outline: 2px solid var(--k-text); outline-offset: 1px; }
 .k11 .k-strum-ruler--beat { color: var(--k-text); }
 .k11-carril--rasgueo .k11-rasgueo-acorde i.k11-t--d { background-color: var(--k11-golpe-abajo); }
 .k11-carril--rasgueo .k11-rasgueo-acorde i.k11-t--u { background-color: var(--k11-golpe-arriba); }
@@ -940,6 +974,41 @@ body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user
 .k11-iman { background: transparent; border: 1px solid var(--k-border); color: var(--k-text-muted); }
 .k11-iman--on { background-color: var(--k-text); border-color: var(--k-text); color: var(--k-bg); }
 .k11-iman svg { flex: none; }
+
+/* Tercera vuelta · Un globo con lo que hace un botón de sólo icono, debajo
+ * (arriba lo cortaba la pista al desplazarse). Sale al
+ * dejar el ratón encima un segundo (o al llegar con el teclado) y se va al
+ * momento. Lleva el texto en `data-globo`; vale para cualquier icono. */
+.k11-con-globo { position: relative; }
+.k11-con-globo::after {
+    content: attr(data-globo);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    z-index: 30;
+    width: max-content;
+    max-width: 240px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    background-color: var(--k-text);
+    color: var(--k-bg);
+    font: 600 11px/1.35 var(--k-font-ui);
+    letter-spacing: 0;
+    text-transform: none;
+    text-align: left;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -4px);
+    transition: opacity .12s ease, transform .12s ease;
+    transition-delay: 0s;
+}
+.k11-con-globo:hover::after, .k11-con-globo:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    transition-delay: 1s;
+}
+@media (hover: none) { .k11-con-globo::after { display: none; } }
 
 /* Los silencios (los huecos que deja el imán apagado) */
 .k11-acb--silencio, .k11-acb--silencio:hover {
@@ -1060,9 +1129,26 @@ body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user
 @media (min-width: 1280px) {
     .k11-girar--con-pedalera { right: calc(440px + 12px); }
 }
+/* En el teléfono el botón flotante tapaba deshacer y Vaciar: se esconde y
+ * va uno redondo, solo icono, en la fila de deshacer (`.k11-girar-movil`). */
 @media (max-width: 767px) {
-    .k11-girar { right: auto; left: 12px; }
+    .k11-girar { display: none; }
 }
+.k11-girar-movil {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-left: 4px;
+    border: 0;
+    border-radius: 999px;
+    background-color: var(--k-marker);
+    color: var(--k-marker-ink);
+    cursor: pointer;
+}
+.k11-girar-movil svg { transition: transform .2s ease; }
+.k11-girar-movil.k11-girar--on svg { transform: rotate(-90deg); }
+@media (min-width: 768px) { .k11-girar-movil { display: none; } }
 @media (prefers-reduced-motion: reduce) {
     .k11-girar, .k11-girar svg { transition: none; }
 }
@@ -1070,12 +1156,25 @@ body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user
 /* La mesa en horizontal: el mini-mástil, acostado, va debajo del diagrama
  * (dentro de su fila); la leyenda sigue a un lado. Al diagrama se le quita
  * el alto de esa tira. */
+/* Tercera vuelta: diagrama y mini-mástil van en `.k11-columna`; la fila sigue
+ * en horizontal, así que las tríadas quedan a la izquierda. Al diagrama se le
+ * resta el alto REAL del mini-mástil (`--k11-lupa`, lo mide la mesa): con un
+ * número fijo se quedaba corto y el mini-mástil pisaba Grados y Tríadas. */
+.k11-columna { display: contents; }
 @media (min-width: 768px) {
-    .k8-mesa.k11-horizontal .k8-mesa__fila { flex-direction: column; }
-    .k8-mesa.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 150px); }
+    .k8-mesa.k11-horizontal .k11-columna {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .k8-mesa.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 86px - var(--k11-lupa, 72px)); }
     .k8-mesa--con-abajo.k11-horizontal .k-fretboard-fit,
-    .k9-mesa--triadas.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 194px); }
+    .k9-mesa--triadas.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 130px - var(--k11-lupa, 72px)); }
 }
+/* El mini-mástil de largo fijo: no se estira a lo ancho de la columna. */
+.k9-lupa--horizontal.k9-lupa--fija { width: auto; max-width: 100%; }
 /* Con la leyenda de grados al lado, en horizontal el círculo se achica: el
  * diagrama acostado necesita el ancho. */
 @media (min-width: 1280px) {
@@ -1083,3 +1182,109 @@ body.k11-arrastrando, body.k11-arrastrando * { cursor: grabbing !important; user
     .k8-mesa.k10-con-grados.k11-horizontal .k-fretboard-fit { max-width: calc(100cqw - 110px - 300px); }
     .k8-mesa.k10-con-grados.k10-con-triadas.k11-horizontal .k-fretboard-fit { max-width: calc(100cqw - 250px - 300px); }
 }
+
+/* ==========================================================================
+ * 0.11 · La barra de abajo del teléfono
+ * Las siete secciones con los iconos de la barra de escritorio, en una sola
+ * franja, con el nombre chiquito debajo. La activa, en su color (como en
+ * escritorio). Sustituye a las pestañas de texto de arriba y al dock de
+ * pedales. La pista del lienzo («Arrastra entre cuerdas…») no sale aquí.
+ * ========================================================================== */
+.k12-barra-movil { display: none; }
+@media (max-width: 767px) {
+    .k12-barra-movil {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        flex: none;
+        gap: 2px;
+        padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+        background-color: var(--k-surface);
+        border-top: 1px solid var(--k-divider);
+        z-index: 42;
+    }
+    .k12-pista { display: none; }
+}
+.k12-barra-movil__boton {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 0 2px;
+    border: 0;
+    background: none;
+    color: var(--k-text-muted);
+    cursor: pointer;
+}
+.k12-barra-movil__icono {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 30px;
+    border-radius: 9px;
+    transition: background-color .12s, color .12s;
+}
+.k12-barra-movil__nombre {
+    max-width: 100%;
+    font: 700 9px var(--k-font-ui);
+    letter-spacing: .01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.k12-barra-movil__boton--activo { color: var(--k-text); }
+.k12-barra-movil__boton--activo .k12-barra-movil__icono { background-color: var(--k7-color); color: #12141A; }
+.k12-barra-movil__boton:focus-visible { outline: none; }
+.k12-barra-movil__boton:focus-visible .k12-barra-movil__icono { outline: 2px solid var(--k-text); outline-offset: 1px; }
+
+/* La cabecera del teléfono, un poco más apretada: con la Pedalera arriba
+ * son seis botones y el logo, y en 375 px se salían 32 px. */
+@media (max-width: 767px) {
+    .k12-cabecera { gap: 6px; padding-left: 8px; padding-right: 8px; }
+    .k12-cabecera img { height: 30px; }
+    .k12-cabecera > div:last-child, .k12-cabecera > div:last-child > span { gap: 4px; }
+    .k12-cabecera button { min-width: 38px; min-height: 38px; }
+    .k12-cabecera .k2-icono { width: 38px; height: 38px; }
+}
+
+/* --- Teléfono · el diagrama en horizontal ---------------------------------------
+ * El mini-mástil iba al lado y aplastaba el diagrama hasta sacarlo de la
+ * pantalla. Ahora va debajo y a todo lo ancho; el diagrama ocupa el resto. */
+@media (max-width: 767px) {
+    .k8-mesa.k11-horizontal .k8-mesa__fila { flex-direction: column; align-items: stretch; }
+    .k8-mesa.k11-horizontal .k11-columna {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        gap: 8px;
+    }
+    .k8-mesa.k11-horizontal .k11-columna { justify-content: center; }
+    .k8-mesa.k11-horizontal .k-lienzo { flex: 0 1 auto; height: auto; min-height: 0; }
+    .k8-mesa.k11-horizontal .k-fretboard-fit { width: 100%; height: auto; max-height: 100%; }
+    .k8-mesa.k11-horizontal .k9-lupa { flex: none; width: 100%; }
+    .k9-lupa--fija .k9-lupa__riel { flex: 1 1 auto !important; }
+}
+
+/* --- Teléfono · los grados en un submenú ------------------------------------- */
+.k12-grados { position: relative; align-self: flex-end; flex: none; margin-bottom: 4px; }
+.k12-grados__boton { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.k12-grados__boton--abierto { background-color: var(--k-accent-soft); }
+.k12-grados__lista {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 41;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 190px;
+    padding: 6px;
+    border-radius: var(--k-radius-lg);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    box-shadow: var(--k-shadow-float);
+}
+.k12-grados__item { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 8px; font-size: 13px; font-weight: 600; }

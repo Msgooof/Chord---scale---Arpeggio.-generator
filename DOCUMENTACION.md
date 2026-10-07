@@ -3628,6 +3628,79 @@ Looper 2 vueltas y sigue; Ensayo 80 → 100 %; «desde aquí»; los gestos del d
 los huecos se llenan sin mover nada). En la hoja de Prime anterior un silencio salía como «?».
 Guardar VT323 en `vendor/fonts` para que funcione sin conexión.
 
+### 0.11 · tercera vuelta (2026-10-07)
+
+Arreglos que pidió Carlos después de probar la 0.11 ya en Prime. Se aplicaron directo a Prime;
+la copia de antes queda solo en el scratchpad de esa sesión.
+
+**Taller, diagrama en horizontal**
+- **Menos aire y letras más grandes.** Al girar el diagrama, los 70 px de margen de cada lado
+  quedaban enteros arriba y abajo. `medidasHorizontal(geo, numerosTraste, dotRadius)` los recorta:
+  deja unos 44 px en el lado de los números de traste y unos 26 en el otro. La franja del título baja
+  de 56 a 46. Como el SVG es más bajo, al ajustarse al alto se dibuja ~25 % más grande. Además, los
+  números de traste (13 → 17) y la afinación (12 → 16) se escriben más grandes. La exportación lee
+  `width/height` del propio SVG, así que no hubo que tocarla. **En vertical el SVG sale idéntico**
+  (mismo SHA-256 antes y después).
+- **El mini-mástil ya no cambia con los trastes.** `VentanaMastil` acepta `largo` (px). La mesa
+  calcula lo que mediría el diagrama con 7 trastes a la escala con que se ve, mide el alto real del
+  mini-mástil y lo publica como `--k11-lupa`. Con eso se resta al diagrama: con el número fijo de
+  antes (194 px) se quedaba corto y pisaba Grados/Tríadas.
+- **Tríadas a la izquierda también en horizontal.** El diagrama y el mini-mástil van en
+  `.k11-columna` (en vertical es `display: contents`). La fila ya no se pone en columna.
+- **Etiqueta:** en horizontal el conmutador es vertical y dice **Arriba / Abajo** (la derecha
+  queda arriba al girar). El dato guardado es el mismo.
+
+**Canción**
+- **Imán:** solo el icono (`BotonIman`). Al dejar el ratón encima un segundo sale un globo propio
+  (`.k11-con-globo` + `data-globo`, reutilizable), debajo del botón: arriba lo cortaba la pista.
+- **Estirar con el imán apagado ya no salta.** La vista previa del estirado usa
+  `cambiarDuracion(…, iman)`, la misma regla que al soltar, así que el silencio aparece mientras
+  arrastras. `PistaCancion` recibe `iman`.
+- **Se oye si el golpe va ↓ o ↑.** `Song.strokeForEvent(notas, evento)` (en `song-core.js`) da cada
+  nota con su retraso y fuerza: el orden de siempre más un crescendo a lo largo del barrido, y hacia
+  arriba nunca menos de 22 ms. Lo usan la canción completa y el ▶ del compositor. El ▶ ya no toca
+  solo ruido: toca el primer acorde de la sección activa (o las cuerdas al aire) con notas cortas.
+  × sigue siendo el chasquido. Escribir una casilla suena ese golpe (`onProbarGolpe`).
+- **Arpegios.** El compositor tiene «Rasgueo | Arpegio». En Arpegio, la rejilla tiene una fila por
+  nota del acorde: la aguda arriba y «Bajo» abajo, como en una tablatura. Clic = que suene esa nota
+  en esa casilla (dos = pellizco); clic derecho = acento de la columna. Modelo: casilla
+  `{ picks: [0, 2], accent }`, patrón `tipo: "arpegio"`. `gridToEvents` lo traduce a los mismos
+  `{ at, pick }` de los patrones de fábrica, y `normalizeSong` lo conserva (`normalizarCelda`). ✎
+  sobre «Balada (arpegio)» abre la copia como arpegio con sus notas. El vals, que mezcla bajo y
+  rasgueo, sigue abriéndose como rasgueo.
+- **«?» de ayuda en el pie de Canción.** El menú del Taller pasó a ser `MenuAyuda({ opciones })` y
+  lo usan los dos. En Canción, «Atajos de teclado» abre un diálogo con los atajos de la pista y
+  «Tutorial» dice que llega pronto.
+
+**Comprobado en el navegador:** la huella del SVG vertical no cambió. En horizontal, con Escalas,
+Tríadas y Grados a 1280–1440 px: tríadas a la izquierda, sin solapes (mini-mástil 722 px, fila de
+abajo 737 px), mini-mástil de 787 px con 5, 6, 7 y 12 trastes. Arriba/Abajo mueve los números.
+Estirar sin imán: la vista previa ya muestra el silencio. Arpegio: escribir, acentuar, guardar y
+recargar, ▶ sin errores, ✎ de la balada. El menú de ayuda de Canción.
+**Sin probar:** escuchar a oído la diferencia ↓/↑ (el panel del navegador no da sonido) y el
+globo en un navegador de verdad (sí se comprobó por estilos calculados).
+
+**Después, el mismo día:**
+- Botones de tríadas más angostos (96 × 30 px, en `ui-v10.css`): la columna se salía de la cuadrícula.
+- **Teléfono:** fuera las pestañas de texto de la cabecera (dos filas) y el dock de cuatro pedales.
+  Abajo va `BarraMovilTaller`: las siete secciones con los iconos de la barra de escritorio, en
+  una franja, con el nombre chiquito y la activa en su color. La Pedalera se abre con un botón
+  de icono en la cabecera, que se apretó (`.k12-cabecera`) para que quepan logo, Metrónomo,
+  Biblioteca, Guardar, modo y Pedalera en 375 px. La pista del lienzo («Arrastra entre cuerdas…»)
+  no se muestra en el teléfono (`.k12-pista`).
+- **Teléfono, diagrama horizontal:** el mini-mástil iba al lado y sacaba el diagrama de la
+  pantalla. Ahora `.k11-columna` es columna también bajo 768 px: el diagrama a todo lo ancho
+  (alto según su proporción) y el mini-mástil debajo, a todo lo ancho.
+- **Teléfono, grados:** la tira «2ª mayor · 3ª mayor…» pasa a un botón «Grados ▾» con la lista
+  (`.k12-grados`). Entre 768 y 1279 px sigue la tira.
+- **Teléfono, tríadas:** sin «Elige tríada» ni «Todas»; solo las siete y «Mandar…». Tocar la
+  tríada fijada la suelta (vuelven a verse todas).
+- **Teléfono, botón de girar:** el flotante tapaba deshacer y Vaciar. Bajo 768 px se esconde y
+  va uno redondo lima, solo icono, en la fila de deshacer (`.k11-girar-movil`).
+- **El giro, animado:** al cambiar de orientación, el diagrama entra girado un cuarto de vuelta y
+  algo encogido y se asienta (520 ms, Web Animations sobre `.k-lienzo`; no toca el SVG, así que no
+  viaja al exportar). Con movimiento reducido no se anima.
+
 ## 23. Deuda técnica de fondo
 
 - `App()` sigue siendo un componente enorme: todo el estado y todo el JSX del estudio juntos. Va

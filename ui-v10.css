@@ -512,22 +512,22 @@ body.k10-externa {
  * siguen arriba. Sin `display` fuera de los media: el JSX usa `hidden md:flex`.
  * ========================================================================== */
 .k10-triadas { flex-direction: column; align-self: center; flex: none; }
-.k10-triadas__col { display: flex; flex-direction: column; gap: 8px; }
+.k10-triadas__col { display: flex; flex-direction: column; gap: 6px; }
 .k10-triadas__rot { font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--k-text-muted); text-align: center; }
-.k10-triadas__lista { display: flex; flex-direction: column; gap: 6px; }
+.k10-triadas__lista { display: flex; flex-direction: column; gap: 4px; }
 .k10-triada {
     display: flex;
     align-items: baseline;
     gap: 8px;
-    width: 112px;
-    min-height: 38px;
-    padding: 6px 10px;
+    width: 96px;
+    min-height: 30px;
+    padding: 3px 8px;
     border-radius: 8px;
     font: 600 13px var(--k-font-ui);
     text-align: left;
     color: var(--k-text);
 }
-.k10-triada strong { min-width: 28px; font-family: var(--k-font-title); font-size: 17px; font-weight: 400; }
+.k10-triada strong { min-width: 24px; font-family: var(--k-font-title); font-size: 15px; font-weight: 400; }
 .k10-triada__nombre { opacity: .75; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .k10-triada--mandar { justify-content: center; border: 1px solid var(--k-divider); background: var(--k-surface-raised); cursor: pointer; }
 .k10-triada--mandar:hover { border-color: var(--k-border); }
