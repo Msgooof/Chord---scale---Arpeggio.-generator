@@ -3701,6 +3701,77 @@ globo en un navegador de verdad (sí se comprobó por estilos calculados).
   algo encogido y se asienta (520 ms, Web Animations sobre `.k-lienzo`; no toca el SVG, así que no
   viaja al exportar). Con movimiento reducido no se anima.
 
+## 0.12: el teléfono acostado (2026-10-07)
+
+**El problema.** Al girar el teléfono «todo se bugueaba». Todos los cortes miraban solo el ancho:
+acostado, el teléfono tiene ancho de tableta (o de móvil) y apenas 360–430 px de alto, y la
+carcasa de la app, que se encaja a la pantalla sin scroll, lo aplastaba todo. En 667 × 375 el
+diagrama del Taller medía 0 px de alto; en Canción la zona de trabajo se quedaba en 107 px; en la
+portada el pie de créditos tapaba media pantalla.
+
+**El arreglo.** `ui-v12.css` (enlazado en `index.html`; hay que subirlo), todo dentro de
+`@media (orientation: landscape) and (max-height: 500px)`. El escritorio y el teléfono en
+vertical no cumplen la consulta y no cambian.
+- **Cabecera fina** (57 px) y fuera el pie (`.k12-pie`) y la pista del lienzo.
+- **El raíl de iconos a la izquierda** también bajo 768 px, en vez de la barra de abajo
+  (`BarraMovilTaller`). Iconos de 34 px, con scroll si no caben; sin la barrita del nombre.
+  Metrónomo y Biblioteca de la cabecera se esconden (`.k12-solo-vertical`): ya van en el raíl.
+- **La mesa del Taller, acostada:** deshacer, rehacer, girar y Vaciar (solo icono) van en columna a
+  la izquierda de la mesa. En vertical, el mini-mástil de pie a la derecha (`.k12-lupa-lado`, el de
+  tableta) en vez del acostado de abajo (`.k12-lupa-abajo`). En horizontal, el mini-mástil sigue
+  debajo. El diagrama se mide con `100dvh` bajo 768 px y con `100cqh` del hueco desde 768 px
+  (como en escritorio). Si algo no cabe, la vista hace scroll en vez de aplastar.
+- **Canción:** `.k11-barra` pasa a `display: contents` y sus piezas caen en la rejilla de `.k11`:
+  arriba, título y botones en una fila; abajo, los pasos (solo el activo con nombre) y el
+  transporte al lado. La zona de trabajo pasa de 107 a 216 px en 667 × 375.
+- **Muesca del iPhone:** relleno `env(safe-area-inset-left/right)` en `#root`.
+
+**Comprobado** (medidas con JS; el panel del navegador estaba minimizado y no pintaba, así que las
+animaciones de giro se quedaban congeladas y hubo que darlas por acabadas) en 667 × 375, 844 × 390
+y 932 × 430: diagrama entero sin scroll en vertical y en horizontal, pedalera con scroll propio,
+los cuatro pasos de Canción con su zona. En 390 × 844 (vertical) todo sigue igual.
+
+**Sin probar:** en un teléfono de verdad (barra del navegador que aparece y desaparece, muesca).
+
+## 0.13: el drone (2026-10-13)
+
+**Para qué.** Practicar encima de un acorde que no se acaba: arpegios de Re mayor sobre un Re mayor
+sostenido, por ejemplo. Sección propia del Taller, con su botón verde menta (`#3DBE8B`) **encima del
+Metrónomo** en la barra (y en la cabecera del teléfono). Suena hasta que lo apagas, aunque cambies
+de sección.
+
+**El sonido.** Un solo timbre, a pedido de Carlos (referencia: «GHOULBOX: FM-1 Dungeon Synth»):
+un pad grave de síntesis FM, sin archivos. Por nota: portadora seno con moduladora 1:1 (índice
+~1,1 que mueve un LFO lentísimo distinto en cada voz: respira sin trémolo), un armónico FM 2:1
+tenue y dos sierras desafinadas ±7 cents por debajo; la raíz lleva además un seno una octava
+abajo. Cadena: paso-bajo (Brillo) que también respira, chorus lento, reverb por convolución con
+una cola de 5,5 s generada (Espacio), compresor suave y volumen. Voicing grave y abierto
+(`notasDrone`): raíz en la octava 2, las quintas encima, terceras y séptimas una octava más
+arriba; «Medio» sube todo una octava. Al cambiar de acorde sonando no se corta: las notas comunes
+se quedan y cada voz que sobra se desliza 1,5 s a la nota nueva más cercana.
+
+**El código.** Bloque `app-source-drone` (entre el del metrónomo y el del estudio), calcado del
+metrónomo: `MotorDrone` (AudioContext propio, en `window.__kharoDrone`), `useDrone` (en App,
+guardado en `kharo.drone.v1`) y `<Drone>`. `acordeParaElDrone()` en App da lo que hay en el
+Taller: en Acordes el acorde reconocido, en Escalas la tríada de la tónica, en Arpegios el
+arpegio. Estilos en `ui-v13.css` (enlazado en `index.html`; hay que subirlo).
+
+**La interfaz** (tres vueltas con Carlos). La tarjeta y los botones del metrónomo, con el círculo
+de las doce notas (Do arriba, colores de pantalla LCD: raíz lima llena, notas del acorde con aro
+lima, que respiran al sonar) y el play al centro. Debajo: el nombre, TALLER (en el sitio de TAP)
+y volumen; Acorde (Nota · 5.ª · Mayor · menor + «+» con sus2, sus4, 7, maj7, m7, m7♭5) y
+Registro con el rótulo centrado encima; «Ajustes» abre la hoja con Brillo y Espacio. Teclado:
+Espacio suena/para, flechas mueven la nota. Se probó una rueda de notas como la del tempo y Carlos
+prefirió el círculo.
+
+**«Sonando», una tarjeta por cosa.** `Reproduciendo` pasó de una cajita con «Pausar» y «Parar
+todo» a una pila (`.k13-sonando-pila`) con una tarjeta por cosa, cada una con su pausa y su stop.
+El drone y el metrónomo salen siempre y se pausan cada uno suspendiendo su propio reloj; canción,
+ejercicio, tablatura y rasgueo comparten el del reproductor.
+
+**Sin probar:** el timbre en parlantes con graves de verdad (se ajustó de oído teórico; el nivel
+de pico ronda 0,35).
+
 ## 23. Deuda técnica de fondo
 
 - `App()` sigue siendo un componente enorme: todo el estado y todo el JSX del estudio juntos. Va

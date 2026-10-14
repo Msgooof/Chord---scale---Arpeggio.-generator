@@ -1,0 +1,131 @@
+/* ==========================================================================
+ * 0.12 · El teléfono acostado
+ * Todos los cortes de la interfaz miran el ancho; acostado, el teléfono tiene
+ * ancho de tableta y sólo ~360 px de alto, y la carcasa (que se encaja a la
+ * pantalla sin scroll) aplastaba el diagrama hasta dejarlo en 0 px.
+ * Aquí, sólo para pantallas bajas y apaisadas: cabecera fina, el raíl de
+ * iconos a la izquierda en vez de la barra de abajo, sin pie ni pistas, y
+ * alturas mínimas: si no cabe, la vista hace scroll en vez de aplastar.
+ * ========================================================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+    /* La muesca del iPhone acostado queda a un lado. */
+    #root {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+
+    /* --- Cabecera fina ---------------------------------------------------- */
+    .k12-cabecera { gap: 6px; padding-top: 4px; padding-bottom: 4px; padding-left: 10px; padding-right: 10px; }
+    .k12-cabecera img { height: 30px; }
+    .k12-cabecera > div:last-child, .k12-cabecera > div:last-child > span { gap: 4px; }
+    .k12-cabecera button { min-height: 36px; }
+    .k12-cabecera .k2-icono { width: 36px; height: 36px; }
+    /* El raíl ya trae Metrónomo y Biblioteca. */
+    .k12-solo-vertical { display: none !important; }
+
+    /* --- Pie y pistas fuera ----------------------------------------------- */
+    .k12-pie { display: none !important; }
+    .k12-pista { display: none; }
+
+    /* --- El raíl de iconos en vez de la barra de abajo -------------------- */
+    .k12-barra-movil { display: none; }
+    .k2-rail {
+        position: relative;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: none;
+        width: 48px;
+        padding: 6px 0;
+        overflow-y: auto;
+        scrollbar-width: none;
+        background-color: var(--k-surface);
+        border-right: 1px solid var(--k-divider);
+    }
+    .k2-rail::-webkit-scrollbar { display: none; }
+    .k7-barra__grupo { gap: 2px; }
+    .k7-barra__raya { margin: 5px 0; }
+    .k7-barra__pie { padding-top: 5px; }
+    .k7-barra__boton { width: 34px; height: 34px; flex: none; }
+    /* Con el raíl haciendo scroll, la barrita del nombre se cortaría. */
+    .k7-barra__nombre { display: none; }
+
+    /* --- Scroll antes que aplastar ---------------------------------------- */
+    .k2-cuerpo-app__vista { overflow-y: auto; }
+    /* El Taller crece con lo que lleva dentro; si no cabe, la vista se desplaza. */
+    .k2-estudio { flex: 1 0 auto; overflow: visible; }
+    .k2-lienzo-zona { padding-top: 6px; padding-bottom: 6px; }
+    /* --- La mesa del Taller, acostada -------------------------------------
+     * Lo que iba encima y debajo del diagrama se va a los lados: deshacer,
+     * girar y Vaciar en columna a la izquierda; en vertical, el mini-mástil
+     * de pie a la derecha (el de tableta) en vez del acostado de abajo. */
+    .k8-mesa.k8-mesa { flex-direction: row; align-items: stretch; }
+    .k8-mesa__arriba { flex-direction: column; align-self: flex-start; }
+    .k8-mesa__arriba .k2-icono { width: 36px; height: 36px; }
+    .k8-mesa__arriba .k9-vaciar span { display: none; }
+    .k8-mesa__arriba .k9-vaciar { padding: 0; min-width: 36px; justify-content: center; }
+    .k8-mesa__cuerpo { min-width: 0; }
+    .k12-lupa-lado { display: flex !important; }
+    .k12-lupa-abajo { display: none !important; }
+    /* El diagrama cabe entero bajo la cabecera, sin scroll. */
+    .k8-mesa .k-fretboard-fit { height: calc(100dvh - 104px); max-height: none; width: auto; max-width: 100%; align-self: center; flex: none; }
+    /* En horizontal el mini-mástil sigue debajo: se le guarda su franja. */
+    .k8-mesa.k11-horizontal .k-fretboard-fit { height: calc(100dvh - 104px - var(--k11-lupa, 64px)); }
+    .k8-mesa.k11-horizontal .k9-lupa { flex: none; }
+    .k8-mesa .k11-columna { padding: 0; }
+
+    /* --- Canción ----------------------------------------------------------
+     * La barra de arriba se deshace (display: contents) para que sus tres
+     * piezas caigan en la rejilla de .k11: arriba título y botones en una
+     * fila; abajo los pasos y, a su lado, el transporte. El centro gana alto. */
+    .k11 {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-areas: "izq der" "trabajo trabajo" "pasos transporte";
+    }
+    .k11-barra { display: contents; }
+    .k11-barra__izq, .k11-barra__der, .k11-transporte {
+        background-color: var(--k-surface);
+    }
+    .k11-barra__izq, .k11-barra__der {
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 4px 10px;
+        border-bottom: 1px solid var(--k-divider);
+    }
+    .k11-barra__izq { grid-area: izq; }
+    .k11-barra__der { grid-area: der; padding-left: 0; }
+    .k11-titulo { order: 0; flex: 1 1 auto; width: auto; font-size: 17px; }
+    .k11-barra .k2-icono { width: 36px; height: 36px; }
+    .k11-barra .k-btn--touch { min-height: 36px; }
+    .k11-trabajo { grid-area: trabajo; }
+    .k11-pasos {
+        grid-area: pasos;
+        display: flex;
+        padding: 4px 10px;
+    }
+    .k11-pasos__izq, .k11-pasos__der, .k11-pasos__sep { display: none; }
+    .k11-pasos .k-tab { min-height: 36px; }
+    .k11-pasos .k-tab:not(.k-tab--active) .k11-paso__nombre { display: none; }
+    .k11-transporte {
+        grid-area: transporte;
+        align-self: stretch;
+        align-items: center;
+        border: 0;
+        border-top: 1px solid var(--k-divider);
+        border-radius: 0;
+        padding: 4px 10px;
+    }
+}
+
+/* Desde 768 px el hueco del Taller es un contenedor de tamaño (ui-v06.css):
+ * el diagrama se mide con su alto (cqh), como en escritorio, para no salirse
+ * de la mesa. 34 px = el relleno y el borde de la mesa; la fila de deshacer ya
+ * no resta porque va al lado. */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 768px) {
+    .k8-mesa .k-fretboard-fit { height: calc(100cqh - 34px); max-width: calc(100cqw - 160px); }
+    .k8-mesa.k11-horizontal .k-fretboard-fit,
+    .k8-mesa--con-abajo.k11-horizontal .k-fretboard-fit,
+    .k9-mesa--triadas.k11-horizontal .k-fretboard-fit { height: calc(100cqh - 42px - var(--k11-lupa, 64px)); }
+}

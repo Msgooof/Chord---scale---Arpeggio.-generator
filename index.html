@@ -68,6 +68,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <link rel="stylesheet" href="ui-v11.css">
+    <link rel="stylesheet" href="ui-v12.css">
+    <link rel="stylesheet" href="ui-v13.css">
     <style>
         /* Lo único que queda aquí es la animación del halo de nota pulsada:
            pertenece a la interacción con el DIAGRAMA, no a la piel de la app,
@@ -2294,7 +2296,8 @@
             etiqueta: <React.Fragment><path d="M3 12V4h8l10 10-8 8z" /><circle cx="7.5" cy="8.5" r="1.4" /></React.Fragment>,
             buscar: <React.Fragment><circle cx="11" cy="11" r="6.5" /><path d="M16 16l5 5" /></React.Fragment>,
             pausa: <React.Fragment><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></React.Fragment>,
-            metronomo: <React.Fragment><path d="M8 21h8l-1.6-16h-4.8z" /><path d="M12 15l5-8" /><path d="M9 18h6" /></React.Fragment>
+            metronomo: <React.Fragment><path d="M8 21h8l-1.6-16h-4.8z" /><path d="M12 15l5-8" /><path d="M9 18h6" /></React.Fragment>,
+            drone: <React.Fragment><path d="M3 11c1.5-4 3-4 4.5 0s3 4 4.5 0 3-4 4.5 0 3 4 4.5 0" /><path d="M3 19h18" /></React.Fragment>
         };
 
         function Icono({ nombre, tam }) {
@@ -3111,6 +3114,8 @@
         ];
         const RAIL_BIBLIOTECA = { id: "biblioteca", label: "Biblioteca", icono: "biblioteca", color: "#C2B9A8" };
         const RAIL_METRONOMO = { id: "metronomo", label: "Metrónomo", icono: "metronomo", color: "#E5654B" };
+        // 0.13: el drone, encima del metrónomo.
+        const RAIL_DRONE = { id: "drone", label: "Drone", icono: "drone", color: "#3DBE8B" };
 
         // Los iconos propios de la barra (los del prototipo aprobado).
         const ICONOS_RAIL = {
@@ -3122,6 +3127,7 @@
             // 0.10: Ejercicios era un metrónomo; ahora el metrónomo es él mismo.
             ejercicios: <React.Fragment><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" /></React.Fragment>,
             metronomo: <React.Fragment><path d="M8 21h8l-1.6-16h-4.8z" /><path d="M12 15l5-8" /><path d="M9 18h6" /></React.Fragment>,
+            drone: <React.Fragment><path d="M3 11c1.5-4 3-4 4.5 0s3 4 4.5 0 3-4 4.5 0 3 4 4.5 0" /><path d="M3 19h18" /></React.Fragment>,
             tablaturas: <React.Fragment><path d="M3 6h18M3 10h18M3 14h18M3 18h18" /><rect x="7" y="8" width="3" height="4" fill="currentColor" stroke="none" /><rect x="14" y="12" width="3" height="4" fill="currentColor" stroke="none" /></React.Fragment>,
             biblioteca: <React.Fragment><path d="M4 4h4v16H4zM10 4h4v16h-4z" /><path d="M16 5l3.8-1 3 15.5-3.8 1z" /></React.Fragment>
         };
@@ -3129,7 +3135,7 @@
         /* `latido`: el número de pulso del metrónomo mientras suena (null si
          * está parado). Su botón late con él, para saber que sigue sonando
          * desde cualquier sección. */
-        function RailTaller({ activo, onSelect, latido }) {
+        function RailTaller({ activo, onSelect, latido, drone }) {
             const boton = (it, extra) => (
                 <button
                     key={it.id}
@@ -3158,6 +3164,7 @@
                         </React.Fragment>
                     ))}
                     <div class="k7-barra__pie">
+                        {boton(RAIL_DRONE, drone ? "k13-respira" : "")}
                         {boton(RAIL_METRONOMO, latido === null || latido === undefined ? "" : `k10-late k10-late--${latido % 2 ? "a" : "b"}`)}
                         {boton(RAIL_BIBLIOTECA)}
                     </div>
@@ -3267,17 +3274,25 @@
          * (el rasgueo que escuchabas, la canción, el ejercicio, la tablatura)
          * con Pausa y Parar. Antes el rasgueo del editor seguía sonando después
          * de cerrar el diálogo y no había forma de saber qué era ni de callarlo. */
-        function Reproduciendo({ sonando, pausado, onPausa, onParar }) {
+        /* 0.13: una tarjeta por cada cosa que suena, cada una con su pausa y
+         * su stop (antes era una sola con «Pausar» y «Parar todo», y con el
+         * drone y el metrónomo a la vez no se sabía qué se paraba). Cada
+         * elemento: { id, nombre, texto, color, pausado, onPausa, onParar }. */
+        function Reproduciendo({ sonando }) {
             if (!sonando.length) return null;
             return (
-                <div class="k3-sonando" role="region" aria-label="Lo que está sonando">
-                    <span class={`k3-sonando__ondas ${pausado ? "k3-sonando__ondas--quietas" : ""}`} aria-hidden="true"><i></i><i></i><i></i></span>
-                    <div class="k3-sonando__texto" aria-live="polite">
-                        <strong>{pausado ? "En pausa" : "Sonando"}</strong>
-                        {sonando.map(x => <span key={x.id}>{x.texto}</span>)}
-                    </div>
-                    <BotonIcono icono={pausado ? "reproducir" : "pausa"} etiqueta={pausado ? "Seguir" : "Pausar"} onClick={onPausa} variante="borde" />
-                    <BotonIcono icono="parar" etiqueta="Parar todo" onClick={onParar} variante="borde" />
+                <div class="k13-sonando-pila" role="region" aria-label="Lo que está sonando">
+                    {sonando.map(x => (
+                        <div key={x.id} class="k3-sonando">
+                            <span class={`k3-sonando__ondas ${x.pausado ? "k3-sonando__ondas--quietas" : ""}`} style={x.color ? { "--k13-onda": x.color } : undefined} aria-hidden="true"><i></i><i></i><i></i></span>
+                            <div class="k3-sonando__texto" aria-live="polite">
+                                <strong>{x.pausado ? "En pausa" : "Sonando"}</strong>
+                                <span>{x.texto}</span>
+                            </div>
+                            <BotonIcono icono={x.pausado ? "reproducir" : "pausa"} etiqueta={`${x.pausado ? "Seguir" : "Pausar"}: ${x.nombre}`} onClick={x.onPausa} variante="borde" />
+                            <BotonIcono icono="parar" etiqueta={`Parar: ${x.nombre}`} onClick={x.onParar} variante="borde" />
+                        </div>
+                    ))}
                 </div>
             );
         }
@@ -12776,6 +12791,508 @@
         }
 
     </script>
+
+    <script type="text/plain" id="app-source-drone">
+        /* =====================================================================
+         * 0.13 · EL DRONE
+         *
+         * Una nota o un acorde que se queda sonando hasta que lo apagas, para
+         * practicar encima (arpegios de Re mayor sobre un Re mayor, por
+         * ejemplo). Va encima del Metrónomo en la barra. Un solo timbre: un
+         * pad grave y oscuro de síntesis FM, con la idea del «FM-1 Dungeon
+         * Synth» que mandó Carlos. Tres piezas, como el metrónomo:
+         *
+         *   MotorDrone   las voces y la cadena de efectos. AudioContext PROPIO:
+         *                la pausa del reproductor no debe callarlo.
+         *   useDrone     el estado (guardado en `kharo.drone.v1`). Vive en
+         *                App: sigue sonando al cambiar de sección.
+         *   <Drone>      la interfaz.
+         * ===================================================================== */
+
+        const DRONE_CLAVE = "kharo.drone.v1";
+
+        // `nombre` completa el de la nota: «Re» + « mayor».
+        const TIPOS_DRONE = [
+            { id: "nota", chip: "Nota", sufijo: "", nombre: "", intervalos: [0] },
+            { id: "quinta", chip: "5.ª", sufijo: "5", nombre: " con quinta", intervalos: [0, 7] },
+            { id: "mayor", chip: "Mayor", sufijo: "", nombre: " mayor", intervalos: [0, 4, 7] },
+            { id: "menor", chip: "menor", sufijo: "m", nombre: " menor", intervalos: [0, 3, 7] },
+            { id: "sus2", chip: "sus2", sufijo: "sus2", nombre: " sus2", intervalos: [0, 2, 7] },
+            { id: "sus4", chip: "sus4", sufijo: "sus4", nombre: " sus4", intervalos: [0, 5, 7] },
+            { id: "7", chip: "7", sufijo: "7", nombre: " séptima", intervalos: [0, 4, 7, 10] },
+            { id: "maj7", chip: "maj7", sufijo: "maj7", nombre: " séptima mayor", intervalos: [0, 4, 7, 11] },
+            { id: "m7", chip: "m7", sufijo: "m7", nombre: " menor séptima", intervalos: [0, 3, 7, 10] },
+            { id: "m7b5", chip: "m7♭5", sufijo: "m7♭5", nombre: " semidisminuido", intervalos: [0, 3, 6, 10] }
+        ];
+        const NOTAS_ES = ["Do", "Do♯", "Re", "Re♯", "Mi", "Fa", "Fa♯", "Sol", "Sol♯", "La", "La♯", "Si"];
+        const NOTAS_SIMBOLO = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+
+        const DRONE_POR_DEFECTO = {
+            raiz: 2, tipo: "mayor", intervalos: [0, 4, 7],
+            sufijoPropio: null,          // cuando viene del Taller y no es uno de los chips
+            registro: "grave",           // "grave" | "medio"
+            brillo: 0.35, espacio: 0.55, vol: 0.7
+        };
+
+        const cargarDrone = () => {
+            let g = null;
+            try { g = JSON.parse(localStorage.getItem(DRONE_CLAVE) || "null"); } catch (e) { g = null; }
+            if (!g || typeof g !== "object") return DRONE_POR_DEFECTO;
+            const c = { ...DRONE_POR_DEFECTO, ...g };
+            c.raiz = ((Math.round(Number(c.raiz)) % 12) + 12) % 12 || 0;
+            if (!Array.isArray(c.intervalos) || !c.intervalos.length || c.intervalos.some(i => typeof i !== "number")) {
+                c.tipo = DRONE_POR_DEFECTO.tipo; c.intervalos = DRONE_POR_DEFECTO.intervalos; c.sufijoPropio = null;
+            }
+            if (c.registro !== "medio") c.registro = "grave";
+            ["brillo", "espacio", "vol"].forEach(k => { c[k] = Math.min(1, Math.max(0, Number(c[k]))); if (Number.isNaN(c[k])) c[k] = DRONE_POR_DEFECTO[k]; });
+            return c;
+        };
+        const guardarDrone = (c) => { try { localStorage.setItem(DRONE_CLAVE, JSON.stringify(c)); } catch (e) {} };
+
+        const tipoDrone = (c) => TIPOS_DRONE.find(t => t.id === c.tipo) || null;
+        // «D», «Dm7», «Re menor séptima».
+        const nombreDrone = (c) => {
+            const t = tipoDrone(c);
+            const sufijo = t ? t.sufijo : (c.sufijoPropio || "");
+            return {
+                simbolo: NOTAS_SIMBOLO[c.raiz] + sufijo,
+                nombre: NOTAS_ES[c.raiz] + (t ? t.nombre : (sufijo ? " " + sufijo : ""))
+            };
+        };
+
+        /* --- EL VOICING ------------------------------------------------------------
+         * Grave y abierto: la raíz en la octava 2 (Re2 ≈ 73 Hz), las quintas
+         * (y la ♭5/♯5) encima, y el color —terceras, séptimas, segundas,
+         * cuartas— una octava más arriba, donde no embarra. Nada pasa de
+         * ~470 Hz en «grave». La raíz doblada a la octava sostiene el centro
+         * cuando el acorde tiene pocas notas. El sub va aparte. */
+        const notasDrone = (c) => {
+            const base = 36 + c.raiz + (c.registro === "medio" ? 12 : 0);
+            const notas = new Set([base]);
+            c.intervalos.forEach(i => {
+                const k = ((i % 12) + 12) % 12;
+                if (k === 0) return;
+                notas.add(k >= 6 && k <= 8 ? base + k : base + 12 + k);
+            });
+            if (notas.size < 4) notas.add(base + 12);
+            return [...notas].sort((a, b) => a - b);
+        };
+        const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+
+        /* --- EL MOTOR -----------------------------------------------------------------
+         * Cada nota es una voz: una pareja FM (portadora seno, moduladora 1:1
+         * con índice bajo que mueve un LFO lentísimo, distinto en cada voz:
+         * el sonido respira sin trémolo), un armónico FM 2:1 muy tenue para
+         * el brillo de campana, y dos sierras desafinadas ±7 cents por debajo
+         * para el cuerpo. Todo pasa por un paso-bajo maestro (Brillo), un
+         * chorus lento, una reverb larga (Espacio) y un compresor suave. */
+        const DRONE_ENTRA = 2.5, DRONE_SALE = 3, DRONE_DESLIZA = 1.5;
+
+        class MotorDrone {
+            constructor() {
+                this.ctx = null;
+                this.voces = [];          // { midi, f, nodos }
+                this.sub = null;
+                this.sonando = false;
+                this.config = DRONE_POR_DEFECTO;
+            }
+            asegurar() {
+                if (!this.ctx) {
+                    const ctx = this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.bus = ctx.createGain();
+                    this.bus.gain.value = 1;
+
+                    // Brillo: el paso-bajo, que además respira despacio.
+                    this.filtro = ctx.createBiquadFilter();
+                    this.filtro.type = "lowpass"; this.filtro.Q.value = 0.6;
+                    this.filtro.frequency.value = this.frecuenciaDeBrillo(this.config.brillo);
+                    const respira = ctx.createOscillator(); respira.frequency.value = 0.045;
+                    this.respiraGain = ctx.createGain(); this.respiraGain.gain.value = this.filtro.frequency.value * 0.18;
+                    respira.connect(this.respiraGain); this.respiraGain.connect(this.filtro.frequency); respira.start();
+                    // Un segundo polo para que el corte sea oscuro de verdad.
+                    this.filtro2 = ctx.createBiquadFilter();
+                    this.filtro2.type = "lowpass"; this.filtro2.Q.value = 0.5; this.filtro2.frequency.value = 2600;
+
+                    // Chorus: dos retardos cortos que se mueven en contrafase.
+                    const chorus = ctx.createGain(); chorus.gain.value = 0.5;
+                    [0.011, 0.017].forEach((d, i) => {
+                        const del = ctx.createDelay(0.05); del.delayTime.value = d;
+                        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.21 + i * 0.07;
+                        const prof = ctx.createGain(); prof.gain.value = 0.0025;
+                        lfo.connect(prof); prof.connect(del.delayTime); lfo.start();
+                        this.filtro2.connect(del); del.connect(chorus);
+                    });
+
+                    // Espacio: reverb por convolución con una cola generada.
+                    this.reverb = ctx.createConvolver();
+                    this.reverb.buffer = this.cola(5.5);
+                    this.seco = ctx.createGain();
+                    this.mojado = ctx.createGain();
+                    const mezcla = ctx.createGain();
+                    this.filtro2.connect(mezcla); chorus.connect(mezcla);
+                    mezcla.connect(this.seco); mezcla.connect(this.reverb); this.reverb.connect(this.mojado);
+
+                    const techo = ctx.createDynamicsCompressor();
+                    techo.threshold.value = -18; techo.knee.value = 12; techo.ratio.value = 3;
+                    techo.attack.value = 0.05; techo.release.value = 0.6;
+                    this.salida = ctx.createGain();
+                    this.seco.connect(techo); this.mojado.connect(techo);
+                    techo.connect(this.salida); this.salida.connect(ctx.destination);
+
+                    this.bus.connect(this.filtro); this.filtro.connect(this.filtro2);
+                    this.ajustar(this.config, true);
+                }
+                if (this.ctx.state === "suspended") this.ctx.resume();
+            }
+            // Una cola estéreo de ruido que se apaga y se oscurece con el tiempo.
+            cola(seg) {
+                const sr = this.ctx.sampleRate, n = Math.floor(sr * seg);
+                const b = this.ctx.createBuffer(2, n, sr);
+                for (let canal = 0; canal < 2; canal++) {
+                    const d = b.getChannelData(canal);
+                    let y = 0;
+                    for (let i = 0; i < n; i++) {
+                        const x = i / n;
+                        const suave = 0.25 + 0.7 * x;            // más grave cuanto más tarde
+                        y = y * suave + (Math.random() * 2 - 1) * (1 - suave);
+                        d[i] = y * Math.pow(1 - x, 2.6) * (i < sr * 0.02 ? i / (sr * 0.02) : 1);
+                    }
+                }
+                return b;
+            }
+            frecuenciaDeBrillo(b) { return 250 * Math.pow(7.2, b); }
+            ajustar(c, ya) {
+                this.config = c;
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime, tau = ya ? 0.001 : 0.15;
+                const f = this.frecuenciaDeBrillo(c.brillo);
+                this.filtro.frequency.setTargetAtTime(f, t, tau);
+                this.respiraGain.gain.setTargetAtTime(f * 0.18, t, tau);
+                this.mojado.gain.setTargetAtTime(c.espacio * 1.4, t, tau);
+                this.seco.gain.setTargetAtTime(1 - c.espacio * 0.55, t, tau);
+                this.salida.gain.setTargetAtTime(c.vol * 0.9, t, tau);
+            }
+            // Mover un parámetro desde donde está AHORA, aunque venga de otra rampa.
+            mover(param, valor, t, dur) {
+                if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(t);
+                else { const v = param.value; param.cancelScheduledValues(t); param.setValueAtTime(v, t); }
+                param.exponentialRampToValueAtTime(Math.max(0.0001, valor), t + dur);
+            }
+            nivelVoz(n) { return 0.2 / Math.sqrt(n); }
+            crearVoz(midi, nivel, esSub) {
+                const ctx = this.ctx, t = ctx.currentTime, f = hz(midi);
+                const env = ctx.createGain();
+                env.gain.setValueAtTime(0, t);
+                env.gain.setTargetAtTime(nivel, t, DRONE_ENTRA / 3);
+                env.connect(this.bus);
+                const osc = [], mods = [];
+                const portadora = ctx.createOscillator(); portadora.type = "sine"; portadora.frequency.value = f;
+                portadora.connect(env); osc.push({ o: portadora, k: 1 });
+                if (!esSub) {
+                    // FM 1:1 con índice que respira.
+                    const mod = ctx.createOscillator(); mod.frequency.value = f;
+                    const indice = ctx.createGain(); indice.gain.value = f * 1.1;
+                    mod.connect(indice); indice.connect(portadora.frequency);
+                    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.05 + Math.random() * 0.05;
+                    const lfoProf = ctx.createGain(); lfoProf.gain.value = f * 0.7;
+                    lfo.connect(lfoProf); lfoProf.connect(indice.gain);
+                    osc.push({ o: mod, k: 1 }, { o: lfo, k: null });
+                    mods.push({ g: indice, k: 1.1 }, { g: lfoProf, k: 0.7 });
+                    // Un armónico 2:1 casi inaudible: el «vidrio» del FM.
+                    const mod2 = ctx.createOscillator(); mod2.frequency.value = f * 2.003;
+                    const indice2 = ctx.createGain(); indice2.gain.value = f * 0.25;
+                    mod2.connect(indice2); indice2.connect(portadora.frequency);
+                    osc.push({ o: mod2, k: 2.003 }); mods.push({ g: indice2, k: 0.25 });
+                    // El cuerpo: dos sierras desafinadas, bajitas.
+                    const cuerpo = ctx.createGain(); cuerpo.gain.value = 0.2;
+                    cuerpo.connect(env);
+                    [-7, 7].forEach(cents => {
+                        const s = ctx.createOscillator(); s.type = "sawtooth"; s.frequency.value = f; s.detune.value = cents;
+                        s.connect(cuerpo); osc.push({ o: s, k: 1 });
+                    });
+                }
+                osc.forEach(x => x.o.start(t));
+                return { midi, f, env, osc, mods, esSub };
+            }
+            deslizar(voz, midi) {
+                const t = this.ctx.currentTime, f = hz(midi);
+                voz.osc.forEach(x => { if (x.k) this.mover(x.o.frequency, f * x.k, t, DRONE_DESLIZA); });
+                voz.mods.forEach(m => this.mover(m.g.gain, f * m.k, t, DRONE_DESLIZA));
+                voz.midi = midi; voz.f = f;
+            }
+            soltar(voz, dur) {
+                const t = this.ctx.currentTime;
+                voz.env.gain.cancelScheduledValues(t);
+                voz.env.gain.setValueAtTime(voz.env.gain.value, t);
+                voz.env.gain.setTargetAtTime(0, t, dur / 4);
+                voz.osc.forEach(x => { try { x.o.stop(t + dur + 0.2); } catch (e) {} });
+                setTimeout(() => { try { voz.env.disconnect(); } catch (e) {} }, (dur + 0.4) * 1000);
+            }
+            /* Ir a un acorde nuevo sin cortar: las notas comunes se quedan, cada
+             * voz que sobra se desliza a la nota nueva más cercana, y las que no
+             * encuentran pareja entran o salen con fundido. */
+            acorde(notas) {
+                if (!this.sonando) return;
+                const t = this.ctx.currentTime;
+                const nivel = this.nivelVoz(notas.length);
+                let libres = this.voces.slice();
+                let faltan = [];
+                notas.forEach(m => {
+                    const i = libres.findIndex(v => v.midi === m);
+                    if (i >= 0) libres.splice(i, 1); else faltan.push(m);
+                });
+                const quedan = this.voces.filter(v => !libres.includes(v));
+                // Parejas por cercanía, la más corta primero.
+                const parejas = [];
+                libres.forEach(v => faltan.forEach(m => parejas.push({ v, m, d: Math.abs(v.midi - m) })));
+                parejas.sort((a, b) => a.d - b.d);
+                const usadasV = new Set(), usadasM = new Set();
+                parejas.forEach(p => {
+                    if (p.d > 7 || usadasV.has(p.v) || usadasM.has(p.m)) return;
+                    usadasV.add(p.v); usadasM.add(p.m);
+                    this.deslizar(p.v, p.m);
+                    quedan.push(p.v);
+                });
+                libres.filter(v => !usadasV.has(v)).forEach(v => this.soltar(v, DRONE_DESLIZA * 1.5));
+                faltan.filter(m => !usadasM.has(m)).forEach(m => quedan.push(this.crearVoz(m, nivel)));
+                quedan.forEach(v => v.env.gain.setTargetAtTime(nivel, t, 0.4));
+                this.voces = quedan.sort((a, b) => a.midi - b.midi);
+                if (this.sub) this.deslizar(this.sub, notas[0] - 12);
+            }
+            arrancar(notas) {
+                this.asegurar();
+                if (this.sonando) { this.acorde(notas); return; }
+                this.sonando = true;
+                const nivel = this.nivelVoz(notas.length);
+                this.voces = notas.map(m => this.crearVoz(m, nivel));
+                this.sub = this.crearVoz(notas[0] - 12, 0.22, true);
+            }
+            parar() {
+                if (!this.sonando) return;
+                this.sonando = false;
+                this.voces.forEach(v => this.soltar(v, DRONE_SALE));
+                if (this.sub) this.soltar(this.sub, DRONE_SALE);
+                this.voces = []; this.sub = null;
+            }
+        }
+
+        /* --- EL ESTADO ------------------------------------------------------------ */
+        function useDrone() {
+            const motorRef = useRef(null);
+            if (!motorRef.current) {
+                motorRef.current = new MotorDrone();
+                window.__kharoDrone = motorRef.current;
+            }
+            const motor = motorRef.current;
+            const [config, setConfigCrudo] = useState(cargarDrone);
+            const [sonando, setSonando] = useState(false);
+            const cfgRef = useRef(config);
+            cfgRef.current = config;
+
+            const setConfig = (cambio) => setConfigCrudo(prev => {
+                const sig = typeof cambio === "function" ? cambio(prev) : { ...prev, ...cambio };
+                guardarDrone(sig);
+                return sig;
+            });
+
+            useEffect(() => { motor.ajustar(config); }, [config.brillo, config.espacio, config.vol]);
+            const clave = notasDrone(config).join(",");
+            useEffect(() => { if (motor.sonando) motor.acorde(notasDrone(cfgRef.current)); }, [clave]);
+            useEffect(() => () => motor.parar(), []);
+
+            const arrancar = () => { motor.config = cfgRef.current; motor.arrancar(notasDrone(cfgRef.current)); setSonando(true); };
+            const parar = () => { motor.parar(); setSonando(false); };
+            const alternar = () => (motor.sonando ? parar() : arrancar());
+
+            // Elegir un tipo de los chips, o un acorde cualquiera (el del Taller).
+            const ponerTipo = (id) => {
+                const t = TIPOS_DRONE.find(x => x.id === id);
+                if (t) setConfig({ tipo: t.id, intervalos: t.intervalos, sufijoPropio: null });
+            };
+            const ponerAcorde = ({ raiz, intervalos, sufijo }) => {
+                const lista = [...new Set(intervalos.map(i => ((i % 12) + 12) % 12))].sort((a, b) => a - b);
+                const t = TIPOS_DRONE.find(x => x.intervalos.join() === lista.join());
+                setConfig({ raiz, intervalos: lista, tipo: t ? t.id : "propio", sufijoPropio: t ? null : (sufijo || "") });
+            };
+            return { config, setConfig, sonando, arrancar, parar, alternar, ponerTipo, ponerAcorde };
+        }
+
+        /* --- LA INTERFAZ ---------------------------------------------------------------
+         * 0.13 (tercera vuelta). La tarjeta y los botones del metrónomo, con
+         * el círculo de la primera versión: las doce notas como un reloj
+         * (la raíz llena, las del acorde con aro: es lo que vas a tocar
+         * encima) y el botón de sonar al centro · el nombre · «Taller» y
+         * volumen · Acorde (4 a la vista + «+») y Registro, cada uno con su
+         * rótulo centrado encima · «Ajustes», la hoja con Brillo y Espacio.
+         * `delTaller`: { raiz, intervalos, sufijo, texto } o null. */
+        const TIPOS_DRONE_VISIBLES = ["nota", "quinta", "mayor", "menor"];
+        const mod12 = (n) => ((n % 12) + 12) % 12;
+
+        function Drone({ d, delTaller }) {
+            const { config: c, setConfig } = d;
+            const { nombre } = nombreDrone(c);
+            const tarjeta = useRef(null);
+            const [hoja, setHoja] = useState(false);
+            const [menuMas, setMenuMas] = useState(null);
+
+            const paso = (k) => setConfig(prev => ({ ...prev, raiz: mod12(prev.raiz + k) }));
+
+            // Las notas del acorde, en orden desde la raíz (para que respiren una tras otra).
+            const notasDelAcorde = [...new Set(c.intervalos.map(mod12))].sort((a, b) => a - b).map(i => mod12(c.raiz + i));
+
+            const vivo = useRef(null);
+            vivo.current = { d, paso };
+            useEffect(() => {
+                const alPulsar = (e) => {
+                    const foco = document.activeElement;
+                    if (foco && (foco.tagName === "INPUT" || foco.tagName === "TEXTAREA" || foco.tagName === "SELECT" || foco.isContentEditable)) return;
+                    if (e.ctrlKey || e.metaKey || e.altKey) return;
+                    if (e.key === " ") { e.preventDefault(); vivo.current.d.alternar(); }
+                    else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                        if (foco && foco.type === "range") return;
+                        e.preventDefault();
+                        vivo.current.paso(e.key === "ArrowUp" || e.key === "ArrowRight" ? 1 : -1);
+                    }
+                    else if (e.key === "Escape") { setMenuMas(null); setHoja(false); }
+                };
+                window.addEventListener("keydown", alPulsar);
+                return () => window.removeEventListener("keydown", alPulsar);
+            }, []);
+
+            // El menú «+» se cierra al tocar fuera.
+            useEffect(() => {
+                if (!menuMas) return;
+                const fuera = (e) => { if (!e.target.closest || !e.target.closest(".k10-mas-menu, .k10-seg__mas")) setMenuMas(null); };
+                document.addEventListener("pointerdown", fuera);
+                return () => document.removeEventListener("pointerdown", fuera);
+            }, [menuMas]);
+            const abrirMas = (e) => {
+                if (menuMas) { setMenuMas(null); return; }
+                const t = tarjeta.current.getBoundingClientRect();
+                const b = e.currentTarget.getBoundingClientRect();
+                setMenuMas({ derecha: t.right - b.right, abajo: b.bottom - t.top + 6, arriba: t.bottom - b.top + 6, hueco: t.bottom - b.bottom });
+            };
+
+            const yaEsElDelTaller = delTaller && delTaller.raiz === c.raiz
+                && [...new Set(delTaller.intervalos.map(mod12))].sort((a, b) => a - b).join() === c.intervalos.join();
+            const tipoExtra = !TIPOS_DRONE_VISIBLES.includes(c.tipo);
+            const tipoActual = tipoDrone(c);
+
+            return (
+                <div class="k10-vista">
+                    <section ref={tarjeta} class="k10-tarjeta" aria-label="Drone">
+                        <header class="k10-tarjeta__cabeza">
+                            <h2 class="k10-tarjeta__titulo">Drone</h2>
+                        </header>
+
+                        {/* El círculo: Do arriba, como un reloj; el botón de sonar al centro. */}
+                        <div class="k13-circulo" role="radiogroup" aria-label="Nota del drone (flechas para moverla)">
+                            {NOTAS_SIMBOLO.map((n, i) => {
+                                const ang = (i / 12) * Math.PI * 2;
+                                const orden = notasDelAcorde.indexOf(i);
+                                const esRaiz = orden === 0;
+                                const enAcorde = orden > 0;
+                                return (
+                                    <button key={n} type="button" role="radio" aria-checked={esRaiz} aria-label={NOTAS_ES[i]} title={NOTAS_ES[i]}
+                                            class={`k13-nota${esRaiz ? " k13-nota--raiz" : enAcorde ? " k13-nota--acorde" : ""}${d.sonando && orden >= 0 ? " k13-nota--suena" : ""}`}
+                                            style={{ left: `${50 + Math.sin(ang) * 40}%`, top: `${50 - Math.cos(ang) * 40}%`, "--k13-retraso": `${Math.max(0, orden) * 0.35}s` }}
+                                            onClick={() => setConfig({ raiz: i })}>{n}</button>
+                                );
+                            })}
+                            <button type="button" class={`k10-play2 k13-play${d.sonando ? " k10-play2--on" : ""}`} onClick={d.alternar}
+                                    aria-label={d.sonando ? "Parar el drone (Espacio)" : "Hacer sonar el drone (Espacio)"} title={d.sonando ? "Parar (Espacio)" : "Sonar (Espacio)"}>
+                                <Icono nombre={d.sonando ? "parar" : "reproducir"} tam={28} />
+                            </button>
+                        </div>
+                        <span class="k13-nombre" aria-live="polite">{nombre}</span>
+
+                        {/* Taller · volumen */}
+                        <div class="k10-mandos2">
+                            <button type="button" class="k10-tap2 k13-taller" disabled={!delTaller || yaEsElDelTaller}
+                                    onClick={() => d.ponerAcorde(delTaller)}
+                                    title={!delTaller ? "Pon un acorde, una escala o un arpegio en el Taller" : yaEsElDelTaller ? `Ya es el del Taller: ${delTaller.texto}` : `Usar el del Taller: ${delTaller.texto}`}>
+                                TALLER
+                            </button>
+                            <label class="k10-vol" title={`Volumen: ${Math.round(c.vol * 100)} %`}>
+                                <Icono nombre="altavoz" tam={16} />
+                                <input type="range" min="0" max="100" value={Math.round(c.vol * 100)} aria-label="Volumen"
+                                       onChange={(e) => setConfig({ vol: Number(e.target.value) / 100 })} />
+                            </label>
+                        </div>
+                        {delTaller && !yaEsElDelTaller && (
+                            <div class="k10-estado2"><span>En el Taller: <b>{delTaller.texto}</b></span></div>
+                        )}
+
+                        {/* Acorde y registro: los más usados a la vista, el resto en «+» */}
+                        <div class="k13-fila">
+                            <span class="k13-fila__rot">Acorde</span>
+                            <span class="k10-seg" role="radiogroup" aria-label="Qué suena sobre la nota">
+                                {TIPOS_DRONE_VISIBLES.map(id => {
+                                    const t = TIPOS_DRONE.find(x => x.id === id);
+                                    const on = c.tipo === id;
+                                    return <button key={id} type="button" role="radio" aria-checked={on} class={`k10-seg__op${on ? " k10-seg__op--on" : ""}`} onClick={() => d.ponerTipo(id)}>{t.chip}</button>;
+                                })}
+                                <button type="button" class={`k10-seg__op k10-seg__mas${tipoExtra ? " k10-seg__op--on" : ""}`} aria-haspopup="menu" aria-expanded={!!menuMas}
+                                        title="Más acordes" onClick={abrirMas}>
+                                    {tipoExtra ? (tipoActual ? tipoActual.chip : (c.sufijoPropio || "Taller")) : "+"}
+                                </button>
+                            </span>
+                        </div>
+                        <div class="k13-fila">
+                            <span class="k13-fila__rot">Registro</span>
+                            <span class="k10-seg" role="radiogroup" aria-label="Registro">
+                                {[["grave", "Grave"], ["medio", "Medio"]].map(([id, txt]) => {
+                                    const on = c.registro === id;
+                                    return <button key={id} type="button" role="radio" aria-checked={on} class={`k10-seg__op${on ? " k10-seg__op--on" : ""}`} onClick={() => setConfig({ registro: id })}>{txt}</button>;
+                                })}
+                            </span>
+                        </div>
+
+                        <button type="button" class="k10-ajustes-boton" onClick={() => setHoja(!hoja)} aria-expanded={hoja}>
+                            <Icono nombre="estilo" tam={16} />
+                            <span>Ajustes</span>
+                        </button>
+
+                        {/* El menú «+» */}
+                        {menuMas && (
+                            <div class="k10-mas-menu" role="menu"
+                                 style={menuMas.hueco > 200 ? { right: menuMas.derecha, top: menuMas.abajo } : { right: menuMas.derecha, bottom: menuMas.arriba }}>
+                                <h5>Más acordes</h5>
+                                <div class="k10-mas-menu__fila">
+                                    {TIPOS_DRONE.filter(t => !TIPOS_DRONE_VISIBLES.includes(t.id)).map(t => (
+                                        <button key={t.id} type="button" role="menuitemradio" aria-checked={c.tipo === t.id}
+                                                class={`k10-chip2${c.tipo === t.id ? " k10-chip2--on" : ""}`}
+                                                onClick={() => { d.ponerTipo(t.id); setMenuMas(null); }}>{t.chip}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* La hoja de ajustes: sube desde abajo */}
+                        <div class={`k10-hoja${hoja ? " k10-hoja--abierta" : ""}`} aria-hidden={!hoja}>
+                            <div class="k10-hoja__asa" aria-hidden="true" />
+                            <div class="k10-hoja__pestanas" role="tablist" aria-label="Ajustes del drone">
+                                <button type="button" role="tab" aria-selected="true" tabIndex={hoja ? 0 : -1} class="k10-hoja__pestana--on">Sonido</button>
+                            </div>
+                            <div class="k10-hoja__cuerpo">
+                                {[["brillo", "Brillo", "Oscuro", "Brillante"], ["espacio", "Espacio", "Seco", "Catedral"]].map(([k, txt, izq, der]) => (
+                                    <label key={k} class="k13-ajuste">
+                                        <span class="k13-ajuste__rot">{txt}</span>
+                                        <input type="range" min="0" max="100" value={Math.round(c[k] * 100)} aria-label={txt} tabIndex={hoja ? 0 : -1}
+                                               onChange={(e) => setConfig({ [k]: Number(e.target.value) / 100 })} />
+                                        <span class="k13-ajuste__extremos"><small>{izq}</small><small>{der}</small></span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div class="k10-hoja__pie">
+                                <button type="button" class="k10-boton" onClick={() => setHoja(false)} tabIndex={hoja ? 0 : -1}>Cerrar</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            );
+        }
+    </script>
     <script type="text/plain" id="app-source-studio">
         function App() {
             const [appMode, setAppMode] = useState("chord"); // 'chord', 'scale', 'arpeggio'
@@ -12905,6 +13422,8 @@
              * al cambiar de sección. `ventanaMetro` es la ventana externa
              * cuando está desacoplado. */
             const metro = useMetronomo();
+            // 0.13: el drone, por lo mismo: sigue sonando en cualquier sección.
+            const drone = useDrone();
             const [ventanaMetro, setVentanaMetro] = useState(null);
             const desacoplarMetro = async () => {
                 const w = await abrirVentanaMetro();
@@ -13635,6 +14154,32 @@
                 return identifyChord(sounding);
             };
 
+            /* 0.13: lo que hay en el Taller, para el drone. En Acordes, el
+             * acorde que reconoce el mástil; en Escalas, la tríada de la
+             * tónica; en Arpegios, el arpegio entero. Libre: nada. */
+            const acordeParaElDrone = () => {
+                const simb = (n) => NOTE_NAMES[n].replace("#", "♯");
+                if (appMode === "chord") {
+                    const r = analyzeCurrentChord();
+                    if (!r || !r.intervals) return null;
+                    return { raiz: r.rootSemi, intervalos: r.intervals, sufijo: (r.type || "").replace("b", "♭").replace("#", "♯"), texto: simb(r.rootSemi) + (r.type || "") };
+                }
+                if (appMode === "scale") {
+                    const e = SCALE_PRESETS.find(p => p.id === scaleType);
+                    const iv = e ? e.intervals : customScaleIntervals.map((on, i) => on ? i : null).filter(i => i !== null);
+                    const tercera = iv.includes(4) ? 4 : iv.includes(3) ? 3 : null;
+                    const quinta = iv.includes(7) ? 7 : iv.includes(6) ? 6 : iv.includes(8) ? 8 : null;
+                    const intervalos = [0, tercera, quinta].filter(i => i !== null);
+                    return { raiz: scaleRoot, intervalos, sufijo: "", texto: `${simb(scaleRoot)} (tónica de la escala)` };
+                }
+                if (appMode === "arpeggio") {
+                    const ap = ARPEGGIO_PRESETS.find(p => p.id === arpeggioType);
+                    if (!ap) return null;
+                    return { raiz: arpeggioRoot, intervalos: ap.intervals, sufijo: arpeggioType, texto: `${simb(arpeggioRoot)} ${ap.name}` };
+                }
+                return null;
+            };
+
             const handleTuningPresetChange = (notesArray, name, explicitMidi = null) => {
                 setTuning(notesArray);
                 setSelectedTuningName(name);
@@ -13650,7 +14195,7 @@
              * Volver a un modo de dibujo reactiva el título automático: el
              * nombre que había describía lo que se miraba antes. */
             const selectMode = (id) => {
-                if (id === "song" || id === "exercise" || id === "tab" || id === "biblioteca" || id === "metronomo") {
+                if (id === "song" || id === "exercise" || id === "tab" || id === "biblioteca" || id === "metronomo" || id === "drone") {
                     setAppView(id);
                     setOpenPanel(null);
                     return;
@@ -14137,23 +14682,34 @@
                 if (c && c.state === "suspended") c.resume();
                 setAudioPausado(false);
             };
-            /* 0.10: el metrónomo tiene su propio reloj; la pausa lo congela
-             * igual que al resto, y «Parar todo» también lo para. */
+            /* 0.13: cada cosa se pausa por su lado. Lo del reproductor
+             * (canción, ejercicio, tablatura, rasgueo) comparte un reloj y se
+             * pausa junto; el metrónomo y el drone tienen el suyo propio, así
+             * que suspender ese reloj los congela a ellos solos. */
             const alternarPausa = () => {
                 const c = synthInstance.ctx;
-                const mc = metro.sonando && window.__kharoMetronomo ? window.__kharoMetronomo.ctx : null;
-                if (!c && !mc) return;
-                if (audioPausado) { synthInstance.pausado = false; if (c) c.resume(); if (mc) mc.resume(); setAudioPausado(false); }
-                else { synthInstance.pausado = true; if (c) c.suspend(); if (mc) mc.suspend(); setAudioPausado(true); }
+                if (!c) return;
+                if (audioPausado) { synthInstance.pausado = false; c.resume(); setAudioPausado(false); }
+                else { synthInstance.pausado = true; c.suspend(); setAudioPausado(true); }
             };
-            const pararTodo = () => {
-                stopPreviewRhythm(); stopSong(); stopExercise(); stopTab();
-                if (metro.sonando) metro.parar();
-                reanudarAudio();
+            const [metroPausado, setMetroPausado] = useState(false);
+            const [dronePausado, setDronePausado] = useState(false);
+            const pausarReloj = (motor, pausado, setPausado) => {
+                const c = motor && motor.ctx;
+                if (!c) return;
+                if (pausado) { c.resume(); setPausado(false); } else { c.suspend(); setPausado(true); }
             };
-            // Arrancar el metrónomo con todo en pausa quita la pausa: si no, la
-            // ventana diría «En pausa» con el metrónomo sonando.
-            useEffect(() => { if (metro.sonando && audioPausado) reanudarAudio(); }, [metro.sonando]);
+            // Arrancar o parar desde su sección quita la pausa: si no, diría «En pausa» sonando.
+            useEffect(() => {
+                setMetroPausado(false);
+                const m = window.__kharoMetronomo;
+                if (m && m.ctx && m.ctx.state === "suspended") m.ctx.resume();
+            }, [metro.sonando]);
+            useEffect(() => {
+                setDronePausado(false);
+                const m = window.__kharoDrone;
+                if (m && m.ctx && m.ctx.state === "suspended") m.ctx.resume();
+            }, [drone.sonando]);
 
             const stopPreviewRhythm = () => {
                 if (previewRef.current) { clearInterval(previewRef.current); previewRef.current = null; }
@@ -18806,7 +19362,9 @@
                             <div class="flex items-center gap-2 lg:col-start-3 lg:justify-self-end">
                                 {/* En el teléfono no hay raíl: la Biblioteca va aquí. */}
                                 {!esSitio && (
-                                    <span class="md:hidden flex items-center gap-2">
+                                    <span class="md:hidden flex items-center gap-2 k12-solo-vertical">
+                                        <BotonIcono icono="drone" etiqueta="Drone" activo={appView === "drone"} onClick={() => selectMode("drone")} variante="borde"
+                                            className={drone.sonando ? "k13-respira" : ""} />
                                         <BotonIcono icono="metronomo" etiqueta="Metrónomo" activo={appView === "metronomo"} onClick={() => selectMode("metronomo")} variante="borde"
                                             className={metro.sonando ? `k10-late k10-late--${metro.pulso.n % 2 ? "a" : "b"}` : ""} />
                                         <BotonIcono icono="biblioteca" etiqueta="Biblioteca" activo={appView === "biblioteca"} onClick={() => selectMode("biblioteca")} variante="borde" />
@@ -18872,7 +19430,7 @@
                         izquierda; encima de todo, la pantalla de carga al
                         entrar desde el sitio. */}
                     <div class="k2-cuerpo-app">
-                    {!esSitio && <RailTaller activo={appView === "studio" ? appMode : appView} onSelect={selectMode} latido={metro.sonando ? metro.pulso.n : null} />}
+                    {!esSitio && <RailTaller activo={appView === "studio" ? appMode : appView} onSelect={selectMode} latido={metro.sonando ? metro.pulso.n : null} drone={drone.sonando} />}
                     <div class="k2-cuerpo-app__vista">
 
                     {/* --- LA PORTADA ---
@@ -18982,6 +19540,9 @@
                             onBiblioteca={() => selectMode("biblioteca")}
                         />
                     )}
+
+                    {/* --- 0.13: EL DRONE --- */}
+                    {appView === "drone" && <Drone d={drone} delTaller={acordeParaElDrone()} />}
 
                     {/* --- 0.10: EL METRÓNOMO --- */}
                     {appView === "metronomo" && (
@@ -19110,13 +19671,13 @@
                                             {/* 0.11: en horizontal el mini-mástil va acostado, debajo del diagrama. */}
                                             {diagramaHorizontal
                                                 ? <VentanaMastil {...propsVentana} orientacion="horizontal" className="flex" largo={columnaH.largo || undefined} />
-                                                : <VentanaMastil {...propsVentana} className="hidden md:flex" />}
+                                                : <VentanaMastil {...propsVentana} className="hidden md:flex k12-lupa-lado" />}
                                             </div>
                                         </div>
 
                                         {/* En el teléfono la lupa se acuesta y va debajo del
                                             mástil: a los lados taparía las cuerdas de fuera. */}
-                                        {!diagramaHorizontal && <VentanaMastil {...propsVentana} orientacion="horizontal" className="flex md:hidden" />}
+                                        {!diagramaHorizontal && <VentanaMastil {...propsVentana} orientacion="horizontal" className="flex md:hidden k12-lupa-abajo" />}
 
                                         {/* La leyenda de grados, en columna (sólo Escalas y
                                             Arpegios, y sólo si cabe). Se enciende y se apaga
@@ -19499,23 +20060,27 @@
                     {/* 0.3: lo que está sonando, abajo a la izquierda. */}
                     <Reproduciendo
                         sonando={[
-                            previewSonando && { id: "ritmo", texto: `Rasgueo «${previewNombre || "sin nombre"}» en bucle` },
+                            previewSonando && { id: "ritmo", nombre: "rasgueo", texto: `Rasgueo «${previewNombre || "sin nombre"}» en bucle`,
+                                pausado: audioPausado, onPausa: alternarPausa, onParar: () => { stopPreviewRhythm(); reanudarAudio(); } },
                             /* 0.11: en Canción ya lo dice el Transporte de la pedalera. */
                             isPlayingSong && appView !== "song" && (() => {
                                 const sec = playhead && song.sections.find(x => x.id === playhead.sectionId);
-                                return { id: "cancion", texto: `Canción «${song.title || "sin título"}»${sec ? " · " + sec.name : ""}` };
+                                return { id: "cancion", nombre: "canción", texto: `Canción «${song.title || "sin título"}»${sec ? " · " + sec.name : ""}`,
+                                    pausado: audioPausado, onPausa: alternarPausa, onParar: () => { stopSong(); reanudarAudio(); } };
                             })(),
-                            isPlayingExercise && { id: "ejercicio", texto: `Ejercicio «${exercise.title || "sin título"}»` },
-                            isPlayingTab && { id: "tab", texto: `Tablatura «${tab.title || "sin título"}»` },
-                            // 0.10: el metrónomo, cuando suena y no estás en su sección.
-                            metro.sonando && appView !== "metronomo" && {
-                                id: "metronomo",
-                                texto: `Metrónomo · ${metro.config.bpm} bpm · ${metro.config.num}/${metro.config.den} · ${figuraMetro(metro.config.figura).nombre}`
+                            isPlayingExercise && { id: "ejercicio", nombre: "ejercicio", texto: `Ejercicio «${exercise.title || "sin título"}»`,
+                                pausado: audioPausado, onPausa: alternarPausa, onParar: () => { stopExercise(); reanudarAudio(); } },
+                            isPlayingTab && { id: "tab", nombre: "tablatura", texto: `Tablatura «${tab.title || "sin título"}»`,
+                                pausado: audioPausado, onPausa: alternarPausa, onParar: () => { stopTab(); reanudarAudio(); } },
+                            // 0.13: el drone y el metrónomo salen siempre, cada uno con lo suyo.
+                            drone.sonando && { id: "drone", nombre: "drone", color: "#3DBE8B", texto: `Drone · ${nombreDrone(drone.config).nombre}`,
+                                pausado: dronePausado, onPausa: () => pausarReloj(window.__kharoDrone, dronePausado, setDronePausado), onParar: drone.parar },
+                            metro.sonando && {
+                                id: "metronomo", nombre: "metrónomo", color: "#E5654B",
+                                texto: `Metrónomo · ${metro.config.bpm} bpm · ${metro.config.num}/${metro.config.den} · ${figuraMetro(metro.config.figura).nombre}`,
+                                pausado: metroPausado, onPausa: () => pausarReloj(window.__kharoMetronomo, metroPausado, setMetroPausado), onParar: metro.parar
                             }
                         ].filter(Boolean)}
-                        pausado={audioPausado}
-                        onPausa={alternarPausa}
-                        onParar={pararTodo}
                     />
 
                     {borradoPendiente && (
@@ -19554,7 +20119,7 @@
                         Sólo en la portada. En el estudio eran 33 px de alto que
                         se le quitaban al mástil para decir algo que no cambia. */}
                     {esSitio && (
-                    <footer class="hidden md:block py-2 px-4 text-center k-ink-faint k-text-xs shrink-0 z-10" style={{backgroundColor:'var(--k-bg-deep)', borderTop:'1px solid var(--k-divider)'}}>
+                    <footer class="k12-pie hidden md:block py-2 px-4 text-center k-ink-faint k-text-xs shrink-0 z-10" style={{backgroundColor:'var(--k-bg-deep)', borderTop:'1px solid var(--k-divider)'}}>
                         <p>© 2026 Kharo Studio. Diseñado para creadores de contenido de música y educadores.</p>
                         <CreditoSonidos corto />
                     </footer>
@@ -19580,7 +20145,7 @@
         // El orden importa: el núcleo define lo que usan los otros dos, y el
         // estudio termina montando la aplicación. Al concatenarse comparten un
         // único ámbito, así que no hay imports entre bloques.
-        var bloques = ['app-source-core', 'app-source-song', 'app-source-tab', 'app-source-biblioteca', 'app-source-metronomo', 'app-source-studio'];
+        var bloques = ['app-source-core', 'app-source-song', 'app-source-tab', 'app-source-biblioteca', 'app-source-metronomo', 'app-source-drone', 'app-source-studio'];
         var appSource = bloques
             .map(function (id) {
                 var el = document.getElementById(id);
