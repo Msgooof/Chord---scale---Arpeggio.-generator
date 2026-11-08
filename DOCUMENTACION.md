@@ -3772,6 +3772,154 @@ ejercicio, tablatura y rasgueo comparten el del reproductor.
 **Sin probar:** el timbre en parlantes con graves de verdad (se ajustó de oído teórico; el nivel
 de pico ronda 0,35).
 
+## Prime pasa a la 0.17 (2026-11-07)
+
+Carlos aprobó la v17 y pidió subirla: `v17.html` se copió sobre `index.html` (respaldo de la 0.13
+en el scratchpad de esa sesión; copias de `v14.html`, `v16.html` y `v17.html` en
+`_trabajo/versiones-antiguas/`). Con ella entran en Prime la 0.14, la 0.16 y la 0.17, que se
+describen abajo. La 0.15 (la Tienda) **no** entra: salió de la 0.13 por otro camino y sigue como
+propuesta en `v15.html`. Prime ya no carga `tab-core.js` ni `ui-v16.css`: se quitaron del repo,
+pero siguen en la carpeta local porque los usan la v15 y la v16.
+
+## 0.14: sin Tablaturas, el drone sin clipeo y la Escucha (2026-10-16 / 2026-11-06)
+
+**Tablaturas fuera** (Carlos: «quitar y borrar todo»): sin bloque `app-source-tab` ni `tab-core.js`;
+al arrancar se borra `kharo.tabs.v1`.
+
+**Drone sin clipeo:** limitador y saturación suave (tanh, muro en 0,9), `latencyHint: "playback"`,
+paso-alto a 70 Hz, cola de 2,5 s y, en pantallas táctiles (`DRONE_LIGERO`), sin sub-octava.
+
+**Escucha** (`app-source-escucha`, botón naranja encima del Drone, estilos en `ui-v14.css`): oye la
+guitarra por el micrófono o la interfaz y la pinta en el mástil. Captura con AudioWorklet, YIN para
+la nota suelta, espectro por suma de armónicos para los acordes (votado en 10 cuadros),
+«Enséñale tu guitarra» (huella por cuerda, `kharo.escucha.huella.v1`), motor «Preciso» con Basic
+Pitch (`vendor/basic-pitch/`), afinador cromático o por instrumento, panel de Diagnóstico y todo en
+una pantalla con pedalera (Entrada, Afinador, Tu guitarra, Motor, Vista, Monitor).
+
+**Drops** (`app-source-drops`, raíl azul tras Arpegios, `kharo.drops.v1`): cerrado, drop 2, drop 3 y
+drop 2 y 4 sobre sus juegos de cuerdas, 10 calidades, filtros de inversión y juego, vista «Juntos» o
+«Por juego», Oír y SVG/PNG.
+
+## 0.16: Banda, bases para improvisar (2026-11-07)
+
+Sección del Taller (botón frambuesa del raíl) que toca una base para improvisar encima. No es para
+hacer canciones: eliges progresión, estilo y formación, y suena.
+
+- **Núcleo puro** `banda-core.js` (`window.BandaCore`): 21 progresiones en grados agrupadas por
+  familia, 9 estilos (rejillas de batería, swing, comping del piano, rasgueo, figuras), formaciones,
+  `arreglar()` (eventos de cada instrumento) y `caminos()` (la ayuda: simple, pentatónica, notas del
+  acorde, modal).
+- **Motor** `MotorBanda`: AudioContext propio, reloj en un Worker de 25 ms, muestras de piano
+  (`vendor/sonidos/piano/`, CC BY 3.0) y de batería (`vendor/sonidos/bateria/`, Karoryfer CC0),
+  guitarra y bajo del banco que ya había. Los cambios entran en el compás siguiente.
+- **Interfaz**: mesa = atril, donde cada acorde mide lo que dura; pedalera con Progresión, Estilo,
+  Tempo, Acompañamiento (formación y mudo por instrumento) y Transporte; clic derecho en cada
+  pantalla para ver todas las opciones. Ayuda «En la hoja»: «¿Cómo improviso?» pone bajo cada
+  acorde las notas del camino elegido y un globo por acorde. Estado en `kharo.banda.v1`.
+- **Teléfono**: atril de 8 pulsos por línea, transporte pegado abajo; acostado, la pedalera es hoja
+  lateral; el globo va por portal al `<body>`.
+
+Lo visual de la 0.16 se rehízo en la 0.17 para que fuera parte del sistema.
+
+## El sistema de Kharo (regla escrita el 2026-11-07)
+
+Cada cosa nueva tiene que ser **parte del mismo sistema**, no «otra cosa». La referencia es el Taller
+tal como está en Acordes y Escalas.
+
+**Colores**
+- Solo tokens: los de `theme.css` (`--k-*`), las pantallas LCD de la 0.6 (`--k6-lcd`, `--k6-lcd-ink`,
+  `--k6-lcd-dim`) y los pedales planos de la 0.11 (`--k11-azul`, `--k11-rojo`, … `--k11-tinta`, `--k11-claro`).
+  Ningún color suelto (`#…`) en el CSS ni en el JSX de una sección nueva.
+- **Acción** = `--k-accent` (botones, foco, elegido). **Dato del momento** = lima (`--k-marker`), y poco:
+  el pulso que suena, la etiqueta «Ahora».
+- El color propio de una sección vive **solo en su botón del raíl** (y en su latido). Dentro de la
+  sección no se repite.
+- Las notas se pintan con los colores de grado del estilo vivo (`colorDeGrado(useDiagramStyle(), grado)`),
+  nunca con una paleta propia.
+
+**Componentes** (si falta algo, se amplía el compartido; no se hace uno paralelo)
+- Pedalera: `Pedal`, `Pantalla` (con `onMenu` = clic derecho), `Perilla`, `PerillaTonica`,
+  `Conmutador`, `Pisador`, `SelectorRotativo`, `BotonPedal`, el LED `k6-led`.
+- Mesa: `k-btn` (`--primary`, `--outline`, `--ghost`), `k-tabs`/`k-tab`, `k-chip`, `k-panel`,
+  `k-panel-title`, `BotonIcono`, `Icono`.
+- Capas: `MenuContextualAccesible` (ahora con grupos, subtítulo, opción activa, ancho y scroll),
+  `Dialogo`, la hoja de pedalera de la 0.14 en el teléfono.
+- Diagramas: **siempre `DiagramaKharo`** con una escena como la del Taller (`escenaDelEstudio`), y
+  `VentanaMastil` para mover la ventana de trastes.
+
+**Letras**: `--k-font-title` (Fjalla) para títulos; letra de interfaz para el texto; VT323 solo
+dentro de las pantallas de pedal y del visor.
+
+## 0.17: el Taller como lugar de estudio (2026-11-07, en Prime)
+
+`ui-v17.css` + `teoria-core.js`, sobre la v16. Aprobada y copiada a `index.html` el mismo día.
+
+**1 · Canción fuera del Taller, sin borrarla.** `const CANCION_VISIBLE = false;` al principio del
+bloque core apaga cada entrada: raíl y barra del teléfono, ficha de la portada, tipo «Canciones» de la
+Biblioteca, «Nuevo › Canción», «También en una canción» al guardar un acorde, el «Ver en Canción» del
+aviso, y la vista (`setAppView("song")` acaba en el Taller). `song-core.js` sigue: lo usan Ejercicios
+y la Biblioteca. Copia del bloque y de `ui-v11.css` en `_trabajo/aparte/cancion/` con su LEEME. Volverá
+en una sección de creación desde la landing.
+
+**2 · Banda dentro del sistema.** Fuera: la capa de tokens propia, el frambuesa por todas partes, el
+menú verde en VT323 (`MenuBanda`), el globo blanco, las fichas de colores propias y el mástil propio
+(`MastilBanda`). Ahora: superficies del Taller, botón de ayuda `k-btn`, caminos en `k-tabs`, globo
+`k-panel`, LED `k6-led`, visor con `--k6-lcd*`, y el clic derecho con el **menú compartido** ampliado
+(`op.grupo`, `op.sub`, `op.activo`, `ancho`, alto máximo con scroll). `ui-v17.css` sustituye a
+`ui-v16.css` en la v17 y no tiene ningún color suelto.
+
+**3 · El mismo diagrama.** La ayuda, el globo y el ensayo dibujan con `DiagramaKharo` en horizontal y
+la escena de Escalas (`escenaDeEscalaBanda`: mapa «escala» o «arpegio», grados desde la raíz de la
+escala, al aire solo si se ve el traste 1). Las notas que no son del acorde de ahora van con
+`OPACIDAD_FUERA_DE_TRIADA`, el recurso que el Taller ya usa con las tríadas. La ventana se mueve con
+`VentanaMastil`. Las fichas de nota del atril son el mismo punto: color de grado y `dotTextColor`.
+
+**4 · La biblioteca de teoría** (`teoria-core.js`, `window.TeoriaKharo`): los doce intervalos (razón
+en la serie armónica, consonancia, papel), las escalas y modos (pasos, escala madre, nota
+característica, sonido, acordes, usos), un glosario, la función armónica de cada acorde y
+`notaSobreAcorde(pc, acorde)` con la regla de acorde-escala:
+- nota del acorde → «Nota del acorde»;
+- en la dominante (3ª mayor + 7ª menor): 4 y 7ª mayor → «Con cuidado»; ♭9, ♯9, ♭13 → «Tensión
+  alterada»; 9, ♯11, 13 → «Tensión»;
+- en los demás: medio tono sobre una nota del acorde → «Con cuidado»; un tono sobre una → «Tensión»;
+- en una tríada, las dos 7ª se pueden añadir como color; lo demás → «Fuera» (de paso).
+`banda-core.js` la consulta: si la nota de color de un modo roza con el acorde (la ♭6 del eólico, la ♭2
+del frigio), la línea corta ya no la pide «en pulso fuerte», sino de paso.
+
+**5 · «Entender más».** El título «¿Cómo improviso?» y su línea corta siguen igual. «Entender más»
+(junto a la línea y en el globo de cada acorde) abre en un `Dialogo` el ensayo de
+`TeoriaKharo.ensayo()`, en cinco partes: qué está sonando (funciones, tritono, préstamos), por qué
+funciona el camino, nota por nota sobre cada acorde (diagrama + tabla), cómo pasar de un acorde al
+siguiente (notas guía) y para ir más lejos. Abierto desde un acorde, empieza en ese acorde. Los «tres
+pasos» del globo de la 0.16 se quitaron: el ensayo los cubre.
+
+**Comprobado:** pruebas en node de `teoria-core.js` (las 12 notas sobre cada calidad en los 12 tonos,
+casos de libro, 1008 ensayos, sin contradicciones con la línea corta: 0 fallos) y de `banda-core.js`
+(40 824 arreglos, 0 fallos). En el navegador: sin errores; Canción no sale en raíl, portada ni
+Biblioteca; Ejercicios abre; el SHA del `#chord-diagram-svg` en Acordes y en Escalas es el mismo en la
+v16 y en la v17.
+
+**Fuentes consultadas para la teoría** (para contrastar términos; los textos son propios):
+reglas de notas a evitar y tensiones disponibles —
+[Avoid Notes, Tension Notes and Extended Chords](https://simplifyingtheory.com/?p=526),
+[Available Tensions (The Jazz Piano Site)](https://thejazzpianosite.com/?p=325),
+[Extensions & Avoid Notes](https://harmonious.nfshost.com/p/05/Extensions-Avoid-Notes);
+tritono y resolución de la dominante —
+[Las tríadas dentro de la tonalidad (Toby Rush)](https://www.tobyrush.com/theorypages/es/pdf/0115lastriadastentrodelatonalidad.pdf),
+[Tritone substitution and secondary dominants (Audiofanzine)](https://en.audiofanzine.com/music-theory/editorial/articles/tritone-substitution-and-secondary-dominants.html).
+
+### Lo que se desvía del sistema en otras secciones (para la próxima ronda)
+
+- **Escucha (0.14, `ui-v14.css`)**: 32 colores sueltos; sobre todo el naranja de la sección
+  (`#FF9440`, 15 veces) usado dentro de la vista, y grises y azules propios en el panel de diagnóstico
+  y el medidor (`#0E1014`, `#8E97A8`, `#EAF0FF`, `#FF8A8A`…). Debería quedar el naranja solo en el raíl
+  y el resto pasar a tokens.
+- **Drops (0.14)**: 6 colores sueltos en el bloque (los `COLORES_DROP` de juegos e inversiones). Hay que
+  decidir si salen de los colores de grado del estilo vivo o de una paleta de datos del sistema.
+- **Drone (0.13, `ui-v13.css`)**: 1 color suelto (`#3DBE8B`, el verde de la sección) fuera del raíl.
+- Las tres usan `DiagramaKharo` y las piezas de la pedalera: lo que se desvía es el color, no los
+  componentes.
+
 ## 23. Deuda técnica de fondo
 
 - `App()` sigue siendo un componente enorme: todo el estado y todo el JSX del estudio juntos. Va

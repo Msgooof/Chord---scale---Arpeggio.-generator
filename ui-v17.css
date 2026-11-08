@@ -1,0 +1,279 @@
+/* =============================================================================
+ * 0.17 · UN SOLO SISTEMA
+ * Banda hecha con las piezas de Acordes y Escalas. Sustituye en la v17 a
+ * ui-v16.css (que sigue igual para la v16).
+ *
+ * Reglas (DOCUMENTACION.md, «El sistema de Kharo»):
+ *   - Solo tokens: theme.css (--k-*), los LCD de la 0.6 (--k6-lcd*) y los
+ *     pedales planos de la 0.11 (--k11-*). Ningún color suelto.
+ *   - Acción = --k-accent. Dato del momento = lima (--k-marker), poco.
+ *   - El color propio de una sección vive SOLO en su botón del raíl.
+ *   - La mesa usa las superficies del Taller; la pedalera, la de la 0.11.
+ * ========================================================================== */
+
+/* --- El raíl: la banda late mientras toca (con el color de su botón) ------ */
+.k16-toca { animation: k17-toca 0.9s ease-in-out infinite; }
+@keyframes k17-toca {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--k7-color, var(--k-accent)) 45%, transparent); }
+}
+.k7-barra__boton.k16-toca:not(.k7-barra__boton--activo) { color: var(--k7-color, var(--k-accent)); }
+@media (prefers-reduced-motion: reduce) { .k16-toca { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--k7-color, var(--k-accent)) 50%, transparent); } }
+
+/* --- La mesa: las superficies del Taller, sin capa de color propia --------- */
+.k16-mesa { justify-content: flex-start; align-items: stretch; gap: 14px; padding: 18px 20px 12px; }
+.k16-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.k16-titulo { margin: 0; font: 400 clamp(24px, 3.2vw, 34px)/1.05 var(--k-font-title); letter-spacing: .02em; color: var(--k-text); }
+.k16-sub { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--k-text-faint); }
+.k17-boton-ayuda { flex: none; gap: 6px; }
+
+/* --- El atril -------------------------------------------------------------------- */
+.k16-hoja {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 14px 16px 12px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+    overflow-y: auto; min-height: 0;
+}
+.k16-regla { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-faint); }
+.k16-regla__una { color: var(--k-text-muted); letter-spacing: .04em; }
+.k16-pie { margin: 0; font-size: 12.5px; color: var(--k-text-faint); }
+.k16-pie b { color: var(--k-text-muted); }
+.k16-atril { display: flex; flex-direction: column; gap: 14px; }
+.k16-linea { display: grid; border-left: 3px solid var(--k-text); border-right: 2px solid var(--k-text); }
+.k16-linea--fin { border-right: 6px double var(--k-text); }
+.k16-acorde {
+    position: relative;
+    display: flex; flex-direction: column; gap: 7px;
+    min-width: 0;
+    padding: 10px 12px 9px;
+    border: 0; border-right: 2px solid var(--k-text);
+    background: transparent; color: var(--k-text);
+    text-align: left; cursor: pointer;
+    font: inherit;
+    container-type: inline-size;
+}
+.k16-acorde:last-child { border-right: 0; }
+.k16-acorde:hover { background-color: var(--k-accent-soft); }
+.k16-acorde:focus-visible { outline: 2px solid var(--k-accent); outline-offset: -2px; }
+.k16-acorde--elegido { box-shadow: inset 0 0 0 2px var(--k-accent); border-radius: var(--k-radius-sm); }
+.k16-acorde__nombre { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.k16-acorde__nombre b { font: 400 clamp(24px, 3vw, 38px)/1 var(--k-font-title); letter-spacing: .01em; white-space: nowrap; }
+.k16-acorde__grado { font-size: 13px; font-weight: 600; color: var(--k-text-faint); }
+.k16-acorde__dura { margin-left: auto; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--k-text-faint); white-space: nowrap; }
+@container (max-width: 60px) { .k16-acorde__dura { display: none; } }
+.k16-pulsos { display: grid; gap: 4px; }
+.k16-p { display: block; height: 6px; border-radius: 3px; background-color: var(--k-divider); }
+.k16-p--compas { margin-left: 5px; }
+.k16-p--ya { background-color: var(--k-text-faint); }
+/* El pulso que suena es el dato del momento: lima. */
+.k16-p--ahora { background-color: var(--k-marker); }
+.k16-acorde--suena .k16-acorde__nombre b { text-decoration: underline; text-decoration-color: var(--k-marker); text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.k16-etiqueta {
+    position: absolute; top: -9px; left: 10px;
+    padding: 3px 6px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    background-color: var(--k-surface); color: var(--k-text-muted);
+    border: 1px solid var(--k-divider);
+}
+.k16-etiqueta--ahora { background-color: var(--k-marker); color: var(--k-marker-ink); border-color: transparent; }
+
+/* Lo que la ayuda escribe debajo de cada acorde. */
+.k16-impro { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed var(--k-divider); min-width: 0; }
+.k16-impro__esc { font-size: 13px; font-weight: 700; color: var(--k-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k16-impro__apunta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.k16-impro__rot { font-size: 11px; color: var(--k-text-faint); }
+.k16-impro__grado { font-size: 11px; font-weight: 700; color: var(--k-text-muted); margin-right: 4px; }
+
+/* La ficha de nota: el mismo punto del diagrama (color y texto vienen del estilo vivo). */
+.k17-ficha {
+    display: inline-grid; place-items: center;
+    min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
+    font: 700 10px/1 var(--k-font-ui);
+}
+.k17-ficha--grande { min-width: 30px; height: 30px; border-radius: 15px; font-size: 11px; }
+.k17-ficha--fuera { opacity: .3; }
+
+/* --- La ayuda ---------------------------------------------------------------- */
+.k16-ayuda {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    border: 1px solid var(--k-divider);
+}
+.k16-ayuda__cabeza { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.k16-ayuda__titulo { margin: 0 4px 0 0; font: 400 19px/1 var(--k-font-title); color: var(--k-text); }
+.k16-ayuda__cerrar { margin-left: auto; }
+.k17-nivel { color: var(--k-text-faint); }
+.k16-ayuda__cuerpo { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+.k16-ayuda__mastil { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.k16-ayuda__texto { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.k16-ayuda__linea { margin: 0; font-size: 15px; line-height: 1.5; color: var(--k-text-muted); }
+.k16-ayuda__cual { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-faint); }
+.k16-ayuda__cual b { color: var(--k-text); font-size: 13px; letter-spacing: .02em; }
+.k17-atenuadas { margin: 0; font-size: 11.5px; color: var(--k-text-faint); }
+.k17-diagrama { width: 100%; }
+.k17-diagrama svg { display: block; width: 100%; height: auto; max-height: 190px; }
+@media (max-width: 900px) { .k16-ayuda__cuerpo { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+
+/* --- El menú compartido con grupos (MenuContextual, 0.17) --------------------- */
+.k17-menu-grupo { color: var(--k-text-faint); }
+.k17-menu-op { flex: 1 1 auto; min-width: 0; text-align: left; }
+.k17-menu-sub { flex: none; margin-left: 10px; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; color: var(--k-text-faint); }
+[role="menuitemradio"][data-activo] { background-color: var(--k-accent-soft); color: var(--k-text); font-weight: 700; box-shadow: inset 3px 0 0 var(--k-accent); }
+
+/* --- El globo del porqué: un panel del sistema ------------------------------- */
+.k17-globo {
+    position: absolute; z-index: 30;
+    width: min(360px, calc(100% - 24px));
+    padding: 12px 14px;
+    font-size: 13.5px; line-height: 1.5;
+    color: var(--k-text);
+}
+.k17-globo::before {
+    content: ""; position: absolute; top: -7px; left: var(--k17-flecha, 30px);
+    width: 12px; height: 12px; transform: rotate(45deg);
+    background-color: var(--k-surface);
+    border-left: 1px solid var(--k-divider); border-top: 1px solid var(--k-divider);
+}
+.k17-globo__cabeza { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.k17-globo h4 { margin: 0; font: 400 19px/1.1 var(--k-font-title); }
+.k17-globo h4 span { color: var(--k-text-muted); }
+.k17-globo__porque { margin: 0; color: var(--k-text-muted); }
+.k17-globo__botones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.k17-globo__mas { margin-left: auto; }
+
+/* --- Entender más: el ensayo ------------------------------------------------------- */
+.k17-ensayo { display: flex; flex-direction: column; gap: 22px; }
+.k17-ensayo__indice { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--k-divider); }
+.k17-ensayo__num {
+    display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px;
+    border-radius: 50%; font-size: 10px; font-weight: 700;
+    background-color: var(--k-accent-soft); color: var(--k-accent);
+}
+.k17-ensayo__seccion { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 12px; }
+.k17-ensayo__p, .k17-ensayo__termino { margin: 0; max-width: 68ch; font-size: 15px; line-height: 1.65; color: var(--k-text-muted); }
+.k17-ensayo__p b, .k17-ensayo__termino b { color: var(--k-text); }
+.k17-ensayo__termino { padding-left: 12px; border-left: 3px solid var(--k-accent); }
+.k17-ensayo__acorde { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--k-radius-md); background-color: var(--k-surface-raised); border: 1px solid var(--k-divider); scroll-margin-top: 12px; }
+.k17-ensayo__acorde h4 { margin: 0; font: 400 21px/1.1 var(--k-font-title); color: var(--k-text); }
+.k17-ensayo__acorde h4 span { color: var(--k-text-muted); }
+.k17-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.k17-tabla th { text-align: left; padding: 6px 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-faint); border-bottom: 1px solid var(--k-divider); }
+.k17-tabla td { padding: 7px 8px; vertical-align: top; color: var(--k-text-muted); border-bottom: 1px solid var(--k-divider); line-height: 1.45; }
+.k17-tabla__grado { font-weight: 700; color: var(--k-text); white-space: nowrap; }
+.k17-tabla__fila--acorde td:nth-child(3) .k-chip { color: var(--k-text); }
+.k17-tabla__fila--evitar td { color: var(--k-text-faint); }
+
+/* --- El transporte -------------------------------------------------------------- */
+.k16-transporte {
+    margin-top: auto;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--k-divider);
+}
+.k16-transporte__b { width: 40px; height: 40px; padding: 0; }
+.k16-play { width: 54px; height: 54px; }
+.k16-visor {
+    min-width: 200px; padding: 8px 12px; border-radius: var(--k-radius-md); text-align: center;
+    font: 400 24px/1 "VT323", var(--k-font-mono);
+    color: var(--k6-lcd-ink); background-color: var(--k6-lcd);
+}
+.k16-visor small { color: var(--k6-lcd-dim); font-size: 18px; }
+
+/* --- La pedalera de la banda: los pedales planos de la 0.11 -------------------- */
+.k11-pedalera #k6-pedal-banda-progresion { --p: var(--k11-azul); }
+.k11-pedalera #k6-pedal-banda-estilo { --p: var(--k11-morado); }
+.k11-pedalera #k6-pedal-banda-tempo { --p: var(--k11-rojo); }
+.k11-pedalera #k6-pedal-banda-acomp { --p: var(--k11-naranja); }
+.k16-instrumentos { display: grid; gap: 6px; }
+.k16-inst { display: grid; grid-template-columns: 64px minmax(0, 1fr) 28px; align-items: center; gap: 6px; }
+.k16-inst__nombre { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--k11-tinta); opacity: .8; }
+.k16-inst .k6-pantalla-bloque { min-width: 0; }
+.k16-inst--mudo .k6-pantalla { opacity: .45; }
+.k17-mudo {
+    display: grid; place-items: center;
+    width: 28px; height: 28px; padding: 0;
+    border: 0; border-radius: 50%; background: transparent; cursor: pointer;
+}
+.k17-mudo:focus-visible { outline: 2px solid var(--k11-tinta); outline-offset: 1px; }
+
+/* =============================================================================
+ * El teléfono (la fase 5 de la 0.16, con las clases de la 0.17)
+ * ========================================================================== */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .k16 .k16-mesa { overflow-y: auto; overscroll-behavior: contain; }
+    .k16 .k16-hoja { flex: none; overflow: visible; }
+    .k16 .k16-ayuda { flex: none; }
+    .k16 .k16-transporte {
+        position: sticky; bottom: -12px; z-index: 5;
+        margin: auto -12px -12px; padding: 10px 12px 12px;
+        background-color: var(--k-surface);
+    }
+    .k16 .k17-caminos { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+    .k16 .k17-caminos::-webkit-scrollbar { display: none; }
+    .k16 .k17-caminos .k-tab { flex: none; }
+    .k16 .k16-ayuda__cabeza { position: relative; padding-right: 40px; }
+    .k16 .k16-ayuda__cerrar { position: absolute; top: -4px; right: -4px; margin: 0; }
+
+    /* El globo como hoja desde abajo (va en el <body>). */
+    .k17-globo.k17-globo--hoja {
+        position: fixed;
+        left: 0; right: 0; top: auto; bottom: 0;
+        width: auto; max-height: 72vh; overflow-y: auto;
+        z-index: 130;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+        border-radius: var(--k-radius-xl) var(--k-radius-xl) 0 0;
+        animation: k17-sube .22s cubic-bezier(.2, .8, .2, 1);
+    }
+    .k17-globo--hoja::before { display: none; }
+}
+@keyframes k17-sube { from { transform: translateY(40%); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .k17-globo--hoja { animation: none; } }
+
+@media (max-width: 767px) {
+    .k16-cabeza { flex-wrap: wrap; padding-right: 44px; }
+    .k16-titulo { font-size: 24px; }
+    .k16-acorde__nombre b { font-size: 26px; }
+    .k16-atril { gap: 18px; }
+    .k16-mesa { padding: 14px 12px 10px; }
+    .k16-hoja { padding: 12px 10px 10px; }
+    .k16-acorde { padding: 9px 8px 8px; }
+    .k16-impro__esc { font-size: 12px; white-space: normal; }
+    .k16-ayuda { padding: 10px; }
+    .k16-ayuda__linea { font-size: 14px; }
+    .k16-visor { min-width: 0; font-size: 20px; }
+    .k17-tabla th:nth-child(4), .k17-tabla td:nth-child(4) { display: none; }
+}
+
+/* Acostado (como la 0.12): la pedalera es una hoja lateral y la mesa usa todo el ancho. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .k14.k16 { grid-template-columns: minmax(0, 1fr); padding: 6px 8px; gap: 0; }
+    .k16 .k14-solo-movil { display: grid !important; }
+    .k16 .k16-pedalera {
+        position: fixed;
+        top: 0; right: 0; bottom: 0; left: auto;
+        z-index: 120;
+        width: min(380px, 60vw);
+        border-radius: var(--k-radius-xl) 0 0 var(--k-radius-xl);
+        transform: translateX(105%);
+        transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+    }
+    .k16 .k16-pedalera.k14-pedalera--abierta { transform: none; }
+    .k16 .k14-velo { position: fixed; inset: 0; z-index: 110; background: var(--k-scrim); }
+    .k16 .k16-mesa { padding: 10px 14px 8px; gap: 10px; }
+    .k16-cabeza { padding-right: 48px; align-items: center; }
+    .k16-titulo { font-size: 22px; }
+    .k16-sub { margin-top: 2px; font-size: 11px; }
+    .k16-hoja { padding: 10px 12px 8px; gap: 8px; }
+    .k16-acorde { padding: 8px 10px 7px; gap: 5px; }
+    .k16-acorde__nombre b { font-size: 26px; }
+    .k16-ayuda { padding: 10px 12px; gap: 8px; }
+    .k16-ayuda__cuerpo { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; }
+    .k16-play { width: 46px; height: 46px; }
+    .k16-visor { font-size: 20px; padding: 6px 10px; }
+    .k17-globo.k17-globo--hoja { max-height: 86vh; left: 10vw; right: 10vw; }
+}
+@media (prefers-reduced-motion: reduce) { .k16 .k16-pedalera { transition: none; } }

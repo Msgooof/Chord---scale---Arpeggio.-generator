@@ -1,0 +1,504 @@
+/* ==========================================================================
+ * 0.14 · ESCUCHA
+ * La guitarra entra por la interfaz y el mástil enseña lo que suena. Arriba
+ * el escenario (el acorde o la nota en grande y el diagrama acostado);
+ * debajo los mandos, con las piezas del metrónomo y el drone (k10/k13).
+ * En pantalla completa solo queda el escenario, sobre negro.
+ * ========================================================================== */
+
+.k14 {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: var(--k-space-4, 16px);
+}
+
+/* --- El escenario ------------------------------------------------------------- */
+.k14-escenario {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 18px 16px 16px;
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+}
+
+/* El nombre: lo primero que se lee. Lima solo aquí, como acento. */
+.k14-nombre { display: flex; align-items: baseline; justify-content: center; gap: 12px; min-height: 64px; }
+.k14-nombre__grande {
+    font: 400 clamp(44px, 9vw, 84px)/1 var(--k-font-title);
+    letter-spacing: .02em;
+    color: var(--k-marker);
+    transition: color .3s, opacity .3s;
+}
+.k14-nombre--apagado .k14-nombre__grande { color: var(--k-text-faint); }
+.k14-nombre__cents {
+    font: 700 13px var(--k-font-ui);
+    letter-spacing: .06em;
+    color: var(--k-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.k14-mastil { width: 100%; display: flex; justify-content: center; }
+.k14-mastil svg { width: 100%; max-width: 900px; height: auto; max-height: 44vh; }
+/* Las notas se apagan solas por su opacidad: sin transiciones encima. */
+.k14-mastil svg * { transition: none !important; }
+
+.k14-completa-boton {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: grid; place-items: center;
+    width: 38px; height: 38px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    cursor: pointer;
+    transition: opacity .3s;
+}
+.k14-completa-boton:hover { border-color: var(--k-border); }
+.k14-completa-boton:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+
+/* --- Los mandos ----------------------------------------------------------------- */
+.k14-mandos {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.k14-mandos__fila { display: flex; align-items: center; gap: 16px; }
+.k14-escuchar { width: 56px; height: 56px; flex: none; }
+.k14-estado { font: 700 11px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: #FF9440; }
+
+/* El medidor, en la pantalla LCD de la pedalera. La raya es la puerta. */
+.k14-medidor {
+    position: relative;
+    flex: 1 1 auto;
+    max-width: 420px;
+    height: 12px;
+    border-radius: 6px;
+    background-color: var(--k6-lcd);
+    overflow: hidden;
+}
+.k14-medidor__barra { position: absolute; inset: 0 auto 0 0; background-color: var(--k6-lcd-ink); transition: width .05s linear; }
+.k14-medidor__puerta { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background-color: #FF9440; }
+
+.k14-error { margin: 0; padding: 10px 12px; border-radius: var(--k-radius-md); background-color: var(--k-surface-raised); color: var(--k-danger); font-size: var(--k-text-sm); }
+
+.k14-rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 20px;
+    align-items: start;
+}
+.k14-campo { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.k14-campo--ancho { align-items: stretch; }
+.k14-campo select { width: 100%; max-width: 100%; }
+.k14-campo input[type="range"] { width: 100%; accent-color: var(--k-marker); }
+.k14-campo .k13-ajuste__extremos { grid-column: auto; }
+.k14-seguir { align-self: flex-start; }
+.k14-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.k14-acciones .k10-boton:disabled { opacity: .45; cursor: default; }
+
+/* El diagnóstico: lo que oye Kharo, en la pantalla LCD de la pedalera. */
+.k14-diag {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k6-lcd);
+    color: var(--k6-lcd-ink);
+    font: 13px/1.5 var(--k-font-mono, monospace);
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 14px;
+}
+.k14-diag dt { color: var(--k6-lcd-dim); }
+.k14-diag dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.k14-diag__aviso { color: #FF9440; }
+.k14-diag--vacio { display: block; color: var(--k6-lcd-dim); }
+
+/* --- Pantalla completa ----------------------------------------------------------
+ * La capa fija vale también donde no hay Fullscreen API (iPhone). */
+.k14--completa {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000;
+    justify-content: center;
+}
+.k14--completa .k14-escenario {
+    max-width: none;
+    height: 100%;
+    justify-content: center;
+    gap: 3vh;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.k14--completa .k14-nombre { min-height: 0; }
+.k14--completa .k14-nombre__grande { font-size: clamp(64px, 16vh, 180px); }
+.k14--completa .k14-mastil svg { max-width: 96vw; max-height: 68vh; }
+.k14--completa .k14-completa-boton { background-color: rgba(255, 255, 255, .08); border-color: transparent; color: #fff; }
+/* Quieta: sin ratón ni botón a la vista. */
+.k14--quieta { cursor: none; }
+.k14--quieta .k14-completa-boton { opacity: 0; pointer-events: none; }
+
+/* --- El botón de la barra mientras escucha ----------------------------------------- */
+.k14-oye { animation: k14-oye 1.6s ease-in-out infinite; }
+@keyframes k14-oye {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 148, 64, .55); }
+    50% { box-shadow: 0 0 0 5px rgba(255, 148, 64, 0); }
+}
+.k7-barra__boton.k14-oye:not(.k7-barra__boton--activo) { color: #FF9440; }
+
+@media (max-width: 767px) {
+    .k14 { padding: 10px; gap: 12px; }
+    .k14-escenario { padding: 12px 8px; }
+    .k14-nombre { min-height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .k14-oye { animation: none; }
+}
+
+/* ==========================================================================
+ * 0.14 · tercera vuelta: pestañas, afinador y «Enséñale tu guitarra»
+ * ========================================================================== */
+
+/* La cabecera: Mástil · Afinador, el botón de escuchar y el medidor. */
+.k14-cabeza {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+.k14-cabeza .k14-escuchar { width: 46px; height: 46px; }
+.k14-nota-campo { color: var(--k-text-faint); font-size: 11px; }
+
+/* --- El afinador --------------------------------------------------------------- */
+.k14-afinador { width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.k14-afinador__nota { display: flex; align-items: baseline; gap: 4px; min-height: 96px; }
+.k14-afinador__letra { font: 400 clamp(72px, 14vw, 120px)/1 var(--k-font-title); color: var(--k-text); transition: color .15s; }
+.k14-afinador__octava { font: 700 20px var(--k-font-ui); color: var(--k-text-muted); }
+.k14-afinador__nota--ok .k14-afinador__letra { color: var(--k-marker); }
+.k14-afinador__nota--apagada .k14-afinador__letra { color: var(--k-text-faint); }
+.k14-aguja { width: 100%; max-width: 520px; height: auto; border-radius: var(--k-radius-md); background-color: var(--k6-lcd); }
+.k14-aguja__zona { fill: var(--k6-lcd-dim); opacity: .35; }
+.k14-aguja__marca { stroke: var(--k6-lcd-dim); stroke-width: 1.5; }
+.k14-aguja__txt { fill: var(--k6-lcd-dim); font: 700 9px var(--k-font-ui); }
+.k14-aguja__punta { fill: #FF9440; transition: x .08s linear; }
+.k14-aguja__punta--ok { fill: var(--k6-lcd-ink); }
+.k14-aguja__punta--lejos { fill: #E5654B; }
+.k14-afinador__datos { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.k14-afinador__datos b { font: 700 15px var(--k-font-ui); color: var(--k-text); }
+.k14-afinador__datos span { font: 600 12px var(--k-font-ui); color: var(--k-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Las cuerdas: botón por cuerda; la que suena con aro, la fijada llena, la afinada en lima. */
+.k14-cuerdas { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.k14-cuerda {
+    min-width: 46px; height: 46px;
+    padding: 0 10px;
+    display: inline-flex; align-items: baseline; justify-content: center; gap: 1px;
+    border: 2px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    font: 700 16px var(--k-font-ui);
+    cursor: pointer;
+}
+.k14-cuerda small { font-size: 10px; color: var(--k-text-muted); }
+.k14-cuerda--auto { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; align-items: center; }
+.k14-cuerda--sonando { border-color: #FF9440; }
+.k14-cuerda--on { background-color: #FF9440; border-color: #FF9440; color: #1A1206; }
+.k14-cuerda--on small { color: #1A1206; }
+.k14-cuerda--lista:not(.k14-cuerda--on) { background-color: var(--k6-lcd); color: var(--k6-lcd-ink); border-color: var(--k6-lcd); }
+.k14-afinador .k14-rejilla { width: 100%; }
+
+/* --- «Enséñale tu guitarra» ------------------------------------------------------ */
+.k14-cal {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: var(--k-radius-lg);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+}
+.k14-cal--quieta { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.k14-cal__orden { margin: 0; font: 600 17px/1.35 var(--k-font-ui); color: var(--k-text); }
+.k14-cal__orden b { color: #FF9440; }
+.k14-cal__ayuda { margin: 4px 0 0; font-size: var(--k-text-sm); color: var(--k-text-muted); max-width: 60ch; }
+.k14-cal__cuerdas { display: flex; gap: 6px; }
+.k14-cal__cuerda {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 0 10px;
+    text-align: center;
+    border-radius: var(--k-radius-sm);
+    background-color: var(--k6-lcd);
+    color: var(--k6-lcd-dim);
+    font: 700 13px var(--k-font-ui);
+    overflow: hidden;
+}
+.k14-cal__cuerda i { position: absolute; left: 0; bottom: 0; height: 4px; background-color: #FF9440; transition: width .2s; }
+.k14-cal__cuerda--ahora { color: var(--k6-lcd-ink); outline: 2px solid #FF9440; outline-offset: -2px; }
+.k14-cal__cuerda--lista { color: var(--k6-lcd-ink); }
+.k14-cal__cuerda--lista i { background-color: var(--k6-lcd-ink); }
+.k14-cal__paso { font: 700 11px var(--k-font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-muted); align-self: center; margin-right: auto; }
+.k14-cal .k10-boton:disabled { opacity: .45; cursor: default; }
+.k14-aviso-canal { padding: 0; border: 0; background: none; color: #FF9440; font: 600 12px var(--k-font-ui); text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ==========================================================================
+ * 0.14 · cuarta vuelta: todo en una pantalla, con pedalera
+ * La mesa a la izquierda, la pedalera a la derecha, como el Taller. La
+ * página no se desplaza: si los pedales no caben, se desplaza la pedalera.
+ * ========================================================================== */
+.k14.k14--pedalera {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 14px;
+}
+.k14-mesa {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 16px 14px;
+    border-radius: var(--k-radius-xl);
+    background-color: var(--k-surface);
+    border: 1px solid var(--k-divider);
+    overflow: hidden;
+}
+.k14-mesa .k14-nombre { flex: none; min-height: 0; }
+.k14-mesa .k14-nombre__grande { font-size: clamp(40px, 8vh, 84px); }
+/* El mástil ocupa lo que quede y el dibujo cabe entero (ancho o alto). */
+.k14-mesa .k14-mastil {
+    flex: 1 1 auto;
+    min-height: 120px;
+    width: 100%;
+    container-type: size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.k14-mesa .k14-mastil svg {
+    width: min(100cqw, calc(100cqh * var(--k14-ratio, 2.6))) !important;
+    max-width: 100%;
+    max-height: none;
+    height: auto !important;
+}
+.k14-mesa .k9-ventana, .k14-mesa > .flex { flex: none; width: 100%; max-width: 900px; }
+.k14-mesa__botones { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; gap: 6px; }
+.k14-mesa__boton {
+    display: grid; place-items: center;
+    width: 36px; height: 36px;
+    border: 1px solid var(--k-divider);
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text);
+    cursor: pointer;
+}
+.k14-mesa__boton:hover { border-color: var(--k-border); }
+.k14-mesa--afinador { justify-content: center; }
+.k14-volver-cal { margin-top: 6px; }
+
+/* La pedalera: la de los diagramas, con altura de la vista. */
+.k14-pedalera {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--k-radius-xl);
+    overflow: hidden;
+}
+.k14-pedalera .k6-inspector__cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-top: 10px; }
+.k14-pedalera__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.k14-pedalera .k6-inspector__titulo { font-size: 30px; }
+.k11-pedalera #k6-pedal-esc-entrada { --p: var(--k11-azul); }
+.k11-pedalera #k6-pedal-esc-afinador { --p: var(--k11-amarillo); }
+.k11-pedalera #k6-pedal-esc-guitarra { --p: var(--k11-naranja); }
+.k11-pedalera #k6-pedal-esc-motor { --p: var(--k11-morado); }
+.k11-pedalera #k6-pedal-esc-vista { --p: var(--k11-rosa); }
+.k11-pedalera #k6-pedal-esc-monitor { --p: var(--k11-claro); }
+.k14-fila { display: flex; align-items: flex-end; justify-content: space-around; gap: 8px; flex-wrap: wrap; }
+.k14-pedalera .k14-medidor--lcd { max-width: none; height: 10px; background-color: #0E1014; }
+.k14-pedalera .k14-medidor--lcd .k14-medidor__barra { background-color: #EAF0FF; box-shadow: 0 0 6px rgba(150, 180, 255, .45); }
+.k14-pedalera .k14-aviso-canal { color: var(--k11-tinta); font-weight: 700; }
+.k14-pedalera .k14-error { background-color: #0E1014; color: #FF8A8A; }
+.k14-pedalera .k14-diag { font-size: 12px; background-color: #0E1014; color: #EAF0FF; }
+.k14-pedalera .k14-diag dt { color: #8E97A8; }
+.k14-pedalera .k14-diag__aviso { color: #FFB27A; }
+
+/* --- La calibración, encima del mástil -------------------------------------------- */
+.k14-calmesa {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 4;
+    width: min(620px, calc(100% - 28px));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: var(--k-radius-lg);
+    background-color: var(--k11-tinta, #101114);
+    color: #EEF0F3;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+}
+.k14-calmesa__paso { margin: 0; font: 700 10px var(--k-font-ui); letter-spacing: .12em; text-transform: uppercase; color: #8E97A8; }
+.k14-calmesa__orden { margin: 0; font: 600 18px/1.3 var(--k-font-ui); }
+.k14-calmesa__orden b { color: #FF9440; }
+.k14-calmesa__ayuda { margin: 0; font-size: 13px; color: #B4B9C2; }
+.k14-calmesa__ayuda--bien { color: var(--k-marker); }
+.k14-calmesa__ayuda--ojo { color: #FFB27A; }
+.k14-calmesa__cuerdas { display: flex; gap: 6px; }
+.k14-calmesa__cuerda {
+    position: relative; flex: 1 1 0; min-width: 0;
+    padding: 5px 0 9px; text-align: center;
+    border-radius: 6px; background-color: #1E2028; color: #8E97A8;
+    font: 700 12px var(--k-font-ui); overflow: hidden;
+}
+.k14-calmesa__cuerda i { position: absolute; left: 0; bottom: 0; height: 4px; background-color: #FF9440; transition: width .2s; }
+.k14-calmesa__cuerda--ahora { color: #EEF0F3; outline: 2px solid #FF9440; outline-offset: -2px; }
+.k14-calmesa__cuerda--lista { color: var(--k-marker); }
+.k14-calmesa__cuerda--lista i { background-color: var(--k-marker); }
+.k14-calmesa__botones { display: flex; flex-wrap: wrap; gap: 6px; }
+.k14-calmesa__botones .k10-boton { height: 32px; background-color: #24262C; color: #EEF0F3; border-color: transparent; }
+.k14-calmesa__botones .k10-boton--primario { background-color: var(--k-accent); color: var(--k-accent-ink); }
+.k14-calmesa__botones .k10-boton:disabled { opacity: .4; cursor: default; }
+.k14-calmesa__cancelar { margin-left: auto; }
+
+/* El afinador dentro de la mesa. */
+.k14-mesa .k14-afinador { max-width: 620px; }
+.k14-mesa .k14-afinador__letra { font-size: clamp(72px, 16vh, 150px); }
+
+/* Pantalla completa: solo la mesa. */
+.k14.k14--pedalera.k14--completa { display: flex; padding: 0; }
+.k14--completa .k14-mesa { flex: 1; border: 0; border-radius: 0; background: #000; }
+.k14--completa .k14-mesa .k14-nombre__grande { font-size: clamp(64px, 16vh, 180px); }
+.k14--quieta .k14-mesa__botones { opacity: 0; pointer-events: none; }
+
+.k14-solo-movil { display: none !important; }
+@media (max-width: 767px) {
+    .k14.k14--pedalera { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+    .k14-solo-movil { display: grid !important; }
+    .k14-pedalera {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: 120;
+        max-height: 78vh;
+        border-radius: 18px 18px 0 0;
+        transform: translateY(105%);
+        transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+    }
+    .k14-pedalera--abierta { transform: none; }
+    .k14-velo { position: fixed; inset: 0; z-index: 110; background: var(--k-scrim); }
+    .k14-calmesa { bottom: 8px; }
+    .k14-calmesa__orden { font-size: 15px; }
+}
+.k14-fila > .k6-pantalla-bloque { flex: 1 1 140px; align-self: center; }
+
+/* ==========================================================================
+ * 0.14 · LOS DROPS (sección del Taller)
+ * La misma mesa + pedalera que Escucha. En la mesa: el nombre, el mástil
+ * (uno con todos los juegos, o uno por juego) y una tira con cada forma.
+ * ========================================================================== */
+.k15-mesa { justify-content: flex-start; gap: 8px; padding-top: 14px; }
+.k15-cabeza { flex: none; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 48px; text-align: center; }
+.k15-titulo { margin: 0; font: 400 clamp(30px, 5vh, 48px)/1 var(--k-font-title); color: var(--k-text); }
+.k15-titulo span { color: var(--k-text-muted); }
+.k15-sub { margin: 0; font-size: 13px; color: var(--k-text-muted); font-variant-numeric: tabular-nums; }
+.k15-leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font: 600 11px var(--k-font-ui); color: var(--k-text-muted); }
+.k15-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.k15-leyenda i { width: 10px; height: 10px; border-radius: 3px; }
+.k15-vacio { margin: auto; max-width: 42ch; text-align: center; color: var(--k-text-muted); }
+
+/* Los mástiles caben enteros en lo que quede (ancho o alto). */
+.k15-neck {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    container-type: size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.k15-neck svg { width: min(100cqw, calc(100cqh * var(--k15-ratio, 2.4))) !important; height: auto !important; transition: none !important; }
+.k15-pila { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.k15-neck__rot {
+    position: absolute; left: 4px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center;
+    font: 700 10px var(--k-font-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-muted); white-space: nowrap;
+}
+
+/* La tira: cada forma en pequeño. */
+.k15-tira {
+    flex: none;
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 6px;
+    scrollbar-width: thin;
+}
+.k15-ficha {
+    flex: none;
+    width: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 5px 4px;
+    border: 2px solid transparent;
+    border-radius: var(--k-radius-md);
+    background-color: var(--k-surface-raised);
+    color: var(--k-text-muted);
+    font: 600 10px var(--k-font-ui);
+    cursor: pointer;
+    box-shadow: inset 0 3px 0 var(--k15-color);
+}
+.k15-ficha svg { width: 100%; height: auto; pointer-events: none; }
+.k15-ficha:hover { border-color: var(--k-border); }
+.k15-ficha--on { border-color: var(--k15-color); color: var(--k-text); }
+
+.k11-pedalera #k6-pedal-drops-acorde { --p: var(--k11-morado); }
+.k11-pedalera #k6-pedal-drops-drop { --p: var(--k11-azul); }
+.k11-pedalera #k6-pedal-drops-cuerdas { --p: var(--k11-cian); }
+.k11-pedalera #k6-pedal-drops-vista { --p: var(--k11-rosa); }
+@media (max-width: 767px) {
+    .k15-cabeza { padding: 0 44px 0 8px; }
+    .k15-ficha { width: 70px; }
+}
+
+/* --- 0.14 · Pedal Escala: Básico / Avanzado --------------------------------------------- */
+.k16-escala { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.k16-escala .k9-conmuta { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.k16-escala .k9-conmuta__op { min-width: 0; padding: 0 6px; font-size: 12px; white-space: nowrap; }
+.k16-escala .k9-conmuta__pastilla { width: calc((100% - 6px) / 2); }
+.k16-escala .k9-conmuta:has(> button:nth-of-type(3)) .k9-conmuta__pastilla { width: calc((100% - 6px) / 3); }
+.k16-escala .k9-conmuta:has(> button:nth-of-type(4)) .k9-conmuta__pastilla { width: calc((100% - 6px) / 4); }
+.k16-escala .k9-conmuta-bloque, .k16-escala .k9-conmuta { width: 100%; }
